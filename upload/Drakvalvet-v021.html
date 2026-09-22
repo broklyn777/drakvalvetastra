@@ -1,0 +1,2952 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Drakvalvet v021 – Prolog: Vakttornet</title>
+<style>
+  :root{
+    --bg:#11100d;
+    --panel:#1a1813;
+    --panel2:#211e17;
+    --text:#e9e1cf;
+    --muted:#aaa08c;
+    --gold:#c7a85f;
+    --red:#b85f55;
+    --green:#6f9b68;
+    --line:#3a3428;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:radial-gradient(circle at top,#1a1813 0,#11100d 55%,#0b0a08 100%);
+    color:var(--text);
+    font-family:Georgia, 'Times New Roman', serif;
+    min-height:100vh;
+  }
+  .wrap{
+    max-width:1100px;
+    margin:0 auto;
+    padding:24px;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 280px;
+    gap:20px;
+  }
+  .card{
+    background:rgba(26,24,19,.96);
+    border:1px solid var(--line);
+    border-radius:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .main{padding:26px}
+  .side{padding:18px;align-self:start;position:sticky;top:20px}
+  h1,h2,h3{font-weight:500;letter-spacing:.02em;margin-top:0}
+  h1{font-size:32px;color:var(--gold);margin-bottom:6px}
+  h2{font-size:23px;color:#dbc98f}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:22px}
+  #story{font-size:18px;line-height:1.72}
+  #story p{margin:0 0 16px}
+  .choices{display:grid;gap:10px;margin-top:24px}
+  button{
+    width:100%;
+    text-align:left;
+    background:var(--panel2);
+    color:var(--text);
+    border:1px solid #4b4332;
+    border-radius:8px;
+    padding:13px 14px;
+    cursor:pointer;
+    font-family:inherit;
+    font-size:16px;
+    transition:.15s ease;
+  }
+  button:hover{border-color:var(--gold);transform:translateY(-1px)}
+  button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .stat{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0;font-size:14px}
+  .section{margin-top:18px}
+  .section h3{font-size:15px;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+  .bar{height:10px;background:#312b21;border-radius:999px;overflow:hidden;margin-top:6px}
+  .bar > div{height:100%;background:linear-gradient(90deg,#7d3f3a,#b85f55)}
+  .tag{
+    display:inline-block;
+    padding:3px 7px;
+    border:1px solid var(--line);
+    border-radius:999px;
+    color:var(--muted);
+    font-size:12px;
+    margin:3px 4px 0 0;
+  }
+  .combat{
+    border:1px solid #5a4038;
+    background:#1d1714;
+    padding:16px;
+    border-radius:10px;
+    margin-top:18px;
+  }
+  .combatlog{
+    max-height:260px;
+    overflow:auto;
+    background:#120f0d;
+    border:1px solid #352c25;
+    border-radius:8px;
+    padding:10px;
+    margin:12px 0;
+    font-size:15px;
+    line-height:1.5;
+  }
+  .combatlog > div{
+    padding:9px 10px;
+    margin:0 0 7px;
+    background:rgba(255,255,255,.018);
+    border:1px solid rgba(199,168,95,.10);
+    border-radius:7px;
+  }
+  .combatlog > div:last-child{margin-bottom:0}
+  .combatlog .log-main{
+    font-size:15px;
+    line-height:1.45;
+  }
+  .combatlog .log-detail{
+    display:block;
+    margin-top:3px;
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.35;
+  }
+  .combatlog .log-player{border-left:3px solid rgba(199,168,95,.55)}
+  .combatlog .log-enemy{border-left:3px solid rgba(184,95,85,.55)}
+  .combatlog .log-success{border-left:3px solid rgba(111,155,104,.65)}
+  .combatlog .log-neutral{border-left:3px solid rgba(170,160,140,.35)}
+
+  .enemyline{display:flex;justify-content:space-between;gap:12px;margin:4px 0}
+  .good{color:#9cc392}.bad{color:#d48a81}.gold{color:var(--gold)}
+  .small{font-size:13px;color:var(--muted)}
+  .footer{margin-top:22px;color:#7f7562;font-size:12px;text-align:center}
+  .create-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+  .class-card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .class-card h3{color:var(--gold);margin-bottom:8px}
+  .class-card p{font-size:14px;line-height:1.5;color:var(--muted)}
+  .class-card button{margin-top:10px}
+  .namebox{margin:15px 0}
+  .namebox input{width:100%;padding:12px;background:#120f0d;color:var(--text);border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:16px}
+  .xpbar{height:8px;background:#312b21;border-radius:999px;overflow:hidden;margin-top:6px}
+  .xpbar > div{height:100%;background:#9c8350}
+
+  .summary-name{font-size:28px;color:#e8d7ab;font-weight:700;line-height:1.05}
+  .summary-meta{font-size:14px;color:var(--muted);margin-top:4px}
+  .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+  .summary-grid .mini{background:#181610;border:1px solid var(--line);border-radius:8px;padding:10px 8px;text-align:center;font-size:12px;color:var(--muted)}
+  .summary-grid .mini strong{display:block;color:var(--text);font-size:18px;margin-top:4px}
+  .sheet-btn{margin-top:14px;text-align:center;font-weight:600}
+  .creation-screen{max-width:1020px}
+  .creation-title{font-size:15px;color:#d9c391;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 10px}
+  .creation-input{width:100%;padding:16px;background:#17140f;border:1px solid #7f6429;color:var(--text);border-radius:6px;font-size:18px;font-family:inherit}
+  .option-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .option-card{background:#19150f;border:1px solid #7a632f;border-radius:4px;padding:16px;cursor:pointer;transition:.15s ease;min-height:170px}
+  .option-card:hover{transform:translateY(-1px);border-color:#c7a85f}
+  .option-card.selected{background:#221a11;border-color:#d0a457;box-shadow:0 0 0 1px rgba(208,164,87,.35) inset}
+  .option-card h3{margin:0 0 10px;font-size:22px;color:#f0ddaf;text-transform:uppercase}
+  .option-card p{margin:0 0 8px;color:#d8ceb8;font-size:14px;line-height:1.45}
+  .option-card .bonus{color:#d79636;font-weight:700;font-size:14px}
+  .option-card.small-card{min-height:unset}
+  .creation-actions{display:flex;gap:14px;align-items:center;margin-top:26px;flex-wrap:wrap}
+  .creation-actions button{width:auto;padding:16px 24px;border-radius:4px;font-size:18px}
+  .primary-cta{background:#8e5f2a;border-color:#8e5f2a;color:#18120b}
+  .secondary-cta{background:#17140f;border-color:#7f6429;color:#e8d7ab}
+  .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;align-items:flex-start;justify-content:center;padding:18px;z-index:1000;overflow:auto}
+  .sheet-overlay.open{display:flex}
+  .sheet-card{width:min(620px,100%);background:#e3d6b3;color:#2c2114;border:2px solid #b89450;border-radius:9px;box-shadow:0 25px 60px rgba(0,0,0,.45);padding:28px 32px;position:relative}
+  .sheet-close{position:absolute;right:14px;top:14px;width:auto;padding:8px 12px;background:#3b2d1d;color:#f0e2bd;border:1px solid #7a632f;border-radius:6px}
+  .sheet-head h2{margin:0;font-size:38px;color:#2c2114}
+  .sheet-sub{margin-top:8px;font-size:24px;font-style:italic;color:#5b4a35}
+  .sheet-line{display:flex;justify-content:space-between;align-items:center;font-size:18px;margin:18px 0 6px}
+  .sheet-line strong{font-size:20px}
+  .sheet-meter{height:20px;background:#c3b79b;border-radius:999px;overflow:hidden}
+  .sheet-meter > div{height:100%}
+  .sheet-meter.hp > div{background:linear-gradient(90deg,#8f2525,#b94343)}
+  .sheet-meter.xp > div{background:#7393b2}
+  .sheet-triad{display:flex;gap:34px;margin:20px 0 10px;font-size:20px;flex-wrap:wrap}
+  .sheet-triad strong{font-size:28px;color:#2c2114}
+  .sheet-divider{border-top:2px solid #bba987;margin:24px 0}
+  .sheet-attrs{display:grid;grid-template-columns:1fr;gap:0}
+  .sheet-attr{display:flex;justify-content:space-between;border-bottom:1px dotted rgba(68,54,36,.25);padding:8px 0;font-size:23px;font-weight:700}
+  .sheet-attr span:last-child{font-weight:600}
+  .sheet-block-title{font-size:18px;color:#5b4a35;text-transform:uppercase;letter-spacing:.06em;margin:0 0 14px}
+  .sheet-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;font-size:18px}
+  .sheet-item .left{display:flex;flex-direction:column}
+  .sheet-item .meta{font-size:13px;color:#6a5a45}
+  .sheet-use{width:auto;padding:10px 16px;background:#3b2d1d;color:#f1e5c3;border:1px solid #8b6d35;border-radius:7px;font-weight:700}
+  .sheet-use:disabled{opacity:.45}
+
+  .sheet-equip-title,.sheet-bag-title{font-size:20px;color:#5b4a35;text-transform:uppercase;letter-spacing:.08em;margin:0 0 14px}
+  .equip-slot{border:1px solid #bda77a;border-radius:6px;padding:14px 16px;margin:10px 0;background:rgba(255,255,255,.08)}
+  .equip-slot .slot-label{font-size:15px;color:#66533b;text-transform:uppercase;letter-spacing:.06em}
+  .equip-slot .slot-main{font-size:22px;font-weight:700;margin-top:5px}
+  .equip-slot .slot-meta{font-size:15px;color:#5d4b34;margin-left:4px;font-weight:400}
+  .creation-preview{margin-top:24px;border:1px solid #7a632f;border-radius:6px;background:#17140f;padding:16px}
+  .creation-preview h3{margin:0 0 12px;color:#e3cb91}
+  .preview-row{display:flex;justify-content:space-between;gap:16px;padding:6px 0;border-bottom:1px solid #332b20}
+  .preview-row:last-child{border-bottom:0}
+  .preview-primary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+  .preview-primary > div{background:#201b14;border:1px solid #3d3325;border-radius:6px;padding:10px;text-align:center;color:#b8aa8c}
+  .preview-primary strong{display:block;color:#f0dfb4;font-size:22px;margin-top:4px}
+
+  @media(max-width:980px){.option-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:700px){.option-grid{grid-template-columns:1fr}.sheet-card{padding:22px 18px}.sheet-head h2{font-size:32px}.sheet-sub{font-size:20px}.sheet-attr{font-size:20px}}
+  @media(max-width:800px){.create-grid{grid-template-columns:1fr}}
+  @media(max-width:800px){
+    .wrap{grid-template-columns:1fr;padding:12px}
+    .side{position:static}
+    .main{padding:18px}
+    #story{font-size:17px}
+  }
+
+  /* v021 ------------------------------------------------------------ */
+  .mp-badge{
+    position:fixed;right:12px;bottom:12px;z-index:1200;
+    background:#17140f;border:1px solid #7a632f;border-radius:999px;
+    padding:8px 12px;color:#d9c391;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.35)
+  }
+  .mp-start{max-width:760px;margin:10px auto 0}
+  .mp-start h2{font-size:28px;margin-bottom:8px}
+  .mp-start p{color:#c8bda6;line-height:1.55}
+  .mp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+  .mp-card{background:#19150f;border:1px solid #7a632f;border-radius:8px;padding:16px}
+  .mp-card h3{color:#f0ddaf;margin:0 0 8px;font-size:20px}
+  .mp-card p{font-size:14px;color:#b9ad96;min-height:64px}
+  .mp-code{
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:34px;letter-spacing:.15em;text-align:center;color:#f0ddaf;
+    padding:14px;background:#120f0d;border:1px solid #7a632f;border-radius:8px;margin:16px 0
+  }
+  .mp-input{
+    width:100%;padding:14px;background:#120f0d;color:var(--text);
+    border:1px solid #7a632f;border-radius:7px;font:inherit
+  }
+  .mp-select{
+    width:100%;padding:12px 14px;background:#120f0d;color:var(--text);
+    border:1px solid #7a632f;border-radius:7px;font:inherit;margin:8px 0 12px
+  }
+  .mp-note{padding:12px 14px;background:#181610;border-left:3px solid #8e6f34;color:#cfc2a8;margin:14px 0}
+  .mp-connected{color:#9cc392}
+  .mp-wait{color:#dbc98f}
+  .mp-player-card{
+    border:1px solid #4b4332;border-radius:8px;padding:10px 11px;margin:8px 0;background:#181610
+  }
+  .mp-player-card.active{border-color:var(--gold);box-shadow:0 0 0 1px rgba(199,168,95,.22) inset}
+  .mp-player-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+  .mp-player-name{font-weight:700;color:#ead8aa}
+  .mp-player-meta{font-size:12px;color:var(--muted);margin-top:3px}
+  .mp-hp{font-size:12px;color:#d9c391}
+  .mp-turn{
+    margin:12px 0;padding:10px 12px;border:1px solid #7a632f;border-radius:8px;
+    background:#181610;color:#dbc98f;font-weight:700
+  }
+  .mp-turn.yours{border-color:#6f9b68;color:#a8d2a0}
+  .mp-creation-status{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+  .mp-chip{padding:6px 9px;border:1px solid #4b4332;border-radius:999px;color:var(--muted);font-size:12px}
+  .mp-chip.ready{border-color:#5f8659;color:#9cc392}
+  .mp-waiting-screen{text-align:center;padding:24px 0}
+  @media(max-width:760px){.mp-grid{grid-template-columns:1fr}.mp-card p{min-height:0}.combatlog{max-height:340px}}
+
+
+  .ability-box{
+    margin-top:12px;padding:10px 12px;border:1px solid rgba(199,168,95,.28);
+    border-radius:8px;background:rgba(199,168,95,.035)
+  }
+  .ability-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);margin-bottom:5px}
+  .ability-desc{font-size:12px;color:var(--muted);line-height:1.4;margin-bottom:8px}
+  .ability-used{opacity:.55}
+
+  /* v021 combat UI -------------------------------------------------- */
+  .combat-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  .combat-enemies{display:grid;gap:7px;margin:10px 0 8px}
+  .combat-enemy-card{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 11px;border:1px solid #40372b;border-radius:8px;background:#17130f}
+  .combat-enemy-card .enemy-meta{font-size:12px;color:var(--muted);margin-top:2px}
+  .combat-enemy-card .enemy-hp{white-space:nowrap;color:#ead8aa}
+  .combatlog.compact > div:nth-last-child(n+4){display:none}
+  .combatlog.expanded{max-height:50vh}
+  .combat-log-toggle{width:auto;padding:8px 11px;margin:0 0 10px;font-size:13px;background:#17140f;color:#cfc2a8}
+  .combat-actions{margin-top:12px;border:1px solid #5a4931;border-radius:10px;background:#17130f;padding:10px;box-shadow:0 -8px 24px rgba(0,0,0,.18)}
+  .combat-actions-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);margin:0 0 7px}
+  .combat-actions-primary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .combat-actions-primary button{height:100%;padding:11px 10px;font-size:14px}
+  .combat-actions-secondary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+  .combat-actions-secondary button{padding:10px;font-size:13px}
+  .combat-more-panel{display:none;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+  .combat-more-panel.open{display:grid}
+  .combat-more-panel button{padding:10px;font-size:13px}
+  .combat-waiting{grid-column:1/-1;text-align:center}
+
+  @media(max-width:800px){
+    body.combat-active{padding-bottom:190px}
+    .combat{padding:13px;margin-top:12px}
+    .combat h3{margin-bottom:7px}
+    .combatlog{max-height:none;margin:8px 0;padding:7px;font-size:14px}
+    .combatlog.expanded{max-height:48vh;overflow:auto}
+    .combatlog > div{padding:7px 8px;margin-bottom:5px}
+    .combat-actions{position:fixed;left:8px;right:8px;bottom:8px;z-index:1150;margin:0;padding:9px;background:rgba(23,19,15,.98);box-shadow:0 -10px 35px rgba(0,0,0,.6);backdrop-filter:blur(8px)}
+    .combat-actions-primary{gap:6px}
+    .combat-actions-primary button{padding:10px 8px;font-size:13px}
+    .combat-actions-secondary{gap:6px;margin-top:6px}
+    .combat-actions-secondary button{padding:9px 8px}
+    .combat-actions-label{margin-bottom:6px}
+    .mp-badge{top:8px;right:8px;bottom:auto;font-size:10px;padding:5px 8px;opacity:.92}
+    .enemyline{font-size:14px}
+    .combat-enemy-card{padding:8px 9px}
+  }
+
+
+  /* v021 tactical combat ------------------------------------------------ */
+  .tactical-strip{display:flex;gap:6px;flex-wrap:wrap;margin:7px 0 9px;font-size:12px}
+  .tactical-pill{border:1px solid #4b4332;background:#15120e;border-radius:999px;padding:4px 8px;color:#cfc2a8}
+  .tactical-pill.intent{border-color:#8a4f47;color:#e0aaa3}
+  .tactical-pill.good{border-color:#557850;color:#a9cda2}
+  .combat-enemy-card .enemy-role{display:inline-block;margin-left:5px;color:#d2b66c;font-size:11px}
+  .combat-action-types{display:flex;gap:6px;overflow-x:auto;padding-bottom:3px;scrollbar-width:none}
+  .combat-action-types::-webkit-scrollbar{display:none}
+  .combat-action-types button{width:auto;min-width:max-content;padding:8px 10px;font-size:12px;text-align:center}
+  .combat-action-types button.selected{border-color:var(--gold);background:#241d13}
+  .combat-targets{display:flex;gap:6px;overflow-x:auto;margin-top:7px;padding-bottom:2px;scrollbar-width:none}
+  .combat-targets::-webkit-scrollbar{display:none}
+  .combat-target{width:auto!important;min-width:max-content!important;padding:7px 9px!important;font-size:12px!important;line-height:1.15!important;text-align:center!important}
+  .combat-target .small{font-size:10px}
+  .combat-target-locked{opacity:.46!important;border-style:dashed!important}
+  .combat-position-btn{width:auto!important;padding:8px 10px!important;font-size:12px!important}
+  @media(max-width:800px){
+    body.combat-active{padding-bottom:145px}
+    .combat-actions{padding:7px 8px}
+    .combat-actions-label{margin-bottom:4px}
+    .combat-action-types button{padding:7px 9px;font-size:11px}
+    .combat-target{padding:6px 8px!important;font-size:11px!important}
+    .combat-target .small{font-size:9px}
+    .combat-actions-secondary{margin-top:5px}
+    .combat-actions-secondary button{padding:7px 8px;font-size:11px}
+    .tactical-strip{margin:5px 0 7px;font-size:11px}
+    .tactical-pill{padding:3px 7px}
+  }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card main">
+    <h1>Drakvalvet</h1>
+    <div class="sub">Prolog: Vakttornet vid Gråskogen · v021</div>
+    <div id="story"></div>
+    <div id="combat"></div>
+    <div id="choices" class="choices"></div>
+    <div class="footer">Regelgrund: D&D 2024 (5.5e) · endast implementerade mekaniker används.</div>
+  </main>
+
+  <aside class="card side">
+    <div class="section">
+      <h3>Översikt</h3>
+      <div class="summary-name" id="charname">—</div>
+      <div class="summary-meta" id="sideMeta">Ingen skapad karaktär ännu</div>
+      <div class="stat"><span>Liv</span><strong id="hp"></strong></div>
+      <div class="bar"><div id="hpbar"></div></div>
+      <div class="stat"><span>Erfarenhet</span><strong id="xp">0 / 100</strong></div>
+      <div class="xpbar"><div id="xpbar"></div></div>
+      <div class="summary-grid">
+        <div class="mini">Försvar<strong id="ac"></strong></div>
+        <div class="mini">Attack<strong id="atk"></strong></div>
+        <div class="mini">Guld<strong id="gold"></strong></div>
+      </div>
+      <button class="sheet-btn" onclick="toggleSheet(true)">Öppna karaktärsblad</button>
+    </div>
+    <div class="section" id="partySection" style="display:none">
+      <h3>Grupp</h3>
+      <div id="partyPanel" class="small"></div>
+    </div>
+    <div class="section">
+      <h3>Utrustning</h3>
+      <div id="gear" class="small"></div>
+    </div>
+    <div class="section">
+      <h3>Status</h3>
+      <div id="flags" class="small"></div>
+    </div>
+  </aside>
+</div>
+
+<div id="sheetOverlay" class="sheet-overlay" onclick="toggleSheet(false, event)">
+  <div class="sheet-card" onclick="event.stopPropagation()">
+    <button class="sheet-close" onclick="toggleSheet(false)">Stäng</button>
+    <div class="sheet-head">
+      <h2 id="sheetName">Äventyrare</h2>
+      <div class="sheet-sub" id="sheetMeta">—</div>
+    </div>
+
+    <div class="sheet-line"><span>Liv</span><strong id="sheetHpText">0 / 0</strong></div>
+    <div class="sheet-meter hp"><div id="sheetHpBar"></div></div>
+
+    <div class="sheet-line"><span>Erfarenhet</span><strong id="sheetXpText">0 / 100</strong></div>
+    <div class="sheet-meter xp"><div id="sheetXpBar"></div></div>
+
+    <div class="sheet-triad">
+      <div>Försvar <strong id="sheetAc">0</strong></div>
+      <div>Anfall <strong id="sheetAttack">+0</strong></div>
+      <div>Guld <strong id="sheetGold">0</strong></div>
+    </div>
+
+    <div class="sheet-divider"></div>
+
+    <div class="sheet-equip-title">Utrustning</div>
+    <div class="equip-slot">
+      <div class="slot-label">Vapen</div>
+      <div class="slot-main" id="sheetWeapon">—</div>
+    </div>
+    <div class="equip-slot">
+      <div class="slot-label">Sköld</div>
+      <div class="slot-main" id="sheetShield">—Tom plats</div>
+    </div>
+    <div class="equip-slot">
+      <div class="slot-label">Rustning</div>
+      <div class="slot-main" id="sheetArmor">—</div>
+    </div>
+    <div class="equip-slot">
+      <div class="slot-label">Föremål</div>
+      <div class="slot-main" id="sheetSpecial">—Tom plats</div>
+    </div>
+
+    <div class="sheet-divider"></div>
+
+    <div class="sheet-attrs">
+      <div class="sheet-attr"><span>STY</span><span id="sheetStr">10 (+0)</span></div>
+      <div class="sheet-attr"><span>SMI</span><span id="sheetDex">10 (+0)</span></div>
+      <div class="sheet-attr"><span>KON</span><span id="sheetCon">10 (+0)</span></div>
+      <div class="sheet-attr"><span>INT</span><span id="sheetInt">10 (+0)</span></div>
+      <div class="sheet-attr"><span>VIS</span><span id="sheetWis">10 (+0)</span></div>
+      <div class="sheet-attr"><span>KAR</span><span id="sheetCha">10 (+0)</span></div>
+    </div>
+
+    <div class="sheet-divider"></div>
+
+    <div class="sheet-bag-title">Väska</div>
+    <div id="sheetInventory"></div>
+  </div>
+</div>
+
+<div id="mpBadge" class="mp-badge">v021 · startar</div>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<script>
+const state = {
+  name:"Äventyrare",
+  race:"",
+  className:"",
+  talent:"",
+  creation:{race:null, class:null, talent:null},
+  str:10, dex:10, con:10, int:10, wis:10, cha:10,
+  hp: 15, maxHp: 15, ac: 12, attackBonus: 4, damage: [1,8,2], damageType:"Hugg",
+  gold: 10, level:1, xp:0, nextXp:300,
+  weapon:"Resekniv (+1 skada)",
+  armor:"Enkel resdräkt",
+  shield:false,
+  potions:2,
+  herbs:0,
+  sigil:false,
+  torch:false,
+  rope:false,
+  warned:false,
+  towerKey:false,
+  scene:"creation",
+  combat:null,
+  bossWeakened:false,
+  rested:false
+};
+
+const XP_THRESHOLDS = [0,300,900,2700,6500,14000,23000,34000,48000,64000,85000,100000,120000,140000,165000,195000,225000,265000,305000,355000];
+
+function xpThresholdForLevel(level){
+  return XP_THRESHOLDS[Math.min(19, Math.max(1, level))] || 355000;
+}
+function fixedHpGainForClass(className, con){
+  const mod=Math.floor((con-10)/2);
+  const fixed = className==="Krigare" ? 6 : className==="Magiker" ? 4 : 5;
+  return Math.max(1,fixed+mod);
+}
+function initiativeModFromDex(dex){ return Math.floor(((dex??10)-10)/2); }
+function rollWithDisadvantage(){ const a=roll(20), b=roll(20); return {a,b,result:Math.min(a,b)}; }
+function initiativeRoll2024(surprised=false){
+  if(surprised){ const r=rollWithDisadvantage(); return {die:r.result,detail:`${r.a}/${r.b} → ${r.result}`}; }
+  const die=roll(20); return {die,detail:String(die)};
+}
+
+const world = {
+  miraTrust:0,
+  miraTrail:false,
+  smithTrust:0,
+  smithMetalClue:false,
+  smithFavor:false,
+  edricTrust:0,
+  keeperLore:false,
+  edricMap:false,
+  openedVault:false,
+  brokeSeal:false,
+  leftSealed:false,
+  villageRumors:false,
+  wagonClue:null,
+  xpAwards:{},
+  xpNotice:null
+};
+
+function resetWorld(){
+  Object.assign(world,{
+    miraTrust:0,miraTrail:false,
+    smithTrust:0,smithMetalClue:false,smithFavor:false,
+    edricTrust:0,keeperLore:false,edricMap:false,
+    openedVault:false,brokeSeal:false,leftSealed:false,
+    villageRumors:false,wagonClue:null,
+    xpAwards:{},xpNotice:null
+  });
+}
+
+function partyHas(prop){
+  if(typeof mp!=="undefined" && mp.mode==="multi"){
+    return (mp.players||[]).some(p=>p && p[prop]);
+  }
+  return !!state[prop];
+}
+
+const raceData = {
+  human:{label:"Människa", desc:"Anpassningsbar och envis. Jämn styrka i allt.", bonus:"STY +1, SMI +1, KON +1, INT +1, VIS +1, KAR +1", mods:{str:1,dex:1,con:1,int:1,wis:1,cha:1}, hpBonus:0, acBonus:0},
+  elf:{label:"Alv", desc:"Kvicktänkt och lättfotad, med skarpa sinnen.", bonus:"SMI +2, INT +1", mods:{str:0,dex:2,con:0,int:1,wis:0,cha:0}, hpBonus:0, acBonus:1},
+  dwarf:{label:"Dvärg", desc:"Härdad och stryktålig, van vid mörker och sten.", bonus:"KON +2, STY +1", mods:{str:1,dex:0,con:2,int:0,wis:0,cha:0}, hpBonus:2, acBonus:0},
+  halfling:{label:"Halvling", desc:"Liten, snabb och förvånansvärt övertalande.", bonus:"SMI +2, KAR +1", mods:{str:0,dex:2,con:0,int:0,wis:0,cha:1}, hpBonus:0, acBonus:1}
+};
+
+const classData = {
+  warrior:{label:"Krigare", desc:"Lever på stål och envishet.", bonus:"Vapen: Svärd (d8) · Livstärning d10 · Klassförmåga: Skydda", base:{str:15,dex:11,con:14,int:9,wis:10,cha:10}, maxHp:16, ac:14, attack:5, damage:[1,8,2], damageType:"Hugg", weapon:"Svärd (d8)", armor:"Läderbrynja", shield:false, potions:2, herbs:0},
+  mage:{label:"Magiker", desc:"Formar lågan med tanken.", bonus:"Vapen: Eldpil (d8) · Livstärning d6 · Klassförmåga: Brinnande händer", base:{str:9,dex:12,con:11,int:16,wis:13,cha:10}, maxHp:11, ac:12, attack:5, damage:[1,8,1], damageType:"Eld", weapon:"Eldpil (d8)", armor:"Resekappa", shield:false, potions:2, herbs:1},
+  thief:{label:"Tjuv", desc:"Slår till där ingen ser.", bonus:"Vapen: Dolk (d6) · Livstärning d8 · Klassförmåga: Smygattack", base:{str:11,dex:15,con:12,int:12,wis:11,cha:12}, maxHp:13, ac:15, attack:5, damage:[1,6,2], damageType:"Stick", weapon:"Dolk (d6)", armor:"Mjuk läderrustning", shield:false, potions:2, herbs:0},
+  cleric:{label:"Kleriker", desc:"Bär ett ljus som inte slocknar.", bonus:"Vapen: Stridsklubba (d6) · Livstärning d8 · Klassförmåga: Helande ord", base:{str:13,dex:10,con:13,int:11,wis:15,cha:12}, maxHp:14, ac:14, attack:4, damage:[1,6,2], damageType:"Kross", weapon:"Stridsklubba (d6)", armor:"Brynja av ringläder", shield:true, potions:2, herbs:1}
+};
+
+const talentData = {
+  iron:{label:"Stålsinne", desc:"Du är svår att fälla och får mer uthållighet.", bonus:"+4 max HP", hpBonus:4, attackBonus:0, acBonus:0, potions:0, herbs:0},
+  keen:{label:"Skarp blick", desc:"Du läser striden bättre än de flesta.", bonus:"+1 på attacker", hpBonus:0, attackBonus:1, acBonus:0, potions:0, herbs:0},
+  supply:{label:"Packråtta", desc:"Du reser alltid bättre förberedd än andra.", bonus:"+1 hälsodryck, +1 ört", hpBonus:0, attackBonus:0, acBonus:0, potions:1, herbs:1}
+};
+
+const scenes = {
+  roadIntro:{
+    title:"Vägen mot Gråskogen",
+    text:()=>{
+      const multi = typeof mp!=="undefined" && mp.mode==="multi";
+      return multi ? [
+        "Tre dagar har gått sedan ni lämnade den trafikerade delen av Kungsvägen och vek av norrut mot Gråskogen.",
+        "Sedan dess har gårdarna blivit färre, vägen smalare och träden tätare. Den sista milstolpen ni passerade var så vittrad att namnet inte längre gick att läsa.",
+        "Kartan ni bär visar vägen mot <strong>Skogsby</strong>, den sista större bosättningen innan Gråskogen tar vid på allvar. Ni har ingen särskild anledning att dröja i trakten. Skogsby är bara nästa plats längs vägen.",
+        "På det förra värdshuset sa man att vägen dit inte brukade vara farlig.",
+        "Bara öde.",
+        "Regnet har följt er sedan eftermiddagen och blivit kallare för varje timme. När mörkret börjar lägga sig mellan granarna ser ni till sist ett varmt ljus längre fram.",
+        "Ett lågt värdshus ligger vid vägkanten. Ovanför dörren gungar en sliten träskylt i vinden. På den syns tre målade lyktor, blekta av många års regn och vinter.",
+        "<strong>Tre Lyktor.</strong>",
+        "Ni skyndar de sista stegen mot huset, mer för värmen än för något annat.",
+        "Än så länge."
+      ] : [
+        "Tre dagar har gått sedan du lämnade den trafikerade delen av Kungsvägen och vek av norrut mot Gråskogen.",
+        "Sedan dess har gårdarna blivit färre, vägen smalare och träden tätare. Den sista milstolpen du passerade var så vittrad att namnet inte längre gick att läsa.",
+        "Kartan i din ficka visar vägen mot <strong>Skogsby</strong>, den sista större bosättningen innan Gråskogen tar vid på allvar. Du har ingen särskild anledning att dröja i trakten. Skogsby är bara nästa plats längs vägen.",
+        "På det förra värdshuset sa man att vägen dit inte brukade vara farlig.",
+        "Bara öde.",
+        "Regnet har följt dig sedan eftermiddagen och blivit kallare för varje timme. När mörkret börjar lägga sig mellan granarna ser du till sist ett varmt ljus längre fram.",
+        "Ett lågt värdshus ligger vid vägkanten. Ovanför dörren gungar en sliten träskylt i vinden. På den syns tre målade lyktor, blekta av många års regn och vinter.",
+        "<strong>Tre Lyktor.</strong>",
+        "Du skyndar de sista stegen mot huset, mer för värmen än för något annat.",
+        "Än så länge."
+      ];
+    },
+    choices:[["Gå in på värdshuset","inn"]]
+  },
+  inn:{
+    title:"Värdshuset Tre Lyktor",
+    text:()=>{
+      const multi = typeof mp!=="undefined" && mp.mode==="multi";
+      return multi ? [
+        "Värmen slår emot er när dörren öppnas. Det luktar vedrök, våt ull och mat från grytan över elden.",
+        "Vid ett av borden sitter en äldre man i grå ullkappa. Framför honom ligger en karta med ett ensamt kryss där skogen blir som tätast.",
+        "“På väg mot Skogsby?” frågar han. Sedan pekar han på krysset. “Vakttornet. Tre jägare gick dit för fyra dagar sedan. Ingen kom tillbaka. I natt såg vi ljus mellan träden.”",
+        "Innan ni hinner svara hörs snabba, ojämna hovslag ute i mörkret.",
+        "Ett kort rop — sedan ett tungt slag mot ytterdörren."
+      ] : [
+        "Värmen slår emot dig när dörren öppnas. Det luktar vedrök, våt ull och mat från grytan över elden.",
+        "Vid ett av borden sitter en äldre man i grå ullkappa. Framför honom ligger en karta med ett ensamt kryss där skogen blir som tätast.",
+        "“På väg mot Skogsby?” frågar han. Sedan pekar han på krysset. “Vakttornet. Tre jägare gick dit för fyra dagar sedan. Ingen kom tillbaka. I natt såg vi ljus mellan träden.”",
+        "Innan du hinner svara hörs snabba, ojämna hovslag ute i mörkret.",
+        "Ett kort rop — sedan ett tungt slag mot ytterdörren."
+      ];
+    },
+    choices:[
+      ["Dra vapnet och gå mot dörren", "door"],
+      ["Gå till fönstret och spana först", "window"],
+      ["Fråga mannen vad han inte berättar", "oldman"]
+    ]
+  },
+  window:{
+    title:"Genom regnet",
+    text:[
+      "Du drar undan gardinen en handsbredd. På gårdsplanen står en sadellös häst, täckt av skum. Någon ligger hopkrupen bredvid brunnen.",
+      "Längre bort, precis där lyktskenet dör, rör sig två mörka gestalter mot värdshuset. Den ene har båge.",
+      "Du har några sekunders försprång."
+    ],
+    effect:()=>{ state.warned=true; },
+    choices:[
+      ["Varna alla och ta position vid dörren", "door"],
+      ["Smyg ut genom köket och försök flankera dem", "ambush"]
+    ]
+  },
+  oldman:{
+    title:"Det gamla sigillet",
+    text:[
+      "Mannen ser mot dörren, sedan på dig. Till sist drar han fram något ur rocken: en liten bronsskiva märkt med en drake vars vingar bildar en cirkel.",
+      "“Min far hittade den i tornet när jag var barn. Han sade att tornet inte byggdes för att vaka över vägen. Det byggdes för att vaka över något under marken.”",
+      "Han skjuter sigillet över bordet. “Om du går dit — ta detta.”"
+    ],
+    effect:()=>{state.sigil=true;},
+    choices:[["Ta sigillet och möt hotet utanför","door"]]
+  },
+  door:{
+    title:"Blod på tröskeln",
+    text:[
+      "Dörren slås upp. En ung ryttare faller in över tröskeln med ena handen pressad mot sidan.",
+      "Bakom honom kommer två vägrövare ur regnet. Den främste höjer ett kortsvärd. Bågskytten stannar ute på gården och spänner sin sträng.",
+      "Det finns ingen tid kvar för ord."
+    ],
+    combat:{
+      enemies:[
+        {name:"Vägrövare", hp:10, maxHp:10, ac:11, attack:2, dmg:[1,4,1], weapon:"Kortsvärd", damageType:"Hugg", position:"fram", blocksBackline:true},
+        {name:"Bågskytt", hp:8, maxHp:8, ac:11, attack:2, dmg:[1,4,0], weapon:"Kortbåge", damageType:"Stick", position:"bak"}
+      ],
+      onWin:"afterBandits", xp:45
+    }
+  },
+  ambush:{
+    title:"Bakom vedboden",
+    text:[
+      "Du glider ut genom köksdörren. Regnet döljer dina steg. När rånarna når gårdsplanen är du redan bakom dem.",
+      "Bågskytten hinner aldrig få upp vapnet innan du rusar fram."
+    ],
+    effect:()=>{state.warned=true;},
+    combat:{
+      enemies:[
+        {name:"Vägrövare", hp:10, maxHp:10, ac:11, attack:2, dmg:[1,4,1], weapon:"Kortsvärd", damageType:"Hugg"},
+        {name:"Överraskad bågskytt", hp:6, maxHp:6, ac:10, attack:2, dmg:[1,4,0], weapon:"Kortbåge", damageType:"Stick"}
+      ],
+      onWin:"afterBandits", xp:45, surprise:"enemies"
+    }
+  },
+  afterBandits:{
+    title:"En väg in i skogen",
+    text:[
+      "När den sista rövaren faller blir gården tyst igen, bortsett från regnet.",
+      "På en av kropparna hittar du ett grovt järnmynt märkt med samma draksymbol som på den gamle mannens sigill. Ryttaren på golvet lyckas få fram några ord:",
+      "“De har tagit de andra… till tornet.”",
+      "Bland rövarnas saker ligger en liten sköld, en flaska läkande brygd och en handfull mynt."
+    ],
+    effect:()=>{ state.gold+=11; state.potions+=1; if(!state.shield){state.shield=true; state.ac+=2;} state.towerKey=true; },
+    choices:[
+      ["Ge dig av mot vakttornet direkt", "forest"],
+      ["Vila kort och bind om såren — återfå 8 HP", "rest"]
+    ]
+  },
+  rest:{
+    title:"En kort vila",
+    text:()=> {
+      const before=state.hp;
+      const healed=state.rested?0:Math.min(8,state.maxHp-state.hp);
+      const after=Math.min(state.maxHp,state.hp+healed);
+      return [
+        "Du sitter nära elden medan värdshusvärden tvättar blodet från golvet. Efter en halvtimme har skakningen i händerna lagt sig.",
+        healed>0 ? `Du återfår ${healed} HP. ${before}/${state.maxHp} → ${after}/${state.maxHp} HP.` : "Du är redan så återhämtad som den korta vilan kan göra dig.",
+        "När du går ut har regnet nästan upphört. Molnen ligger lågt över Gråskogen."
+      ];
+    },
+    effect:()=>{ if(!state.rested){state.hp=Math.min(state.maxHp,state.hp+8);state.rested=true;} },
+    choices:[["Följ vägen mot tornet","forest"]]
+  },
+  forest:{
+    title:"Gråskogen",
+    text:[
+      "Stigen slingrar sig mellan höga granar och svarta klippor. Ju längre in du går desto tystare blir skogen.",
+      "Efter en knapp timme hittar du resterna av en lägerplats. En trasig ryggsäck ligger intill eldstaden. Bredvid den finns färska spår som leder bort från stigen.",
+      "Långt fram genom träden skymtar du toppen av ett sönderfallet stentorn."
+    ],
+    choices:[
+      ["Undersök den övergivna lägerplatsen", "camp"],
+      ["Följ spåren bort från stigen", "tracks"],
+      ["Gå direkt mot tornet", "towerExterior"]
+    ]
+  },
+  camp:{
+    title:"Jägarnas läger",
+    text:[
+      "Ryggsäcken tillhör en av de saknade jägarna. Du hittar ett rep, torra fnösken och några medicinska örter.",
+      "Under en filt ligger också ett sönderbrutet armborst. Något stort har trampat rakt genom lägret."
+    ],
+    effect:()=>{state.rope=true;state.herbs+=1;state.torch=true;},
+    choices:[["Fortsätt mot tornet","towerExterior"]]
+  },
+  tracks:{
+    title:"Spår i mossan",
+    text:[
+      "Spåren leder till en smal ravin. Där hittar du en av jägarna, levande men svårt skadad.",
+      "Han berättar att rövarna arbetar åt någon de kallar Väktaren. Under tornet finns en äldre ruin, och rövarna har försökt öppna en stendörr där nere.",
+      "“De väckte något”, viskar han. “Det följer ljud.”",
+      "Innan du går visar han en dold stig som leder till tornets baksida."
+    ],
+    effect:()=>{state.bossWeakened=true;},
+    choices:[["Ta den dolda stigen till tornet","towerExterior"]]
+  },
+  towerExterior:{
+    title:"Det fallna vakttornet",
+    text:[
+      "Tornet står på en bergsrygg som ett avbrutet finger mot himlen. Murarna är täckta av mossa och den övre våningen har rasat in.",
+      "Två vakter håller till vid huvudingången. På baksidan syns en spricka i muren, högt över marken.",
+      "Någonstans under dina fötter hörs ett dovt, regelbundet slag."
+    ],
+    choices:()=> {
+      let arr = [["Gå mot huvudingången","towerFight"]];
+      if(state.rope) arr.push(["Använd repet och ta dig in genom sprickan","towerSneak"]);
+      if(state.sigil) arr.push(["Visa sigillet öppet och försök bluffa dig förbi","towerBluff"]);
+      return arr;
+    }
+  },
+  towerFight:{
+    title:"Vakten vid tornet",
+    text:[
+      "Vakterna ser dig och drar sina vapen. Den ene bär ringbrynja; den andre håller ett tungt spjut."
+    ],
+    combat:{
+      enemies:[
+        {name:"Tornvakt", hp:10, maxHp:10, ac:12, attack:2, dmg:[1,4,0], weapon:"Kortsvärd", damageType:"Hugg"},
+        {name:"Spjutvakt", hp:8, maxHp:8, ac:10, attack:3, dmg:[1,4,1], weapon:"Spjut", damageType:"Stick"}
+      ],
+      onWin:"towerHall", xp:35
+    }
+  },
+  towerSneak:{
+    title:"Genom muren",
+    text:[
+      "Repet håller. Du tar dig upp längs den våta stenen och pressar dig genom sprickan.",
+      "Du landar på ett mörkt loft ovanför vakterna och undviker striden helt. Där hittar du en kista som rövarna ännu inte brutit upp.",
+      "I den ligger ett välbalanserat gammalt svärd."
+    ],
+    effect:()=>{state.weapon="Vaktsvärd (+3 skada)";state.damage=[1,8,3];},
+    choices:[["Gå ner i tornets inre","towerHall"]]
+  },
+  towerBluff:{
+    title:"Drakens tecken",
+    text:[
+      "När vakterna ser sigillet förändras deras ansikten. Den ene gör genast en gest mot bröstet.",
+      "“Vi trodde att budbäraren redan var nere.”",
+      "Du säger ingenting. Efter några spänt tysta sekunder kliver de åt sidan.",
+      "Bluffen håller — åtminstone tills någon ställer en fråga."
+    ],
+    choices:[["Gå in i tornet","towerHall"]]
+  },
+  towerHall:{
+    title:"Under tornet",
+    text:[
+      "En spiraltrappa leder ner under marknivå. Luften blir kallare för varje steg.",
+      "Längst ner står en järndörr på glänt. Bakom den ligger en korridor byggd av mycket äldre sten än tornet ovanför.",
+      "På golvet syns blodspår. Från mörkret hörs ett skrapande ljud."
+    ],
+    choices:[
+      ["Tänd ljus och gå försiktigt framåt","cryptBeast"],
+      ["Ropa ut i mörkret","cryptBeastLoud"]
+    ]
+  },
+  cryptBeast:{
+    title:"Den blinda väktaren",
+    text:[
+      "Du går långsamt och håller andan. Då rör sig något mellan pelarna.",
+      "Varelsen är blek, nästan utan ögon, med långa armar som släpar mot stenen. Den vrider huvudet mot minsta ljud.",
+      state.bossWeakened ? "Jägarens varning räddar dig: du sparkar undan en lös sten åt motsatt håll. Varelsen kastar sig efter ljudet och blottar sidan." : "Den hör din stövel skrapa mot stenen och rusar mot dig."
+    ],
+    combat:{
+      enemies:[{name:"Blind kryptväktare", hp: state.bossWeakened?12:16, maxHp:state.bossWeakened?12:16, ac:11, attack:3, dmg:[1,4,1], weapon:"Klor", damageType:"Riv", resistances:["Stick"], weaknesses:["Eld"]}],
+      onWin:"sealedDoor", xp:70
+    }
+  },
+  cryptBeastLoud:{
+    title:"Ett misstag i mörkret",
+    text:[
+      "Ditt rop ekar genom korridoren.",
+      "Svaret är ett våldsamt skrapande från mörkret. Något stort kommer springande mot dig."
+    ],
+    combat:{
+      enemies:[{name:"Blind kryptväktare", hp:18, maxHp:18, ac:11, attack:3, dmg:[1,4,1], weapon:"Klor", damageType:"Riv", resistances:["Stick"], weaknesses:["Eld"]}],
+      onWin:"sealedDoor", xp:70
+    }
+  },
+  sealedDoor:{
+    title:"Stendörren",
+    text:[
+      "Bakom varelsens näste står stendörren som jägaren beskrev. Draksymbolen finns inhuggen mitt på dörren.",
+      state.sigil ? "När du håller bronssigillet mot stenen hörs ett djupt klick. Dörren öppnas några centimeter av sig själv." : "Mitt i symbolen finns en rund fördjupning. Någon har försökt bryta upp den med järnverktyg.",
+      "Bakom dörren glimmar ett blåvitt sken."
+    ],
+    choices:()=> {
+      const a=[];
+      if(state.sigil) a.push(["Använd sigillet och öppna dörren","vault"]);
+      if(state.towerKey) a.push(["Försök använda järnmyntet från rövarna","vaultRough"]);
+      a.push(["Lämna platsen tills vidare","endingLeave"]);
+      return a;
+    }
+  },
+  vault:{
+    title:"Drakvalvet",
+    effect:()=>{ world.openedVault=true; },
+    text:[
+      "Stendörren glider upp.",
+      "Bakom den finns inte en gravkammare utan en enorm sal som fortsätter bortom ljusets räckvidd. Pelarna är formade som hopvikta drakvingar.",
+      "På en piedestal svävar en mörk kristall några centimeter ovanför stenen.",
+      "Och långt inne i valvet öppnas två glödande ögon.",
+      "Det du har hittat är större än ett försvunnet jaktlag. Detta var bara början."
+    ],
+    choices:[["Återvänd mot Skogsby","skogsbyReturn"]]
+  },
+  vaultRough:{
+    title:"Den brutna förseglingen",
+    effect:()=>{ world.openedVault=true; world.brokeSeal=true; },
+    text:[
+      "Järnmyntet passar inte riktigt, men när du pressar det mot fördjupningen svarar mekanismen.",
+      "Stenen spricker. Dörren rycker upp med ett öronbedövande brak.",
+      "Bakom den ligger en enorm underjordisk sal. På en piedestal svävar en mörk kristall.",
+      "Något rör sig långt där inne.",
+      "Du har öppnat valvet — men inte på det sätt dess byggare avsåg."
+    ],
+    choices:[["Återvänd mot Skogsby","skogsbyReturn"]]
+  },
+  endingLeave:{
+    title:"Inte ännu",
+    effect:()=>{ world.leftSealed=true; },
+    text:[
+      "Du bestämmer dig för att inte öppna dörren utan bättre förberedelser.",
+      "På vägen tillbaka genom skogen vet du ändå att du kommer återvända.",
+      "Vad som än finns under tornet har väntat länge. Och nu vet det att någon har hittat vägen dit."
+    ],
+    choices:[["Återvänd mot Skogsby","skogsbyReturn"]]
+  },
+  skogsbyReturn:{
+    title:"Kapitel 1 – Skogsby",
+    text:()=>[
+      "När Gråskogens sista granar glesnar ligger morgondimman fortfarande över fälten. Framför er reser sig Skogsbys låga träpalissad och de första taken syns bakom den.",
+      "Efter tornets mörker känns ljudet av en smedshammare, en skällande hund och människor på väg till dagens arbete nästan overkligt vanligt.",
+      world.brokeSeal ? "Men minnet av den spruckna förseglingen följer er. Något under tornet vaknade när stenen brast." : world.openedVault ? "Bakom er ligger valvet och de glödande ögonen i mörkret. Ni vet ännu inte vad ni såg." : "Bakom er ligger den förseglade dörren fortfarande stängd. Frågan är hur länge den får förbli så.",
+      "Vid vägskälet utanför byn väntar en kvinna i grönbrun jaktkappa. Hon har en långbåge över axeln och känner igen utrustningen från de försvunna jägarna innan hon känner igen er."
+    ],
+    choices:[["Möt jägaren vid vägskälet","miraMeet"]]
+  },
+  miraMeet:{
+    title:"Mira Hök",
+    text:[
+      "“Mira Hök”, säger hon och lägger två fingrar mot pannan till hälsning. “De tre som gick till tornet var mina. Jag har väntat på någon som kunde berätta vad som hände.”",
+      "Blicken stannar vid blodfläckarna, järnmyntet och det ni bär med er från tornet. Hon ställer inga fler frågor. Hon väntar bara på ert svar."
+    ],
+    choices:[
+      ["Berätta allt – även om ruinen och det ni fann under tornet","miraTruth"],
+      ["Berätta om jägarna men håll valvet och sigillet för er själva","miraGuarded"],
+      ["Fråga först vad Mira själv vet om jägarna och tornet","miraHunters"]
+    ]
+  },
+  miraTruth:{
+    title:"Ett förtroende",
+    effect:()=>{ world.miraTrust=2; world.miraTrail=true; state.herbs+=1; },
+    text:[
+      "Ni berättar från början till slut. Mira avbryter inte ens när ni nämner draksymbolen och den gamla dörren under tornet.",
+      "När ni är klara räcker hon över ett knippe läkande skogsörter. “Då står vi på samma sida tills jag får anledning att tro något annat.”",
+      "Hon berättar också att hon sett främmande stövelspår längs den östra skogsstigen de senaste dagarna — män som försökt undvika både byn och Kungsvägen."
+    ],
+    choices:[["Gå vidare in i Skogsby","smithMeet"]]
+  },
+  miraGuarded:{
+    title:"Halva sanningen",
+    effect:()=>{ world.miraTrust=0; },
+    text:[
+      "Ni berättar om rövarna och jägarna men lämnar ruinen därhän. Mira lyssnar och nickar långsamt.",
+      "“Det där var sanningen”, säger hon till sist. “Men inte hela sanningen.” Hon pressar er inte vidare.",
+      "När hon går mot jägarnas hus vet ni att hon kommer hjälpa er om byn hotas — men hon har ännu ingen anledning att anförtro er sina egna misstankar."
+    ],
+    choices:[["Gå vidare in i Skogsby","smithMeet"]]
+  },
+  miraHunters:{
+    title:"Spår som inte hör hemma där",
+    effect:()=>{ world.miraTrust=1; world.miraTrail=true; },
+    text:[
+      "I stället för att börja med er egen berättelse frågar ni vad hon vet. Mira uppskattar frågan mer än hon visar.",
+      "Två dagar före försvinnandet såg jägarna en grupp främmande män röra sig längs en gammal skogsstig öster om tornet. De bar inga färger och köpte ingen proviant i byn.",
+      "“Nu berättar ni er del”, säger hon. Ni ger henne det viktigaste. Inte allt — men tillräckligt för att hon ska lova att hjälpa er tyda spåren om de dyker upp igen."
+    ],
+    choices:[["Gå vidare in i Skogsby","smithMeet"]]
+  },
+  smithMeet:{
+    title:"Smedjan vid torget",
+    text:()=>[
+      "På torget slår smeden Runa Vargeld igen luckan till sitt kollager med foten och muttrar åt en tom vagnsplats bredvid smedjan.",
+      "“Två leveranser på tre veckor”, säger hon när hon ser er blick. “Den ena sen. Den andra kom aldrig. Jag kan smida, men jag kan inte trolla fram järn.”",
+      partyHas("sigil") ? "När draksigillet skymtar bland era saker stannar hammaren i hennes hand. “Det där är äldre än något jag har i smedjan.”" : "När järnmyntet från rövarna hamnar i hennes hand väger hon det mot tummen och rynkar pannan. “Dåligt järn. Men märket är gjort med omsorg.”"
+    ],
+    choices:[
+      ["Låt Runa undersöka myntet och sigillet ordentligt","smithInspect"],
+      ["Fråga om de försvunna järnleveranserna","smithDeliveries"],
+      ["Erbjud er att hjälpa om nästa leverans också uteblir","smithFavor"]
+    ]
+  },
+  smithInspect:{
+    title:"Metall som inte borde spricka",
+    effect:()=>{ world.smithTrust=2; world.smithMetalClue=true; },
+    text:[
+      "Runa skrapar järnmyntets kant mot en fil. Små mörka flagor lossnar på ett sätt som får henne att svära lågt.",
+      "“Det här har inte bara rostat. Något har gjort järnet sprött inifrån.” Hon tittar sedan på drakmärket. “Och jag har sett samma märke på en gammal lastförteckning från bergen.”",
+      "Hon lovar att leta fram förteckningen tills ni återkommer."
+    ],
+    choices:[["Sök upp den gamle mannen från Tre Lyktor","edricMeet"]]
+  },
+  smithDeliveries:{
+    title:"Vagnar som aldrig kom fram",
+    effect:()=>{ world.smithTrust=1; world.smithMetalClue=true; },
+    text:[
+      "Runa plockar fram en kolsvart tavla med kritstreck. Två järnleveranser saknas. Båda skulle ha kommit norrifrån via samma sträcka av Kungsvägen.",
+      "“Banditer tar pengar, mat och hästar”, säger hon. “Men någon har börjat ta råjärn och verktygsstål. Det är ett märkligt byte om man bara är hungrig.”",
+      "Hon visar er märket som användes på följesedlarna. Det påminner obehagligt mycket om symbolen från tornet."
+    ],
+    choices:[["Sök upp den gamle mannen från Tre Lyktor","edricMeet"]]
+  },
+  smithFavor:{
+    title:"Ett löfte vid ässjan",
+    effect:()=>{ world.smithTrust=2; world.smithFavor=true; },
+    text:[
+      "Runa skrattar först åt erbjudandet, men när hon märker att ni menar allvar blir hon tystare.",
+      "“Hitta min nästa vagn om den försvinner och jag står i skuld till er. En riktig skuld — inte en gratis hästsko.”",
+      "Hon berättar att nästa leverans väntas från norr inom ett dygn. För första gången får den tomma vagnsplatsen bredvid smedjan en betydelse."
+    ],
+    choices:[["Sök upp den gamle mannen från Tre Lyktor","edricMeet"]]
+  },
+  edricMeet:{
+    title:"Edric från Tre Lyktor",
+    text:()=>[
+      "Ni hittar den gamle mannen från värdshuset på en bänk bakom det lilla kapellet. I dagsljus ser han äldre ut än han gjorde framför elden.",
+      "“Edric”, säger han innan ni hinner fråga efter hans namn. “Och jag antar att ni inte kom hit för att tacka mig för sigillet.”",
+      world.brokeSeal ? "När ni berättar att förseglingen brast försvinner färgen ur hans ansikte." : world.openedVault ? "När han förstår att dörren faktiskt öppnades sluter han ögonen ett ögonblick." : "När han hör att ni lämnade dörren stängd sjunker hans axlar, nästan omärkligt.",
+      "Han vet mer. Den här gången är frågan hur ni tänker få honom att tala."
+    ],
+    choices:()=>{
+      const base=[
+        ["Säg lugnt att ni behöver sanningen, inte fler gåtor","edricOpen"],
+        ["Pressa honom: Du visste vad som fanns under tornet","edricConfront"]
+      ];
+      if(world.openedVault || world.leftSealed) base.push([world.leftSealed?"Berätta varför ni valde att lämna förseglingen stängd":"Beskriv ögonen och den mörka kristallen i valvet","edricVault"]);
+      return base;
+    }
+  },
+  edricOpen:{
+    title:"Väktarnas namn",
+    effect:()=>{ world.edricTrust=2; world.keeperLore=true; },
+    text:[
+      "Edric studerar er länge och nickar sedan. “Rättvist.”",
+      "Han berättar att draksymbolen tillhörde en gammal orden som kallades Väktarna. De bevakade inte skatter. De bevakade platser som aldrig fick öppnas utan rätt sigill och rätt kunskap.",
+      "“Orden finns inte längre som den en gång gjorde”, säger han. “Men människor använder fortfarande dess namn.” Han lovar att visa er mer när han vet vilka som följt efter er från tornet."
+    ],
+    choices:[["Låt kvällen falla över Skogsby","villageEvening"]]
+  },
+  edricConfront:{
+    title:"Ord under press",
+    effect:()=>{ world.edricTrust=0; world.keeperLore=true; },
+    text:[
+      "“Ja”, säger Edric till slut. “Jag visste att det fanns något under tornet. Nej, jag visste inte vad som fortfarande levde där.”",
+      "Han ger er ett namn: Väktarna. Mer än så vägrar han säga medan ilskan fortfarande ligger mellan er.",
+      "Ni får sanningen ni krävde — men inte hans förtroende."
+    ],
+    choices:[["Låt kvällen falla över Skogsby","villageEvening"]]
+  },
+  edricVault:{
+    title:"Det som väcktes under stenen",
+    effect:()=>{ world.edricTrust=3; world.keeperLore=true; world.edricMap=true; },
+    text:()=>[
+      world.leftSealed ? "När ni förklarar att ni lämnade förseglingen orörd nickar Edric med en lättnad han inte försöker dölja." : "När ni beskriver kristallen och de glödande ögonen blir Edric alldeles stilla.",
+      "Han tar fram ett vikt pergament ur kappans innerficka. På det syns Gråskogen, Stormbergen och tre bleknade märken som bildar en triangel runt området.",
+      "“Min far kallade dem förseglingar”, säger han. “Jag trodde att kartan bara var en varning. Nu tror jag att den är en vägvisare.”",
+      "Ni får behålla en avritning. Edric ber er att inte visa den för någon ni inte litar på."
+    ],
+    choices:[["Låt kvällen falla över Skogsby","villageEvening"]]
+  },
+  villageEvening:{
+    title:"En kväll i Skogsby",
+    text:()=>[
+      "För första gången sedan Tre Lyktor får ni några timmar utan dragna vapen. Eldarna tänds bakom fönstren och doften av bröd och vedrök fyller torget.",
+      world.miraTrust>=2 ? "Mira lämnar ett meddelande: om ni behöver följa någon genom Gråskogen kommer hon." : world.miraTrail ? "Mira har markerat den östra skogsstigen på en enkel karta åt er." : "Mira håller avstånd. Hon har inte glömt att ni undanhöll något.",
+      world.smithFavor ? "Runa påminner om sitt löfte: hjälp henne med nästa försvunna leverans och hon kommer återgälda tjänsten." : world.smithMetalClue ? "Runas ord om det spröda järnet ligger kvar i tankarna. Det verkar vara mer än vanlig dålig malm." : "Från smedjan hörs arbete långt efter mörkrets inbrott.",
+      world.edricTrust>=2 ? "Edric sitter ensam vid Tre Lyktors eld. Nu vet ni åtminstone att ordet Väktarna betyder något verkligt." : "Edric har gett er ett namn — Väktarna — men knappast hela sanningen."
+    ],
+    choices:[
+      ["Sitt kvar på värdshuset och lyssna på byns rykten","villageRumors"],
+      ["Gå tidigt till sängs och vila inför morgondagen","wagonArrival"]
+    ]
+  },
+  villageRumors:{
+    title:"Rykten vid elden",
+    effect:()=>{ world.villageRumors=true; },
+    text:[
+      "Ni stannar kvar när kvällsmaten dukas undan. Samtalen blir friare efter den andra kannan öl.",
+      "En körkarl svär över stigande metallpriser. En bonde berättar om ljus mellan träden norr om vägen. Någon annan påstår att män i mörka kappor betalat silver för gamla kartor och rostiga reliker.",
+      "Inget av det bevisar något. Tillsammans låter det mindre som otur och mer som ett mönster."
+    ],
+    choices:[["Gå till vila","wagonArrival"]]
+  },
+  wagonArrival:{
+    title:"Vagnen som saknar sin last",
+    text:()=>[
+      "Nästa morgon bryts lugnet av rop från norra porten. En ensam vagn rullar in på tre hela hjul och ett som nästan slitits loss från axeln. Hästarna är vita av skum.",
+      "Kusken ligger framstupa över kuskbocken. Flaket är sönderslaget och genomsökt. Rep har skurits av och i dammet syns den ljusa rektangeln efter en tung kista som inte längre finns där.",
+      world.smithFavor || world.smithMetalClue ? "Runa kommer springande från smedjan och stannar tvärt. “Det där är min leverans.”" : "Runa kommer springande från smedjan. Först då förstår ni att vagnen skulle till hennes smedja.",
+      world.villageRumors ? "Bland byborna hör ni samma ord som kvällen innan: ännu en vagn, ännu en last, samma väg norrifrån." : "Folk samlas runt vagnen. Ingen verkar ännu förstå varför någon lämnat mat och mynt men tagit järnet — och en enda låst kista.",
+      "På vagnens sidobräda har någon ristat en drake vars vingar bildar en cirkel."
+    ],
+    choices:()=>{
+      const c=[["Undersök vagnen och den plats där kistan stod","wagonSearch"]];
+      if(world.miraTrail) c.push(["Hämta Mira innan spåren kallnar","wagonMira"]);
+      if(world.edricTrust>=2) c.push(["Hämta Edric och visa honom drakmärket","wagonEdric"]);
+      return c;
+    }
+  },
+  wagonSearch:{
+    title:"Under kuskbocken",
+    effect:()=>{ world.wagonClue="letter"; },
+    text:[
+      "Ni går igenom vagnen innan alltför många händer hinner röra den. Maten finns kvar. Myntpåsen finns kvar. Angriparna visste vad de ville ha.",
+      "Under kuskbocken hittar ni ett tunt, vaxförseglat brev adresserat till en lärd i Stenbro. Kistan beskrivs bara som: ‘fynd från den norra utgrävningen — får ej öppnas under färd’."
+    ],
+    choices:[["Fortsättning följer i nästa del av Kapitel 1","ending"]]
+  },
+  wagonMira:{
+    title:"Spår österut",
+    effect:()=>{ world.wagonClue="trail"; },
+    text:[
+      "Mira behöver bara några ögonblick. Hon följer hjulspåren ut genom porten, går ner på knä och pekar på tre olika stövelavtryck.",
+      "“De tog kistan från vagnen här ute och bar den till hästar.” Hon tittar mot skogsbrynet. “Sedan vek de av österut. Samma gamla stig som jag berättade om.”",
+      "För att ni vann hennes förtroende tidigare har ni nu ett spår innan regn och trafik hinner förstöra det."
+    ],
+    choices:[["Fortsättning följer i nästa del av Kapitel 1","ending"]]
+  },
+  wagonEdric:{
+    title:"Ett märke som borde vara dött",
+    effect:()=>{ world.wagonClue="keepers"; },
+    text:[
+      "Edric blir blek när han ser ristningen. Han stryker med tummen över linjerna och skakar på huvudet.",
+      "“Det här är inte en kopia gjord av en rövare. Någon känner Väktarnas gamla tecken.” Han ser mot Kungsvägen. “Och den personen ville att vi skulle veta vem som tog kistan.”",
+      "Eftersom ni fick Edric att lita på er säger han mer än han annars skulle ha gjort: kistan måste till Stenbro innan den som stal den hinner öppna den."
+    ],
+    choices:[["Fortsättning följer i nästa del av Kapitel 1","ending"]]
+  },
+  ending:{
+    title:"Kapitel 1 har börjat",
+    text:()=>[
+      "Prologen är avslutad och Skogsby är nu en del av den spelbara berättelsen.",
+      world.wagonClue==="trail" ? "Ni avslutar denna version med ett färskt spår efter den stulna kistan." : world.wagonClue==="keepers" ? "Ni avslutar denna version med Edric som allierad och en tydligare koppling till Väktarna." : "Ni avslutar denna version med det förseglade brevet till Stenbro i handen.",
+      "Mötena med Mira, Runa och Edric sparar olika storykonsekvenser och öppnar olika val vid vagnen."
+    ],
+    choices:[["Spela om från början","restart"]]
+  }
+};
+
+
+function weaponDisplayName(weapon){
+  return String(weapon||"Vapen")
+    .replace(/\s*\([^)]*\)\s*$/,"")
+    .trim();
+}
+
+function roll(sides){ return Math.floor(Math.random()*sides)+1; }
+function dmgRoll(spec){ return roll(spec[1])+spec[2]; }
+
+function statMod(value){ return Math.floor((value-10)/2); }
+function fmtMod(value){ const m=statMod(value); return `${value} (${m>=0?'+':''}${m})`; }
+function currentDepth(){
+  const deep1=["inn","window","oldman","door","ambush","afterBandits","rest","forest","camp","tracks","towerExterior","towerFight","towerSneak","towerBluff","skogsbyReturn","miraMeet","miraTruth","miraGuarded","miraHunters","smithMeet","smithInspect","smithDeliveries","smithFavor","edricMeet","edricOpen","edricConfront","edricVault","villageEvening","villageRumors","wagonArrival","wagonSearch","wagonMira","wagonEdric","ending"];
+  const deep2=["towerHall","cryptBeast","cryptBeastLoud","sealedDoor"];
+  if(deep1.includes(state.scene)) return 1;
+  if(deep2.includes(state.scene)) return 2;
+  if(["vault","vaultRough","endingLeave"].includes(state.scene)) return 3;
+  return 1;
+}
+
+function toggleSheet(force, event){
+  if(event && event.target !== event.currentTarget) return;
+  const el=document.getElementById("sheetOverlay");
+  const open = typeof force === "boolean" ? force : !el.classList.contains("open");
+  el.classList.toggle("open", open);
+  if(open) updateUI();
+}
+
+function usePotionOutsideCombat(){
+  if(state.combat || state.potions<=0 || state.hp>=state.maxHp) return;
+  state.potions--;
+  const heal=roll(8)+6;
+  state.hp=Math.min(state.maxHp,state.hp+heal);
+  updateUI();
+}
+
+function useHerbsOutsideCombat(){
+  if(state.combat || state.herbs<=0 || state.hp>=state.maxHp) return;
+  state.herbs--;
+  const heal=roll(4)+3;
+  state.hp=Math.min(state.maxHp,state.hp+heal);
+  updateUI();
+}
+
+function updateUI(){
+  document.getElementById("charname").textContent=state.name;
+  document.getElementById("sideMeta").textContent=(state.race && state.className) ? `${state.race} · ${state.className} · Nivå ${state.level}` : "Ingen skapad karaktär ännu";
+  document.getElementById("xp").textContent=`${state.xp} / ${state.nextXp}`;
+  document.getElementById("xpbar").style.width=`${Math.min(100,state.xp/state.nextXp*100)}%`;
+  document.getElementById("hp").textContent=`${Math.max(0,state.hp)} / ${state.maxHp}`;
+  document.getElementById("hpbar").style.width=`${Math.max(0,state.hp/state.maxHp*100)}%`;
+  document.getElementById("ac").textContent=state.ac;
+  document.getElementById("atk").textContent=`+${state.attackBonus}`;
+  document.getElementById("gold").textContent=state.gold;
+  document.getElementById("gear").innerHTML=
+    `${state.weapon}<br>${state.armor}<br>${state.shield?"Sköld utrustad":"Ingen sköld"}`;
+  let fl=[];
+  if(state.talent) fl.push(state.talent);
+  if(state.warned) fl.push("Förberedd");
+  if(state.bossWeakened) fl.push("Känner till väktarens svaghet");
+  if(state.rested) fl.push("Har vilat");
+  document.getElementById("flags").innerHTML=fl.length?fl.map(x=>`<span class="tag">${x}</span>`).join(""):"—";
+
+  document.getElementById("sheetName").textContent=state.name;
+  document.getElementById("sheetMeta").textContent=[state.race,state.className,`Nivå ${state.level}`].filter(Boolean).join(" · ") || "Ej skapad";
+  document.getElementById("sheetHpText").textContent=`${Math.max(0,state.hp)} / ${state.maxHp}`;
+  document.getElementById("sheetHpBar").style.width=`${Math.max(0,state.hp/state.maxHp*100)}%`;
+  document.getElementById("sheetXpText").textContent=`${state.xp}/${state.nextXp}`;
+  document.getElementById("sheetXpBar").style.width=`${Math.min(100,state.xp/state.nextXp*100)}%`;
+  document.getElementById("sheetAc").textContent=state.ac;
+  document.getElementById("sheetAttack").textContent=`+${state.attackBonus}`;
+  document.getElementById("sheetGold").textContent=state.gold;
+  document.getElementById("sheetWeapon").innerHTML=`${state.weapon}<span class="slot-meta"> · ${state.damage[0]}T${state.damage[1]}${state.damage[2] ? (state.damage[2] > 0 ? "+"+state.damage[2] : state.damage[2]) : ""} ${state.damageType||"fysisk"}skada</span>`;
+  document.getElementById("sheetShield").textContent=state.shield ? "Sköld utrustad" : "—Tom plats";
+  document.getElementById("sheetArmor").textContent=state.armor;
+  const specials=[];
+  if(state.sigil) specials.push("Bronssigill");
+  if(state.rope) specials.push("Rep");
+  if(state.torch) specials.push("Fackla");
+  document.getElementById("sheetSpecial").textContent=specials.length ? specials.join(", ") : "—Tom plats";
+  document.getElementById("sheetStr").textContent=fmtMod(state.str);
+  document.getElementById("sheetDex").textContent=fmtMod(state.dex);
+  document.getElementById("sheetCon").textContent=fmtMod(state.con);
+  document.getElementById("sheetInt").textContent=fmtMod(state.int);
+  document.getElementById("sheetWis").textContent=fmtMod(state.wis);
+  document.getElementById("sheetCha").textContent=fmtMod(state.cha);
+
+  const inv=[];
+  inv.push(`<div class="sheet-item"><div class="left"><strong>Hälsodryck ×${state.potions}</strong><span class="meta">Återställer 1T8+6 HP.</span></div><button class="sheet-use" onclick="usePotionOutsideCombat()" ${state.potions<=0 || state.hp>=state.maxHp || state.combat?'disabled':''}>Använd</button></div>`);
+  inv.push(`<div class="sheet-item"><div class="left"><strong>Örter ×${state.herbs}</strong><span class="meta">Återställer 1T4+3 HP.</span></div><button class="sheet-use" onclick="useHerbsOutsideCombat()" ${state.herbs<=0 || state.hp>=state.maxHp || state.combat?'disabled':''}>Använd</button></div>`);
+  if(state.sigil) inv.push(`<div class="sheet-item"><div class="left"><strong>Bronssigill</strong><span class="meta">Ett gammalt sigill med draksymbol.</span></div></div>`);
+  if(state.rope) inv.push(`<div class="sheet-item"><div class="left"><strong>Rep</strong><span class="meta">Kan hjälpa dig in genom höga öppningar.</span></div></div>`);
+  if(state.torch) inv.push(`<div class="sheet-item"><div class="left"><strong>Fackla och fnöske</strong><span class="meta">Ger ljus i mörka utrymmen.</span></div></div>`);
+  document.getElementById("sheetInventory").innerHTML=inv.join("");
+}
+
+
+function getCreationPreview(){
+  const race = state.creation.race ? raceData[state.creation.race] : null;
+  const cls = state.creation.class ? classData[state.creation.class] : null;
+  const talent = state.creation.talent ? talentData[state.creation.talent] : null;
+
+  const base = cls ? cls.base : {str:10,dex:10,con:10,int:10,wis:10,cha:10};
+  const mods = race ? race.mods : {str:0,dex:0,con:0,int:0,wis:0,cha:0};
+
+  const stats = {
+    str:base.str+mods.str, dex:base.dex+mods.dex, con:base.con+mods.con,
+    int:base.int+mods.int, wis:base.wis+mods.wis, cha:base.cha+mods.cha
+  };
+
+  const hp = (cls ? cls.maxHp : 10) + (race ? race.hpBonus : 0) + (talent ? talent.hpBonus : 0);
+  const ac = (cls ? cls.ac : 10) + (race ? race.acBonus : 0) + (talent ? talent.acBonus : 0);
+  const attack = (cls ? cls.attack : 0) + (talent ? talent.attackBonus : 0);
+
+  return {stats,hp,ac,attack};
+}
+
+function creationPreviewHtml(){
+  const p=getCreationPreview();
+  const hasAny=state.creation.race || state.creation.class || state.creation.talent;
+  if(!hasAny) return `<div class="creation-preview"><h3>Förhandsvisning</h3><p class="small">Välj ras, klass och förmåga så ser du direkt hur dina värden förändras.</p></div>`;
+  return `
+    <div class="creation-preview">
+      <h3>Förhandsvisning</h3>
+      <div class="preview-primary">
+        <div>Liv<strong>${p.hp}</strong></div>
+        <div>Försvar<strong>${p.ac}</strong></div>
+        <div>Anfall<strong>+${p.attack}</strong></div>
+      </div>
+      <div class="preview-row"><span>STY</span><strong>${fmtMod(p.stats.str)}</strong></div>
+      <div class="preview-row"><span>SMI</span><strong>${fmtMod(p.stats.dex)}</strong></div>
+      <div class="preview-row"><span>KON</span><strong>${fmtMod(p.stats.con)}</strong></div>
+      <div class="preview-row"><span>INT</span><strong>${fmtMod(p.stats.int)}</strong></div>
+      <div class="preview-row"><span>VIS</span><strong>${fmtMod(p.stats.wis)}</strong></div>
+      <div class="preview-row"><span>KAR</span><strong>${fmtMod(p.stats.cha)}</strong></div>
+    </div>`;
+}
+
+function renderOptionCards(kind, dataObj){
+  return Object.entries(dataObj).map(([key,item])=>`
+    <div class="option-card ${state.creation[kind]===key?'selected':''} ${kind==='talent'?'small-card':''}" onclick="selectCreation('${kind}','${key}')">
+      <h3>${item.label}</h3>
+      <p>${item.desc}</p>
+      <div class="bonus">${item.bonus}</div>
+    </div>
+  `).join('');
+}
+
+function selectCreation(kind, key){
+  state.creation[kind]=key;
+  renderCharacterCreation();
+}
+
+function renderCharacterCreation(){
+  document.getElementById("combat").innerHTML="";
+  document.getElementById("choices").innerHTML="";
+  const ready = state.creation.race && state.creation.class && state.creation.talent;
+  document.getElementById("story").innerHTML=`
+    <div class="creation-screen">
+      <div class="creation-title">Namn</div>
+      <input id="nameInput" class="creation-input" maxlength="24" placeholder="Vad kallas du i dessa gångar?" value="${state.name && state.name !== 'Äventyrare' ? state.name : ''}">
+
+      <div class="creation-title">Ras</div>
+      <div class="option-grid">${renderOptionCards('race', raceData)}</div>
+
+      <div class="creation-title">Klass</div>
+      <div class="option-grid">${renderOptionCards('class', classData)}</div>
+
+      <div class="creation-title">Förmåga</div>
+      <div class="option-grid">${renderOptionCards('talent', talentData)}</div>
+
+      ${creationPreviewHtml()}
+
+      <div class="creation-actions">
+        <button class="primary-cta" onclick="startAdventure()" ${ready?'':'disabled'}>Träd ner i valvet</button>
+        <button class="secondary-cta" onclick="resetCreation()">Tillbaka</button>
+      </div>
+    </div>`;
+  updateUI();
+}
+
+function resetCreation(){
+  state.creation={race:null,class:null,talent:null};
+  state.name="Äventyrare";
+  renderCharacterCreation();
+}
+
+function beginCharacterCreation(){
+  state.scene="creation";
+  renderCharacterCreation();
+}
+
+function startAdventure(){
+  if(!(state.creation.race && state.creation.class && state.creation.talent)) return;
+  const nm=(document.getElementById('nameInput')?.value||'Äventyrare').trim();
+  const race = raceData[state.creation.race];
+  const cls = classData[state.creation.class];
+  const talent = talentData[state.creation.talent];
+
+  state.name = nm || 'Äventyrare';
+  state.race = race.label;
+  state.className = cls.label;
+  state.talent = talent.label;
+  state.str = cls.base.str + race.mods.str;
+  state.dex = cls.base.dex + race.mods.dex;
+  state.con = cls.base.con + race.mods.con;
+  state.int = cls.base.int + race.mods.int;
+  state.wis = cls.base.wis + race.mods.wis;
+  state.cha = cls.base.cha + race.mods.cha;
+
+  state.maxHp = cls.maxHp + race.hpBonus + talent.hpBonus;
+  state.hp = state.maxHp;
+  state.ac = cls.ac + race.acBonus + talent.acBonus;
+  state.attackBonus = cls.attack + talent.attackBonus;
+  state.damage = [...cls.damage];
+  state.damageType = cls.damageType || "Fysisk";
+  state.weapon = cls.weapon;
+  state.armor = cls.armor;
+  state.shield = cls.shield;
+  state.gold = 10;
+  state.level = 1;
+  state.xp = 0;
+  state.nextXp = 100;
+  state.potions = cls.potions + talent.potions;
+  state.herbs = cls.herbs + talent.herbs;
+  state.sigil = false;
+  state.torch = false;
+  state.rope = false;
+  state.warned = false;
+  state.towerKey = false;
+  state.combat = null;
+  state.bossWeakened = false;
+  state.rested = false;
+
+  updateUI();
+  showScene("roadIntro");
+}
+
+function soloAwardStoryXp(id){
+  const a=typeof STORY_XP!=="undefined"?STORY_XP[id]:null;
+  if(!a||world.xpAwards?.[id]) return "";
+  world.xpAwards=world.xpAwards||{}; world.xpAwards[id]=true;
+  return `<div class="mp-note"><strong>XP:</strong> ${a.reason} ${gainXp(a.xp)}</div>`;
+}
+
+function showScene(id){
+  setCombatPageActive(false);
+  if(id==="restart"){ location.reload(); return; }
+  state.scene=id;
+  state.combat=null;
+  document.getElementById("combat").innerHTML="";
+  const sc=scenes[id];
+  if(sc.effect) sc.effect();
+  const sceneText=typeof sc.text==="function"?sc.text():sc.text;
+  const xpNotice=soloAwardStoryXp(id);
+  document.getElementById("story").innerHTML=`<h2>${sc.title}</h2>`+sceneText.map(p=>`<p>${p}</p>`).join("")+xpNotice;
+  updateUI();
+  if(sc.combat) startCombat(sc.combat);
+  else renderChoices(sc.choices);
+}
+
+function renderChoices(choiceDef){
+  const box=document.getElementById("choices");
+  box.innerHTML="";
+  const choices=typeof choiceDef==="function"?choiceDef():choiceDef;
+  (choices||[]).forEach(([label,next])=>{
+    const b=document.createElement("button");
+    b.textContent=label;
+    b.onclick=()=>showScene(next);
+    box.appendChild(b);
+  });
+}
+
+
+function combatRoleForEnemy(e){
+  const n=(e.name||"").toLowerCase(), w=(e.weapon||"").toLowerCase();
+  if(n.includes("kryptväktare")) return "Boss";
+  if(w.includes("båge") || n.includes("skytt")) return "Bågskytt";
+  if(n.includes("vakt") || n.includes("spjut")) return "Vakt";
+  if(n.includes("yx") || n.includes("klubb")) return "Brute";
+  return "Skärmytslare";
+}
+function combatPositionForEnemy(e){ return e.position || (combatRoleForEnemy(e)==="Bågskytt" ? "bak" : "fram"); }
+function playerDefaultPosition(className){ return className==="Magiker" ? "bak" : "fram"; }
+function soloDoorBlocker(){
+  const c=state.combat;
+  if(!c || state.scene!=="door") return null;
+  return c.enemies.find(e=>e.hp>0 && e.blocksBackline) || null;
+}
+function soloHasRangedReach(){
+  // Av nuvarande klasser kan magikern angripa baklinjen utan att passera fronten.
+  return state.className==="Magiker";
+}
+function soloCanTarget(enemy){
+  const c=state.combat; if(!c||!enemy||enemy.hp<=0) return false;
+  if(state.scene!=="door") return true;
+  if(enemy.position!=="bak") return true;
+  if(soloHasRangedReach()) return true;
+  if(c.breachedBackline) return true;
+  return !soloDoorBlocker();
+}
+function soloBreakThrough(){
+  const c=state.combat;
+  if(!c || state.scene!=="door" || soloCurrent()?.type!=="player" || c.breachedBackline || !soloDoorBlocker()) return;
+  const mod=Math.max(statMod(state.str),statMod(state.dex));
+  const r=roll(20), total=r+mod, dc=12;
+  if(r===20 || total>=dc){
+    c.breachedBackline=true;
+    c.playerPosition="bak";
+    logCombat(`<div class="log-main"><span class="good">Du tar dig förbi ${soloDoorBlocker()?.name||"frontlinjen"}!</span> Baklinjen är nu öppen för dina närstridsattacker.</div><span class="log-detail">Genombrott: ${r}${mod>=0?"+":""}${mod}=${total} mot DC ${dc}.</span>`,`log-success`);
+  }else{
+    logCombat(`<div class="log-main">Du försöker bryta igenom, men vägrövaren spärrar vägen.</div><span class="log-detail">Genombrott: ${r}${mod>=0?"+":""}${mod}=${total} mot DC ${dc}.</span>`,`log-player`);
+  }
+  renderCombatPreserve();
+  soloAdvanceTurn();
+}
+function rollAttackWithAdvantage(bonus, advantage){
+  if(advantage){ const a=roll(20),b=roll(20),r=Math.max(a,b); return {r,total:r+bonus,detail:`advantage ${a}/${b} → ${r}`}; }
+  const r=roll(20); return {r,total:r+bonus,detail:String(r)};
+}
+let soloCombatAction="attack";
+function soloSelectCombatAction(mode){ soloCombatAction=mode; renderCombatPreserve(); }
+function soloSwitchPosition(){
+  const c=state.combat;if(!c||soloCurrent()?.type!=="player")return;
+  c.playerPosition=c.playerPosition==="fram"?"bak":"fram";
+  logCombat(`<div class="log-main">Du flyttar till <span class="gold">${c.playerPosition==="fram"?"framlinjen":"baklinjen"}</span>.</div>`,`log-player`);
+  soloAdvanceTurn();
+}
+
+function startCombat(def){
+  const enemies=def.enemies.map(e=>({...e,dex:e.dex??10,role:combatRoleForEnemy(e),position:combatPositionForEnemy(e),intent:null,phase:1}));
+  const playerSurprised=def.surprise==="players";
+  const pr=initiativeRoll2024(playerSurprised), pmod=initiativeModFromDex(state.dex);
+  const initiative=[{type:"player",index:0,name:state.name,die:pr.die,rollDetail:pr.detail,mod:pmod,total:pr.die+pmod,surprised:playerSurprised}];
+  enemies.forEach((e,i)=>{
+    const surprised=def.surprise==="enemies";
+    const ir=initiativeRoll2024(surprised), mod=initiativeModFromDex(e.dex);
+    initiative.push({type:"enemy",index:i,name:e.name,die:ir.die,rollDetail:ir.detail,mod,total:ir.die+mod,surprised,tie:roll(20)});
+  });
+  initiative[0].tie=roll(20); initiative.sort((a,b)=>b.total-a.total||b.tie-a.tie);
+  state.combat={enemies,onWin:def.onWin,rounds:1,damageDealt:0,damageTaken:0,crits:0,potionsUsed:0,herbsUsed:0,defeated:[],xpReward:def.xp||0,initiative,currentTurn:0,dodging:false,victory:false,abilityUsed:false,playerPosition:playerDefaultPosition(state.className),advantage:false,breachedBackline:false};
+  soloCombatAction="attack";
+  document.getElementById("choices").innerHTML=""; renderCombat();
+  logCombat(`<div class="log-main">Striden börjar. Initiativ slås enligt D&D 2024.</div>`,"log-neutral");
+  initiative.forEach(x=>logCombat(`<span class="log-detail">${x.name}: ${x.rollDetail}${x.mod>=0?"+":""}${x.mod}=${x.total}${x.surprised?" · surprise: disadvantage":""}</span>`,"log-neutral"));
+  soloPrepareTurn();
+}
+
+function livingEnemies(){ return state.combat.enemies.filter(e=>e.hp>0); }
+
+function soloCurrent(){ return state.combat?.initiative?.[state.combat.currentTurn]||null; }
+function soloAdvanceTurn(){ const c=state.combat;if(!c)return;c.currentTurn++;if(c.currentTurn>=c.initiative.length){c.currentTurn=0;c.rounds++;}soloPrepareTurn(); }
+function soloPrepareTurn(){
+  const c=state.combat;if(!c||c.victory)return;let guard=0;
+  while(guard++<20){
+    const e=soloCurrent(); if(!e) return;
+    const alive=e.type==="player"?state.hp>0:c.enemies[e.index]?.hp>0;
+    if(!alive){c.currentTurn=(c.currentTurn+1)%c.initiative.length;if(c.currentTurn===0)c.rounds++;continue;}
+    if(e.type==="player"){ if(c.dodging)c.dodging=false; renderCombatPreserve(); return; }
+    soloEnemyTurn(e.index); if(state.hp<=0||!state.combat)return; c.currentTurn=(c.currentTurn+1)%c.initiative.length;if(c.currentTurn===0)c.rounds++;
+  }
+}
+
+function soloClassAbilityAvailable(){
+  const c=state.combat;
+  return !!(c && !c.victory && !c.abilityUsed);
+}
+
+function soloUsePowerStrike(enemyIndex){
+  const c=state.combat; if(!c || soloCurrent()?.type!=="player" || !soloClassAbilityAvailable() || state.className!=="Krigare") return;
+  const enemy=c.enemies[enemyIndex]; if(!enemy || enemy.hp<=0 || !soloCanTarget(enemy)) return;
+  c.abilityUsed=true;
+  const penalty=3, ar=rollAttackWithAdvantage(state.attackBonus-penalty,c.advantage); c.advantage=false; const r=ar.r,total=ar.total;
+  if(r===20){
+    const dice=[state.damage[0],state.damage[1],0], flat=state.damage[2]||0;
+    const d=dmgRoll(dice)+dmgRoll(dice)+flat+roll(state.damage[1])+roll(state.damage[1]);
+    enemy.hp-=d; c.damageDealt+=d; c.crits++;
+    logCombat(`<div class="log-main"><span class="gold">Kritiskt Kraftslag!</span> Du träffar ${enemy.name} för ${d} skada.</div><span class="log-detail">Attackslag: ${r}+${state.attackBonus}-${penalty}=${total} mot AC ${enemy.ac}. Extra skada: 1T${state.damage[1]}.</span>`,`log-player`);
+  }else if(r===1 || total<enemy.ac){
+    logCombat(`<div class="log-main">Ditt <span class="gold">Kraftslag</span> missar ${enemy.name}.</div><span class="log-detail">Attackslag: ${r}+${state.attackBonus}-${penalty}=${total} mot AC ${enemy.ac}.</span>`,`log-player`);
+  }else{
+    const d=dmgRoll(state.damage)+roll(state.damage[1]); enemy.hp-=d; c.damageDealt+=d;
+    logCombat(`<div class="log-main">Du använder <span class="gold">Kraftslag</span> på ${enemy.name} för <span class="good">${d}</span> skada.</div><span class="log-detail">Attackslag: ${r}+${state.attackBonus}-${penalty}=${total} mot AC ${enemy.ac}. Extra skada: 1T${state.damage[1]}.</span>`,`log-player`);
+  }
+  if(enemy.hp<=0 && !c.defeated.includes(enemy.name)){ c.defeated.push(enemy.name); logCombat(`<div class="log-main"><span class="good">${enemy.name} faller.</span></div>`,`log-success`); }
+  renderCombatPreserve(); if(checkCombat()) return; soloAdvanceTurn();
+}
+
+function soloUseSneakAttack(enemyIndex){
+  const c=state.combat; if(!c || soloCurrent()?.type!=="player" || !soloClassAbilityAvailable() || state.className!=="Tjuv") return;
+  const enemy=c.enemies[enemyIndex]; if(!enemy || enemy.hp<=0 || !soloCanTarget(enemy)) return;
+  c.abilityUsed=true;
+  const ar=rollAttackWithAdvantage(state.attackBonus,c.advantage); c.advantage=false; const r=ar.r,total=ar.total;
+  if(r===20){
+    const dice=[state.damage[0],state.damage[1],0], flat=state.damage[2]||0;
+    const d=dmgRoll(dice)+dmgRoll(dice)+flat+roll(6)+roll(6); enemy.hp-=d; c.damageDealt+=d; c.crits++;
+    logCombat(`<div class="log-main"><span class="gold">Kritisk smygattack!</span> ${enemy.name} tar ${d} skada.</div>`,`log-player`);
+  }else if(r===1 || total<enemy.ac){
+    logCombat(`<div class="log-main">Din <span class="gold">Smygattack</span> missar ${enemy.name}.</div><span class="log-detail">Attackslag: ${r}+${state.attackBonus}=${total} mot AC ${enemy.ac}.</span>`,`log-player`);
+  }else{
+    const d=dmgRoll(state.damage)+roll(6); enemy.hp-=d; c.damageDealt+=d;
+    logCombat(`<div class="log-main">Du gör en <span class="gold">Smygattack</span> på ${enemy.name} för <span class="good">${d}</span> skada.</div><span class="log-detail">Extra skada: 1T6.</span>`,`log-player`);
+  }
+  if(enemy.hp<=0 && !c.defeated.includes(enemy.name)){ c.defeated.push(enemy.name); logCombat(`<div class="log-main"><span class="good">${enemy.name} faller.</span></div>`,`log-success`); }
+  renderCombatPreserve(); if(checkCombat()) return; soloAdvanceTurn();
+}
+
+function soloUseBurningHands(){
+  const c=state.combat; if(!c || soloCurrent()?.type!=="player" || !soloClassAbilityAvailable() || state.className!=="Magiker") return;
+  c.abilityUsed=true;
+  const base=roll(6)+Math.max(0,statMod(state.int)); let total=0;
+  livingEnemies().forEach(enemy=>{
+    let d=base;
+    if((enemy.weaknesses||[]).includes("Eld")) d*=2;
+    else if((enemy.resistances||[]).includes("Eld")) d=Math.max(1,Math.floor(d/2));
+    enemy.hp-=d; total+=d;
+    if(enemy.hp<=0 && !c.defeated.includes(enemy.name)) c.defeated.push(enemy.name);
+  });
+  c.damageDealt+=total;
+  logCombat(`<div class="log-main">Du använder <span class="gold">Brinnande händer</span> och gör totalt <span class="good">${total} eldskada</span>.</div><span class="log-detail">${base} grundskada per levande fiende före sårbarhet/motstånd.</span>`,`log-player`);
+  renderCombatPreserve(); if(checkCombat()) return; soloAdvanceTurn();
+}
+
+function soloUseClericHeal(){
+  const c=state.combat; if(!c || soloCurrent()?.type!=="player" || !soloClassAbilityAvailable() || state.className!=="Kleriker" || state.hp>=state.maxHp) return;
+  c.abilityUsed=true;
+  const heal=roll(6)+Math.max(0,statMod(state.wis)); const actual=Math.min(heal,state.maxHp-state.hp); state.hp+=actual;
+  logCombat(`<div class="log-main">Du använder <span class="gold">Helande ord</span> och återfår <span class="good">${actual} HP</span>.</div>`,`log-player`);
+  updateUI(); renderCombatPreserve(); soloAdvanceTurn();
+}
+
+function soloAbilityButtons(alive,playerTurn){
+  if(!playerTurn) return "";
+  const used=!!state.combat?.abilityUsed;
+  if(state.className==="Krigare") return alive.map(e=>{ const idx=state.combat.enemies.indexOf(e); return `<button onclick="soloUsePowerStrike(${idx})" ${used?'disabled':''}>Kraftslag → ${e.name} · -3 träff · +1T${state.damage[1]} skada</button>`; }).join("");
+  if(state.className==="Tjuv") return alive.map(e=>{ const idx=state.combat.enemies.indexOf(e); return `<button onclick="soloUseSneakAttack(${idx})" ${used?'disabled':''}>Smygattack → ${e.name} · +1T6 skada</button>`; }).join("");
+  if(state.className==="Magiker") return `<button onclick="soloUseBurningHands()" ${used?'disabled':''}>Brinnande händer → alla fiender · 1T6 + INT</button>`;
+  if(state.className==="Kleriker") return `<button onclick="soloUseClericHeal()" ${used||state.hp>=state.maxHp?'disabled':''}>Helande ord → dig själv · 1T6 + VIS</button>`;
+  return "";
+}
+
+function setCombatPageActive(active){
+  document.body.classList.toggle("combat-active", !!active);
+}
+
+function toggleCombatLog(){
+  const el=document.getElementById("combatlog");
+  if(!el) return;
+  const expanded=el.classList.toggle("expanded");
+  el.classList.toggle("compact", !expanded);
+  const b=document.getElementById("combatLogToggle");
+  if(b) b.textContent=expanded?"Visa bara senaste":"Visa hela stridsloggen";
+}
+
+function toggleCombatMore(){
+  const panel=document.getElementById("combatMorePanel");
+  if(!panel) return;
+  panel.classList.toggle("open");
+}
+
+function renderCombat(){
+  const c=state.combat;
+  if(!c){ setCombatPageActive(false); return; }
+  setCombatPageActive(true);
+  const alive=livingEnemies();
+  const playerTurn=soloCurrent()?.type==="player";
+  const targetable=alive.filter(soloCanTarget);
+  const bossIntent=alive.find(e=>e.intent)?.intent;
+  let targets="";
+  const targetChip=(e,onclick,label=e.name)=>{
+    const i=c.enemies.indexOf(e), allowed=soloCanTarget(e);
+    if(!allowed) return `<button class="combat-target combat-target-locked" disabled>${label}<br><span class="small">Blockerad av ${soloDoorBlocker()?.name||"framlinjen"}</span></button>`;
+    return `<button class="combat-target" onclick="${onclick(i)}">${label}<br><span class="small">${Math.max(0,e.hp)}/${e.maxHp} HP</span></button>`;
+  };
+  if(playerTurn){
+    if(soloCombatAction==="attack") targets=alive.map(e=>targetChip(e,i=>`playerAttack(${i})`,`⚔ ${e.name}`)).join("");
+    else if(soloCombatAction==="special"){
+      if(state.className==="Krigare") targets=alive.map(e=>targetChip(e,i=>`soloUsePowerStrike(${i})`,`Kraftslag · ${e.name}`)).join("");
+      else if(state.className==="Tjuv") targets=alive.map(e=>targetChip(e,i=>`soloUseSneakAttack(${i})`,`Smygattack · ${e.name}`)).join("");
+      else if(state.className==="Magiker") targets=`<button class="combat-target" onclick="soloUseBurningHands()" ${c.abilityUsed?'disabled':''}>Brinnande händer · alla</button>`;
+      else if(state.className==="Kleriker") targets=`<button class="combat-target" onclick="soloUseClericHeal()" ${c.abilityUsed||state.hp>=state.maxHp?'disabled':''}>Helande ord · dig</button>`;
+    }
+  }
+  const ability=state.className==="Krigare"?"Kraftslag":state.className==="Tjuv"?"Smygattack":state.className==="Magiker"?"Brinnande händer":"Helande ord";
+  document.getElementById("combat").innerHTML=`
+    <div class="combat">
+      <div class="combat-head"><div><h3>Strid</h3></div></div>
+      <div class="tactical-strip">
+        <span class="tactical-pill">Du: ${c.playerPosition==="fram"?"Framlinje":"Baklinje"}</span>
+        ${c.advantage?'<span class="tactical-pill good">Advantage nästa attack</span>':''}
+        ${soloDoorBlocker()&&!c.breachedBackline&&!soloHasRangedReach()?`<span class="tactical-pill intent">🛡 ${soloDoorBlocker().name} blockerar baklinjen</span>`:''}
+        ${c.breachedBackline&&state.scene==="door"?'<span class="tactical-pill good">Baklinjen nådd</span>':''}
+        ${bossIntent?`<span class="tactical-pill intent">⚠ ${bossIntent}</span>`:''}
+      </div>
+      <div class="combat-enemies">
+        ${c.enemies.map(e=>`<div class="combat-enemy-card"><div><strong>${e.name}</strong><span class="enemy-role">${e.role} · ${e.position==="fram"?"fram":"bak"}</span><div class="enemy-meta">AC ${e.ac}${(e.weaknesses&&e.weaknesses.length)?` · Svag: ${e.weaknesses.join(", ")}`:""}${(e.resistances&&e.resistances.length)?` · Motstånd: ${e.resistances.join(", ")}`:""}</div></div><strong class="enemy-hp ${e.hp<=0?'bad':''}">${Math.max(0,e.hp)}/${e.maxHp} HP</strong></div>`).join("")}
+      </div>
+      <div class="combatlog compact" id="combatlog"></div>
+      <button id="combatLogToggle" class="combat-log-toggle" onclick="toggleCombatLog()">Visa hela stridsloggen</button>
+      <div class="combat-actions">
+        <div class="combat-actions-label">${playerTurn?'Välj handling':`Väntar på ${soloCurrent()?.name||"fienden"}`}</div>
+        ${playerTurn?`<div class="combat-action-types">
+          <button class="${soloCombatAction==='attack'?'selected':''}" onclick="soloSelectCombatAction('attack')">Attack</button>
+          <button class="${soloCombatAction==='special'?'selected':''}" onclick="soloSelectCombatAction('special')">${ability}</button>
+          <button onclick="playerDefend()">Försvara</button>
+          ${state.scene==="door" && soloDoorBlocker() && !c.breachedBackline && !soloHasRangedReach()?'<button onclick="soloBreakThrough()">Bryt igenom</button>':''}
+          <button class="combat-position-btn" onclick="soloSwitchPosition()">Byt till ${c.playerPosition==='fram'?'bak':'fram'}</button>
+          <button onclick="toggleCombatMore()">Mer…</button>
+        </div><div class="combat-targets">${targets||'<span class="small">Inga giltiga mål i den positionen.</span>'}</div>`:`<div class="combat-action-types"><button disabled>Väntar…</button></div>`}
+        <div id="combatMorePanel" class="combat-more-panel">
+          <button onclick="usePotion()" ${state.potions<=0||!playerTurn?'disabled':''}>Läkebrygd (${state.potions})</button>
+          <button onclick="useHerbs()" ${state.herbs<=0||!playerTurn?'disabled':''}>Örter (${state.herbs})</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+
+function scrollCombatLogToLatest(){
+  const el=document.getElementById("combatlog");
+  if(!el) return;
+  const last=el.lastElementChild;
+  if(last){
+    requestAnimationFrame(()=>{
+      last.scrollIntoView({block:"nearest"});
+    });
+  }
+}
+
+function logCombat(msg, cls="log-neutral"){
+  const el=document.getElementById("combatlog");
+  if(!el) return;
+  el.innerHTML += `<div class="${cls}">${msg}</div>`;
+  scrollCombatLogToLatest();
+}
+
+function refreshCombatKeepLog(logHtml){
+  renderCombat();
+  const el=document.getElementById("combatlog");
+  if(el){
+    el.innerHTML=logHtml;
+    scrollCombatLogToLatest();
+  }
+}
+
+function playerAttack(enemyIndex){
+  const c=state.combat; if(!c)return;
+  const enemy=c.enemies[enemyIndex];
+  if(!enemy || enemy.hp<=0 || !soloCanTarget(enemy))return;
+  c.rounds++;
+  const log=document.getElementById("combatlog").innerHTML;
+  const ar=rollAttackWithAdvantage(state.attackBonus,c.advantage); c.advantage=false; const r=ar.r,total=ar.total;
+  if(r===20){
+    const dice=[state.damage[0],state.damage[1],0], flat=state.damage[2]||0;
+    const d=dmgRoll(dice)+dmgRoll(dice)+flat;
+    enemy.hp-=d;
+    c.damageDealt+=d;
+    c.crits++;
+    refreshCombatKeepLog(log);
+    logCombat(`<div class="log-main"><span class="gold">Kritisk träff!</span> Du träffar ${enemy.name} med ${weaponDisplayName(state.weapon)} för ${d} ${(state.damageType||"fysisk").toLowerCase()}skada.</div>`,"log-player");
+  } else if(r===1 || total<enemy.ac){
+    refreshCombatKeepLog(log);
+    logCombat(`<div class="log-main">Du missar ${enemy.name} med ${weaponDisplayName(state.weapon)}.</div><span class="log-detail">Attackslag: ${r}+${state.attackBonus}=${total} mot AC ${enemy.ac}.</span>`,"log-player");
+  } else {
+    const d=dmgRoll(state.damage);
+    enemy.hp-=d;
+    c.damageDealt+=d;
+    refreshCombatKeepLog(log);
+    logCombat(`<div class="log-main">Du träffar ${enemy.name} med ${weaponDisplayName(state.weapon)} för <span class="good">${d}</span> ${(state.damageType||"fysisk").toLowerCase()}skada.</div><span class="log-detail">Attackslag: ${r}+${state.attackBonus}=${total} mot AC ${enemy.ac}.</span>`,"log-player");
+  }
+  if(enemy.hp<=0){
+    if(!c.defeated.includes(enemy.name)) c.defeated.push(enemy.name);
+    logCombat(`<div class="log-main"><span class="good">${enemy.name} faller.</span></div>`,"log-success");
+  }
+  if(checkCombat()) return;
+  soloAdvanceTurn();
+}
+
+function playerDefend(){
+  const c=state.combat; if(!c||soloCurrent()?.type!=="player")return;
+  c.dodging=true;
+  logCombat(`<div class="log-main">Du använder <span class="gold">Dodge</span>. Attackslag mot dig har disadvantage tills början av din nästa tur.</div>`,"log-player");
+  soloAdvanceTurn();
+}
+
+function usePotion(){
+  if(state.potions<=0 || !state.combat)return;
+  state.combat.rounds++;
+  state.combat.potionsUsed++;
+  state.potions--;
+  const heal=roll(8)+6;
+  state.hp=Math.min(state.maxHp,state.hp+heal);
+  updateUI();
+  logCombat(`<div class="log-main">Du dricker en läkebrygd och återfår <span class="good">${heal} HP</span>.</div>`,"log-player");
+  renderCombatPreserve();
+  soloAdvanceTurn();
+}
+
+function useHerbs(){
+  if(state.herbs<=0 || !state.combat)return;
+  state.combat.rounds++;
+  state.combat.herbsUsed++;
+  state.herbs--;
+  const heal=roll(4)+3;
+  state.hp=Math.min(state.maxHp,state.hp+heal);
+  updateUI();
+  logCombat(`<div class="log-main">Du pressar örterna mot såret och återfår <span class="good">${heal} HP</span>.</div>`,"log-player");
+  renderCombatPreserve();
+  soloAdvanceTurn();
+}
+
+function renderCombatPreserve(){
+  const log=document.getElementById("combatlog")?.innerHTML||"";
+  renderCombat();
+  const el=document.getElementById("combatlog");
+  if(el){
+    el.innerHTML=log;
+    el.scrollTop=el.scrollHeight;
+  }
+}
+
+function soloEnemyTurn(enemyIndex){
+  const c=state.combat,e=c?.enemies?.[enemyIndex];if(!c||!e||e.hp<=0)return;
+  if(e.role==="Boss"){
+    if(e.hp<=Math.ceil(e.maxHp/2) && e.phase===1){ e.phase=2; e.attack+=1; e.dmg=[e.dmg[0],e.dmg[1],(e.dmg[2]||0)+1]; logCombat(`<div class="log-main"><span class="bad">Kryptväktaren blir vildare när den såras.</span></div>`,`log-enemy`); }
+    if(!e.intent){ e.intent="Kryptväktaren laddar ett våldsamt utfall"; logCombat(`<div class="log-main"><span class="gold">⚠ Kryptväktaren drar klorna längs stenen och förbereder ett utfall.</span></div><span class="log-detail">Nästa gång den agerar kommer anfallet. Försvara eller byt position.</span>`,`log-neutral`); renderCombatPreserve(); return; }
+    e.intent=null;
+  }
+  let r,detail="";
+  let disadv=c.dodging;
+  if(e.role==="Boss" && c.playerPosition==="bak") disadv=true;
+  if(disadv){const d=rollWithDisadvantage();r=d.result;detail=` · disadvantage ${d.a}/${d.b}→${r}`;}else r=roll(20);
+  const total=r+e.attack; let d=0;
+  if(r===20){const dice=[e.dmg[0],e.dmg[1],0],flat=e.dmg[2]||0;d=dmgRoll(dice)+dmgRoll(dice)+flat;state.hp-=d;c.damageTaken+=d;logCombat(`<div class="log-main"><span class="bad">${e.name} träffar dig kritiskt för ${d} skada.</span></div><span class="log-detail">Attackslag ${r}${detail}.</span>`,`log-enemy`);}
+  else if(r===1||total<state.ac){logCombat(`<div class="log-main">${e.name} missar dig.</div><span class="log-detail">Attackslag: ${r}+${e.attack}=${total} mot AC ${state.ac}${detail}.</span>`,`log-enemy`);}
+  else{d=dmgRoll(e.dmg);state.hp-=d;c.damageTaken+=d;logCombat(`<div class="log-main"><span class="bad">${e.name} träffar dig för ${d} skada.</span></div><span class="log-detail">Attackslag: ${r}+${e.attack}=${total} mot AC ${state.ac}${detail}.</span>`,`log-enemy`);}
+  updateUI(); if(state.hp<=0)gameOver();
+}
+function enemyTurn(){ const e=soloCurrent(); if(e?.type==="enemy") soloEnemyTurn(e.index); }
+
+function checkCombat(){
+  if(!state.combat) return false;
+  if(livingEnemies().length===0){
+    showCombatVictory();
+    return true;
+  }
+  return false;
+}
+
+
+function gainXp(amount){
+  if(!amount) return "";
+  const oldLevel=state.level;
+  state.xp += amount;
+  let levelText="";
+  while(state.level<20 && state.xp >= XP_THRESHOLDS[state.level]){
+    state.level++;
+    const hpGain=fixedHpGainForClass(state.className,state.con);
+    state.maxHp += hpGain;
+    state.hp += hpGain;
+    levelText += ` <span class="gold">Nivå upp! ${state.name} når nivå ${state.level}. Max HP +${hpGain}.</span>`;
+  }
+  state.nextXp = state.level<20 ? XP_THRESHOLDS[state.level] : 355000;
+  updateUI();
+  return `Du får <span class="gold">${amount} XP</span> (${state.xp}/${state.nextXp}).${levelText}`;
+}
+
+function showCombatVictory(){
+  setCombatPageActive(true);
+  const c=state.combat;
+  if(!c) return;
+  const next=c.onWin;
+  const oldLog=document.getElementById("combatlog")?.innerHTML || "";
+  const defeated=c.defeated.length ? c.defeated.join(", ") : c.enemies.map(e=>e.name).join(", ");
+  const xpText=gainXp(c.xpReward);
+
+  document.getElementById("combat").innerHTML=`
+    <div class="combat">
+      <h3 class="gold">Striden vunnen</h3>
+      <div class="combatlog">${oldLog}</div>
+      <p><strong>Efter striden</strong></p>
+      <div class="stat"><span>Besegrade</span><strong>${defeated}</strong></div>
+      <div class="stat"><span>Rundor</span><strong>${c.rounds}</strong></div>
+      <div class="stat"><span>Skada utdelad</span><strong>${c.damageDealt}</strong></div>
+      <div class="stat"><span>Skada mottagen</span><strong>${c.damageTaken}</strong></div>
+      <div class="stat"><span>Kritiska träffar</span><strong>${c.crits}</strong></div>
+      <div class="stat"><span>Kvarvarande HP</span><strong>${Math.max(0,state.hp)} / ${state.maxHp}</strong></div>
+      ${xpText ? `<p>${xpText}</p>` : ""}
+      ${(c.potionsUsed||c.herbsUsed) ? `<div class="stat"><span>Förbrukat</span><strong>${c.potionsUsed} läkebrygd, ${c.herbsUsed} örter</strong></div>` : ""}
+      <div class="choices" style="margin-top:16px">
+        <button id="continueAfterCombat">Fortsätt</button>
+      </div>
+    </div>`;
+
+  document.getElementById("choices").innerHTML="";
+  const victoryLog=document.querySelector("#combat .combatlog");
+  if(victoryLog) scrollCombatLogToLatest();
+  document.getElementById("continueAfterCombat").onclick=()=>{
+    state.combat=null;
+    showScene(next);
+  };
+}
+
+function gameOver(){
+  setCombatPageActive(false);
+  state.combat=null;
+  document.getElementById("combat").innerHTML="";
+  document.getElementById("choices").innerHTML="";
+  document.getElementById("story").innerHTML=`
+    <h2>Du faller</h2>
+    <p>Synfältet smalnar. Stenen eller leran under dig känns plötsligt långt borta.</p>
+    <p>Äventyret slutar här — den här gången.</p>`;
+  const b=document.createElement("button");
+  b.textContent="Börja om från början";
+  b.onclick=()=>location.reload();
+  document.getElementById("choices").appendChild(b);
+}
+
+/* v021 starts below. */
+</script>
+
+<script>
+/* =====================================================================
+   DRAKVALVET v021
+   - One to four separate player characters.
+   - Shared story/world and enemies.
+   - Separate HP, XP, inventory and equipment.
+   - Turn order: D&D 2024 initiative (d20 + Dexterity modifier).
+   - Host is authoritative. No game database.
+   ===================================================================== */
+
+const MP_CHAR_KEYS = [
+  "name","race","className","talent","creation",
+  "str","dex","con","int","wis","cha",
+  "hp","maxHp","ac","attackBonus","damage","gold","level","xp","nextXp",
+  "weapon","armor","shield","damageType","potions","herbs","sigil","torch","rope",
+  "warned","towerKey","bossWeakened","rested"
+];
+
+const mp = {
+  mode:"menu",
+  role:null,
+  peer:null,
+  conn:null,
+  conns:{},
+  connected:false,
+  code:"",
+  partySize:2,
+  players:Array(4).fill(null),
+  playerReady:Array(4).fill(false),
+  localIndex:0,
+  localCreation:{race:null,class:null,talent:null,name:""},
+  scene:"creation",
+  combat:null,
+  combatLog:[],
+  revision:0,
+  busy:false
+};
+
+function mpBadge(text, ok=false){
+  const el=document.getElementById("mpBadge");
+  if(!el) return;
+  el.textContent=text;
+  el.style.borderColor=ok ? "#5f8659" : "#7a632f";
+}
+
+function mpRandomCode(){
+  const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let s="";
+  for(let i=0;i<6;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+
+function mpClone(v){ return JSON.parse(JSON.stringify(v)); }
+
+function mpMakeBaseCharacter(){
+  return {
+    name:"Äventyrare", race:"", className:"", talent:"",
+    creation:{race:null,class:null,talent:null},
+    str:10,dex:10,con:10,int:10,wis:10,cha:10,
+    hp:15,maxHp:15,ac:12,attackBonus:4,damage:[1,8,2],damageType:"Hugg",
+    gold:10,level:1,xp:0,nextXp:300,
+    weapon:"Resekniv (+1 skada)",armor:"Enkel resdräkt",shield:false,
+    potions:2,herbs:0,sigil:false,torch:false,rope:false,
+    warned:false,towerKey:false,bossWeakened:false,rested:false
+  };
+}
+
+function mpBuildCharacter(sel){
+  const race=raceData[sel.race], cls=classData[sel.class], talent=talentData[sel.talent];
+  if(!race || !cls || !talent) return null;
+  const c=mpMakeBaseCharacter();
+  c.name=(sel.name||"Äventyrare").trim() || "Äventyrare";
+  c.race=race.label; c.className=cls.label; c.talent=talent.label;
+  c.creation={race:sel.race,class:sel.class,talent:sel.talent};
+  c.str=cls.base.str+race.mods.str;
+  c.dex=cls.base.dex+race.mods.dex;
+  c.con=cls.base.con+race.mods.con;
+  c.int=cls.base.int+race.mods.int;
+  c.wis=cls.base.wis+race.mods.wis;
+  c.cha=cls.base.cha+race.mods.cha;
+  c.maxHp=cls.maxHp+race.hpBonus+talent.hpBonus;
+  c.hp=c.maxHp;
+  c.ac=cls.ac+race.acBonus+talent.acBonus;
+  c.attackBonus=cls.attack+talent.attackBonus;
+  c.damage=[...cls.damage];
+  c.damageType=cls.damageType||"Fysisk";
+  c.weapon=cls.weapon; c.armor=cls.armor; c.shield=cls.shield;
+  c.potions=cls.potions+talent.potions;
+  c.herbs=cls.herbs+talent.herbs;
+  return c;
+}
+
+function mpLoadPlayerToState(index){
+  const c=mp.players[index] || mpMakeBaseCharacter();
+  MP_CHAR_KEYS.forEach(k=>state[k]=mpClone(c[k]));
+  state.scene=mp.scene;
+  state.combat=mp.combat;
+}
+
+function mpSaveStateToPlayer(index){
+  if(!mp.players[index]) return;
+  MP_CHAR_KEYS.forEach(k=>mp.players[index][k]=mpClone(state[k]));
+}
+
+function mpUpdatePartyPanel(){
+  const sec=document.getElementById("partySection");
+  const box=document.getElementById("partyPanel");
+  if(!sec || !box) return;
+  if(mp.mode!=="multi"){ sec.style.display="none"; return; }
+  sec.style.display="";
+  const active=mp.combat?.activePlayer;
+  box.innerHTML=mp.players.slice(0,mp.partySize).map((p,i)=>{
+    if(!p) return `<div class="mp-player-card"><div class="mp-player-name">Spelare ${i+1}</div><div class="mp-player-meta">${mp.playerReady[i]?"Klar":"Väntar / skapar karaktär…"}</div></div>`;
+    return `<div class="mp-player-card ${active===i?'active':''}">
+      <div class="mp-player-head">
+        <span class="mp-player-name">${p.name}${i===mp.localIndex?' · du':''}</span>
+        <span class="mp-hp">${Math.max(0,p.hp)}/${p.maxHp} HP</span>
+      </div>
+      <div class="mp-player-meta">${p.race} · ${p.className} · Nivå ${p.level} · ${p.damageType||"Fysisk"}</div>
+    </div>`;
+  }).join("");
+}
+
+function mpUpdateLocalUi(){
+  if(mp.mode!=="multi") return;
+  mpLoadPlayerToState(mp.localIndex);
+  updateUI();
+  mpUpdatePartyPanel();
+}
+
+function mpSnapshot(){
+  return {
+    type:"snapshot",
+    partySize:mp.partySize,
+    players:mpClone(mp.players),
+    playerReady:[...mp.playerReady],
+    scene:mp.scene,
+    combat:mpClone(mp.combat),
+    combatLog:[...mp.combatLog],
+    world:mpClone(world),
+    revision:++mp.revision
+  };
+}
+
+function mpSend(obj){
+  if(mp.conn && mp.conn.open){
+    try{ mp.conn.send(obj); }catch(e){ console.warn(e); }
+  }
+}
+
+function mpSendTo(index,obj){
+  const conn=mp.conns?.[index];
+  if(conn && conn.open){
+    try{ conn.send(obj); }catch(e){ console.warn(e); }
+  }
+}
+
+function mpBroadcast(){
+  if(mp.mode==="multi" && mp.role==="host"){
+    const snap=mpSnapshot();
+    Object.entries(mp.conns||{}).forEach(([idx,conn])=>{
+      if(conn?.open){ try{ conn.send(snap); }catch(e){ console.warn(e); } }
+    });
+  }
+  mpUpdateLocalUi();
+}
+
+function mpConnectedGuestCount(){
+  return Object.values(mp.conns||{}).filter(c=>c?.open).length;
+}
+
+function mpRenderMenu(){
+  mp.mode="menu"; mp.role=null; mp.connected=false;
+  state.scene="creation"; state.combat=null;
+  document.getElementById("partySection").style.display="none";
+  document.getElementById("combat").innerHTML="";
+  document.getElementById("choices").innerHTML="";
+  document.getElementById("story").innerHTML=`
+    <div class="mp-start">
+      <h2>Drakvalvet v021</h2>
+      <p>Spela ensam eller tillsammans med upp till fyra personer. Varje spelare har en egen rollperson med separat HP, XP och utrustning, medan gruppen delar berättelse och världsval.</p>
+      <div class="mp-grid">
+        <div class="mp-card">
+          <h3>En spelare</h3>
+          <p>Spela äventyret själv på den här enheten.</p>
+          <button onclick="mpStartSolo()">Starta solo</button>
+        </div>
+        <div class="mp-card">
+          <h3>Skapa gruppspel</h3>
+          <p>Den här enheten blir Spelare 1 och host. Välj hur många som ska spela.</p>
+          <select id="mpPartySize" class="mp-select">
+            <option value="2">2 spelare</option>
+            <option value="3">3 spelare</option>
+            <option value="4">4 spelare</option>
+          </select>
+          <button onclick="mpCreateHost(Number(document.getElementById('mpPartySize').value))">Skapa spel</button>
+        </div>
+        <div class="mp-card">
+          <h3>Gå med</h3>
+          <p>Anslut till ett befintligt spelrum från mobil eller dator.</p>
+          <button onclick="mpShowJoin()">Anslut</button>
+        </div>
+      </div>
+      <div class="mp-note"><strong>Strid:</strong> Svårigheten skalas automatiskt efter gruppens storlek. Större grupper möter fler fiender och tåligare bossar, utan att ändra storyn.</div>
+    </div>`;
+  updateUI();
+  mpBadge("v021 · meny");
+}
+
+function mpStartSolo(){
+  resetWorld();
+  mp.mode="solo";
+  mpBadge("v021 · solo");
+  beginCharacterCreation();
+}
+
+function mpCreateHost(size=2){
+  resetWorld();
+  if(typeof Peer==="undefined"){ mpFatal("PeerJS kunde inte laddas."); return; }
+  mp.mode="multi"; mp.role="host"; mp.localIndex=0; mp.code=mpRandomCode();
+  mp.partySize=Math.max(2,Math.min(4,Number(size)||2));
+  mp.players=Array(4).fill(null); mp.playerReady=Array(4).fill(false); mp.conns={};
+  mp.scene="creation"; mp.combat=null; mp.combatLog=[];
+  document.getElementById("partySection").style.display="";
+  document.getElementById("combat").innerHTML="";
+  document.getElementById("choices").innerHTML="";
+  document.getElementById("story").innerHTML=`
+    <div class="mp-start">
+      <h2>Skapa spelrum · ${mp.partySize} spelare</h2>
+      <p>Alla andra ansluter med samma kod:</p>
+      <div class="mp-code">${mp.code}</div>
+      <div id="mpHostStatus" class="mp-note mp-wait">Kontaktar signaleringstjänsten…</div>
+      <button onclick="mpDisconnect()">Avbryt</button>
+    </div>`;
+  mpUpdatePartyPanel();
+  mpBadge(`v021 · host ${mp.code}`);
+  try{
+    mp.peer=new Peer("drakvalvet-"+mp.code.toLowerCase());
+    mp.peer.on("open",()=>{
+      const el=document.getElementById("mpHostStatus");
+      if(el) el.innerHTML=`Rummet är klart för <strong>${mp.partySize} spelare</strong>. Dela koden <strong>${mp.code}</strong> med de andra.`;
+    });
+    mp.peer.on("connection",conn=>{
+      const free=Array.from({length:mp.partySize-1},(_,k)=>k+1).find(i=>!mp.conns[i] || !mp.conns[i].open);
+      if(free==null){
+        conn.on("open",()=>{ try{conn.send({type:"roomFull"});}catch(e){} setTimeout(()=>conn.close(),100); });
+        return;
+      }
+      mp.conns[free]=conn;
+      mpWire(conn,free);
+    });
+    mp.peer.on("error",mpPeerError);
+  }catch(e){ mpPeerError(e); }
+}
+
+function mpShowJoin(){
+  mp.mode="multi"; mp.role="guest"; mp.localIndex=-1; mp.partySize=4;
+  mp.players=Array(4).fill(null); mp.playerReady=Array(4).fill(false); mp.scene="creation"; mp.combat=null; mp.combatLog=[];
+  document.getElementById("partySection").style.display="";
+  document.getElementById("combat").innerHTML="";
+  document.getElementById("choices").innerHTML="";
+  document.getElementById("story").innerHTML=`
+    <div class="mp-start">
+      <h2>Gå med i gruppspel</h2>
+      <input id="mpJoinCode" class="mp-input" maxlength="6" autocomplete="off" placeholder="ABC123" style="text-transform:uppercase">
+      <div id="mpJoinStatus" class="mp-note">Ingen anslutning ännu.</div>
+      <div class="creation-actions">
+        <button class="primary-cta" onclick="mpJoinHost()">Anslut</button>
+        <button class="secondary-cta" onclick="mpDisconnect()">Tillbaka</button>
+      </div>
+    </div>`;
+  mpUpdatePartyPanel();
+  setTimeout(()=>document.getElementById("mpJoinCode")?.focus(),50);
+  mpBadge("v021 · gäst");
+}
+
+function mpJoinHost(){
+  if(typeof Peer==="undefined"){ mpFatal("PeerJS kunde inte laddas."); return; }
+  const code=(document.getElementById("mpJoinCode")?.value||"").trim().toUpperCase();
+  if(!/^[A-Z2-9]{6}$/.test(code)){
+    document.getElementById("mpJoinStatus").textContent="Koden ska vara sex tecken.";
+    return;
+  }
+  mp.code=code;
+  document.getElementById("mpJoinStatus").textContent="Ansluter…";
+  try{
+    mp.peer=new Peer();
+    mp.peer.on("open",()=>{
+      mp.conn=mp.peer.connect("drakvalvet-"+code.toLowerCase(),{reliable:true});
+      mpWire(mp.conn,null);
+    });
+    mp.peer.on("error",mpPeerError);
+  }catch(e){ mpPeerError(e); }
+}
+
+function mpWire(conn, assignedIndex=null){
+  conn.on("open",()=>{
+    mp.connected=true;
+    if(mp.role==="host"){
+      const idx=assignedIndex;
+      mpSendTo(idx,{type:"welcome",index:idx,partySize:mp.partySize});
+      const el=document.getElementById("mpHostStatus");
+      if(el){
+        const joined=mpConnectedGuestCount();
+        el.className="mp-note mp-connected";
+        el.innerHTML=`<strong>${joined} av ${mp.partySize-1} gäster anslutna.</strong> Kod: <strong>${mp.code}</strong>.`;
+      }
+      mpBadge(`v021 · P1 host · ${mpConnectedGuestCount()+1}/${mp.partySize}`,true);
+      if(!mp.players[0] && mp.scene==="creation") setTimeout(()=>mpRenderCreation(),250);
+      mpBroadcast();
+    }else{
+      const el=document.getElementById("mpJoinStatus");
+      if(el){ el.className="mp-note mp-connected"; el.textContent="Ansluten. Väntar på spelarplats…"; }
+      mpSend({type:"hello"});
+    }
+  });
+  conn.on("data",data=>mpHandleData(data,assignedIndex));
+  conn.on("close",()=>mpConnectionLost(assignedIndex));
+  conn.on("error",mpPeerError);
+}
+
+function mpHandleData(data, actorIndex=null){
+  if(!data || typeof data!=="object") return;
+  if(mp.role==="host"){
+    const actor=actorIndex;
+    if(actor==null) return;
+    if(data.type==="hello"){ mpSendTo(actor,{type:"welcome",index:actor,partySize:mp.partySize}); mpBroadcast(); return; }
+    if(data.type==="character" && data.character){
+      mp.players[actor]=mpClone(data.character);
+      mp.playerReady[actor]=true;
+      mpCheckStart();
+      mpBroadcast();
+      return;
+    }
+    if(data.type==="action"){ mpProcessAction(actor,data); return; }
+  }else{
+    if(data.type==="roomFull"){
+      const el=document.getElementById("mpJoinStatus");
+      if(el){ el.className="mp-note bad"; el.textContent="Spelrummet är fullt."; }
+      mpBadge("v021 · rummet fullt");
+      return;
+    }
+    if(data.type==="welcome"){
+      mp.localIndex=Number(data.index);
+      mp.partySize=Math.max(2,Math.min(4,Number(data.partySize)||2));
+      mpBadge(`v021 · P${mp.localIndex+1} · ansluten`,true);
+      const el=document.getElementById("mpJoinStatus");
+      if(el){ el.className="mp-note mp-connected"; el.textContent=`Ansluten som Spelare ${mp.localIndex+1}.`; }
+      setTimeout(()=>mpRenderCreation(),150);
+      return;
+    }
+    if(data.type==="snapshot"){
+      if(data.partySize) mp.partySize=Math.max(2,Math.min(4,Number(data.partySize)||2));
+      mp.players=mpClone(data.players||Array(4).fill(null));
+      mp.playerReady=[...(data.playerReady||Array(4).fill(false))];
+      mp.scene=data.scene||"creation";
+      mp.combat=mpClone(data.combat);
+      mp.combatLog=[...(data.combatLog||[])];
+      Object.assign(world,mpClone(data.world||{}));
+      if(mp.localIndex>=0) mpRenderCurrent();
+    }
+  }
+}
+
+function mpCreationPreview(sel){
+  const race=sel.race?raceData[sel.race]:null;
+  const cls=sel.class?classData[sel.class]:null;
+  const talent=sel.talent?talentData[sel.talent]:null;
+  const base=cls?cls.base:{str:10,dex:10,con:10,int:10,wis:10,cha:10};
+  const mods=race?race.mods:{str:0,dex:0,con:0,int:0,wis:0,cha:0};
+  return {
+    stats:{
+      str:base.str+mods.str,dex:base.dex+mods.dex,con:base.con+mods.con,
+      int:base.int+mods.int,wis:base.wis+mods.wis,cha:base.cha+mods.cha
+    },
+    hp:(cls?cls.maxHp:10)+(race?race.hpBonus:0)+(talent?talent.hpBonus:0),
+    ac:(cls?cls.ac:10)+(race?race.acBonus:0)+(talent?talent.acBonus:0),
+    attack:(cls?cls.attack:0)+(talent?talent.attackBonus:0)
+  };
+}
+
+function mpCards(kind,obj){
+  return Object.entries(obj).map(([key,item])=>`
+    <div class="option-card ${mp.localCreation[kind]===key?'selected':''} ${kind==='talent'?'small-card':''}" onclick="mpSelectCreation('${kind}','${key}')">
+      <h3>${item.label}</h3><p>${item.desc}</p><div class="bonus">${item.bonus}</div>
+    </div>`).join("");
+}
+
+function mpRenderCreation(){
+  if(mp.playerReady[mp.localIndex]){ mpRenderWaiting(); return; }
+  const sel=mp.localCreation, p=mpCreationPreview(sel);
+  const ready=sel.race&&sel.class&&sel.talent;
+  document.getElementById("combat").innerHTML="";
+  document.getElementById("choices").innerHTML="";
+  document.getElementById("story").innerHTML=`
+    <div class="creation-screen">
+      <h2>Spelare ${mp.localIndex+1} – skapa din hjälte</h2>
+      <div class="mp-creation-status">
+        ${Array.from({length:mp.partySize},(_,i)=>`<span class="mp-chip ${mp.playerReady[i]?'ready':''}">Spelare ${i+1} ${mp.playerReady[i]?'klar':'skapar'}</span>`).join("")}
+      </div>
+      <div class="creation-title">Namn</div>
+      <input id="mpNameInput" class="creation-input" maxlength="24" placeholder="Din hjältes namn" value="${sel.name||''}" oninput="mp.localCreation.name=this.value">
+      <div class="creation-title">Ras</div><div class="option-grid">${mpCards('race',raceData)}</div>
+      <div class="creation-title">Klass</div><div class="option-grid">${mpCards('class',classData)}</div>
+      <div class="creation-title">Förmåga</div><div class="option-grid">${mpCards('talent',talentData)}</div>
+      <div class="creation-preview">
+        <h3>Förhandsvisning</h3>
+        <div class="preview-primary">
+          <div>Liv<strong>${p.hp}</strong></div><div>Försvar<strong>${p.ac}</strong></div><div>Anfall<strong>+${p.attack}</strong></div>
+        </div>
+        <div class="preview-row"><span>STY</span><strong>${fmtMod(p.stats.str)}</strong></div>
+        <div class="preview-row"><span>SMI</span><strong>${fmtMod(p.stats.dex)}</strong></div>
+        <div class="preview-row"><span>KON</span><strong>${fmtMod(p.stats.con)}</strong></div>
+        <div class="preview-row"><span>INT</span><strong>${fmtMod(p.stats.int)}</strong></div>
+        <div class="preview-row"><span>VIS</span><strong>${fmtMod(p.stats.wis)}</strong></div>
+        <div class="preview-row"><span>KAR</span><strong>${fmtMod(p.stats.cha)}</strong></div>
+      </div>
+      <div class="creation-actions">
+        <button class="primary-cta" onclick="mpSubmitCharacter()" ${ready?'':'disabled'}>Klar</button>
+      </div>
+    </div>`;
+  mpUpdatePartyPanel();
+}
+
+function mpSelectCreation(kind,key){
+  mp.localCreation[kind]=key;
+  const n=document.getElementById("mpNameInput");
+  if(n) mp.localCreation.name=n.value;
+  mpRenderCreation();
+}
+
+function mpSubmitCharacter(){
+  const n=document.getElementById("mpNameInput");
+  if(n) mp.localCreation.name=n.value;
+  const char=mpBuildCharacter(mp.localCreation);
+  if(!char || mp.localIndex<0) return;
+  mp.players[mp.localIndex]=char;
+  mp.playerReady[mp.localIndex]=true;
+
+  if(mp.role==="guest"){
+    mpSend({type:"character",character:char});
+    mpRenderWaiting();
+    return;
+  }
+
+  mpCheckStart();
+  if(mp.scene==="creation") mpRenderWaiting();
+  else mpRenderCurrent();
+  mpBroadcast();
+}
+
+function mpRenderWaiting(){
+  mpUpdatePartyPanel();
+  document.getElementById("combat").innerHTML="";
+  document.getElementById("choices").innerHTML="";
+  const readyCount=mp.playerReady.slice(0,mp.partySize).filter(Boolean).length;
+  document.getElementById("story").innerHTML=`
+    <div class="mp-waiting-screen">
+      <h2>${mp.players[mp.localIndex]?.name||"Din hjälte"} är klar</h2>
+      <div class="mp-note mp-connected">Din karaktär är sparad i spelrummet.</div>
+      <p>${readyCount>=mp.partySize?"Alla är klara. Äventyret startar…":`${readyCount} av ${mp.partySize} spelare är klara. Väntar på resten…`}</p>
+      ${mp.role==="host"?`<p class="small">Rumskod: <strong>${mp.code}</strong></p>`:""}
+    </div>`;
+}
+
+function mpCheckStart(){
+  if(mp.role!=="host") return;
+  const allReady=Array.from({length:mp.partySize},(_,i)=>!!mp.playerReady[i]).every(Boolean);
+  if(allReady){
+    mp.scene="roadIntro";
+    mp.combat=null;
+    mp.combatLog=[];
+    mpRenderCurrent();
+    mpBroadcast();
+  }
+}
+
+function mpSceneFor(index){
+  mpLoadPlayerToState(index);
+  return scenes[mp.scene];
+}
+
+function mpSceneText(index){
+  const sc=mpSceneFor(index);
+  const t=typeof sc?.text==="function"?sc.text():sc?.text;
+  return {sc,text:t||[]};
+}
+
+function mpRenderCurrent(){
+  if(mp.mode!=="multi") return;
+  if(!mp.combat) setCombatPageActive(false);
+  if(mp.scene==="creation"){
+    if(mp.playerReady[mp.localIndex]) mpRenderWaiting();
+    else mpRenderCreation();
+    return;
+  }
+  mpUpdateLocalUi();
+  const {sc,text}=mpSceneText(mp.localIndex);
+  let renderedText=[...text];
+  if(mp.scene==="door"){
+    renderedText[1]="Bakom honom kommer tre rövare ur regnet. En höjer ett kortsvärd, en annan greppar en handyxa och bågskytten stannar ute på gården och spänner sin sträng.";
+  }else if(mp.scene==="ambush"){
+    renderedText[1]="Bågskytten hinner aldrig få upp vapnet innan ni rusar fram. En tredje rövare med handyxa svär och kastar sig in i striden.";
+  }else if(mp.scene==="towerFight"){
+    renderedText[0]="Vakterna ser er och drar sina vapen. En bär ringbrynja, en håller ett tungt spjut och en tredje vakt höjer en kortbåge från muren.";
+  }
+  document.getElementById("story").innerHTML=`<h2>${sc.title}</h2>`+renderedText.map(p=>`<p>${p}</p>`).join("")+(world.xpNotice?`<div class="mp-note"><strong>XP:</strong> ${world.xpNotice}</div>`:"");
+  world.xpNotice=null;
+  if(mp.combat) mpRenderCombat();
+  else{
+    document.getElementById("combat").innerHTML="";
+    mpRenderStoryChoices(sc?.choices);
+  }
+}
+
+function mpAvailableChoices(choiceDef,index){
+  mpLoadPlayerToState(index);
+  return typeof choiceDef==="function"?choiceDef():(choiceDef||[]);
+}
+
+function mpRenderStoryChoices(choiceDef){
+  const box=document.getElementById("choices");
+  box.innerHTML="";
+  mpAvailableChoices(choiceDef,mp.localIndex).forEach(([label,next])=>{
+    const b=document.createElement("button");
+    b.textContent=label;
+    b.onclick=()=>mpLocalAction({action:"scene",next,fromScene:mp.scene});
+    box.appendChild(b);
+  });
+}
+
+function mpLocalAction(action){
+  if(mp.busy) return;
+  if(mp.role==="host") mpProcessAction(0,action);
+  else{
+    mp.busy=true;
+    mpSend({type:"action",...action});
+    setTimeout(()=>mp.busy=false,250);
+  }
+}
+
+function mpProcessAction(actor,msg){
+  if(mp.role!=="host") return;
+  if(msg.action==="scene"){
+    if(msg.fromScene && msg.fromScene!==mp.scene) return;
+    mpGoScene(msg.next,actor);
+  }else if(msg.action==="attack"){
+    mpCombatAttack(actor,msg.index);
+  }else if(msg.action==="defend"){
+    mpCombatDefend(actor);
+  }else if(msg.action==="potion"){
+    mpCombatPotion(actor);
+  }else if(msg.action==="herbs"){
+    mpCombatHerbs(actor);
+  }else if(msg.action==="clericHeal"){
+    mpCombatClericHeal(actor,msg.target);
+  }else if(msg.action==="sneakAttack"){
+    mpCombatSneakAttack(actor,msg.index);
+  }else if(msg.action==="burningHands"){
+    mpCombatBurningHands(actor);
+  }else if(msg.action==="powerStrike"){
+    mpCombatPowerStrike(actor,msg.index);
+  }else if(msg.action==="help"){
+    mpCombatHelp(actor,msg.target);
+  }else if(msg.action==="switchPosition"){
+    mpSwitchPosition(actor);
+  }else if(msg.action==="continue"){
+    if(mp.combat?.victory) mpFinishCombat(actor);
+  }
+  mpRenderCurrent();
+  mpBroadcast();
+}
+
+const STORY_XP = {
+  oldman:{xp:20,reason:"Ni avslöjade det gamla sigillets betydelse."},
+  tracks:{xp:25,reason:"Ni fann den saknade jägaren och lärde er mer om Väktaren."},
+  towerSneak:{xp:35,reason:"Ni tog er förbi tornvakterna utan strid."},
+  towerBluff:{xp:35,reason:"Ni lurade tornvakterna och undvek striden."},
+  vault:{xp:50,reason:"Ni upptäckte Drakvalvet."},
+  vaultRough:{xp:50,reason:"Ni upptäckte Drakvalvet."}
+};
+function mpAwardStoryXp(id){
+  const a=STORY_XP[id]; if(!a||world.xpAwards?.[id]) return;
+  world.xpAwards=world.xpAwards||{}; world.xpAwards[id]=true;
+  const eligible=Array.from({length:mp.partySize},(_,i)=>i).filter(i=>mp.players[i]);
+  const share=eligible.length?Math.floor(a.xp/eligible.length):0;
+  eligible.forEach(i=>mpGainXp(i,share));
+  world.xpNotice=`${a.reason} Gruppen får ${a.xp} XP · +${share} XP per rollperson.`;
+}
+
+function mpGoScene(id,actor){
+  if(id==="restart"){ location.reload(); return; }
+  const sc=scenes[id];
+  if(!sc) return;
+  mp.scene=id;
+  mp.combat=null;
+  mp.combatLog=[];
+  mpLoadPlayerToState(actor);
+  state.scene=id;
+  state.combat=null;
+  if(sc.effect) sc.effect();
+  mpSaveStateToPlayer(actor);
+  mpAwardStoryXp(id);
+  if(sc.combat) mpStartCombat(sc.combat);
+}
+
+
+const mpClassAbilities = {
+  "Krigare":{
+    name:"Kraftslag",
+    desc:"Slå hårdare men mindre precist: -3 på attackslaget, +1T8 extra vapenskada vid träff. En gång per strid."
+  },
+  "Kleriker":{
+    name:"Helande ord",
+    desc:"Hela dig själv eller din lagkamrat med 1T6 + VIS-modifierare. Du avstår från skada den turen. En gång per strid."
+  },
+  "Tjuv":{
+    name:"Smygattack",
+    desc:"Gör en vapenattack med +1T6 extra skada vid träff. En gång per strid."
+  },
+  "Magiker":{
+    name:"Brinnande händer",
+    desc:"En eldkvast träffar alla levande fiender för 1T6 + INT-modifierare eldskada. Stark mot grupper, men kan bara användas en gång per strid."
+  }
+};
+
+function mpClassAbility(player){
+  return mpClassAbilities[player?.className] || null;
+}
+
+function mpAbilityAvailable(actor){
+  return !!(mp.combat && !mp.combat.victory && !mp.combat.abilityUsed?.[actor] && mp.players[actor]?.hp>0);
+}
+
+function mpAbilityMod(p, stat){
+  return Math.max(0, statMod(p?.[stat] ?? 10));
+}
+
+function mpScaleEnemies(baseEnemies){
+  const enemies=baseEnemies.map(e=>({...e}));
+  const n=mp.partySize;
+
+  // Vanliga möten får ungefär en extra fiende per extra hjälte.
+  const extras={
+    door:[
+      {name:"YxRövare",hp:8,maxHp:8,ac:11,attack:2,dmg:[1,4,1],weapon:"Handyxa",damageType:"Hugg"},
+      {name:"KnivRövare",hp:7,maxHp:7,ac:12,attack:3,dmg:[1,4,0],weapon:"Kniv",damageType:"Stick"},
+      {name:"Klubbrövare",hp:10,maxHp:10,ac:10,attack:2,dmg:[1,4,1],weapon:"Klubba",damageType:"Kross"}
+    ],
+    ambush:[
+      {name:"Överraskad yxrövare",hp:7,maxHp:7,ac:10,attack:2,dmg:[1,4,1],weapon:"Handyxa",damageType:"Hugg"},
+      {name:"Överraskad knivman",hp:6,maxHp:6,ac:10,attack:3,dmg:[1,4,0],weapon:"Kniv",damageType:"Stick"},
+      {name:"Överraskad klubbrövare",hp:8,maxHp:8,ac:10,attack:2,dmg:[1,4,1],weapon:"Klubba",damageType:"Kross"}
+    ],
+    towerFight:[
+      {name:"Tornskytt",hp:8,maxHp:8,ac:11,attack:2,dmg:[1,4,0],weapon:"Kortbåge",damageType:"Stick"},
+      {name:"Yxvakt",hp:10,maxHp:10,ac:11,attack:3,dmg:[1,4,1],weapon:"Handyxa",damageType:"Hugg"},
+      {name:"Andra tornskytten",hp:7,maxHp:7,ac:11,attack:2,dmg:[1,4,0],weapon:"Kortbåge",damageType:"Stick"}
+    ]
+  };
+  const list=extras[mp.scene]||[];
+  for(let i=0;i<Math.min(n-1,list.length);i++) enemies.push({...list[i]});
+
+  // Bossen skalas främst i uthållighet så fyra spelare inte avslutar mötet på en enda runda.
+  if(mp.scene==="cryptBeast" || mp.scene==="cryptBeastLoud"){
+    enemies.forEach(e=>{
+      e.hp += 8*(n-1);
+      e.maxHp += 8*(n-1);
+      if(n>=2) e.attack += n>=4 ? 2 : 1;
+      if(n>=4) e.dmg=[1,6,2];
+      else if(n>=2) e.dmg=[1,6,1];
+    });
+  }
+  return enemies;
+}
+
+
+let mpCombatAction="attack";
+function mpPlayerCanTarget(actor,enemy){
+  const c=mp.combat,p=mp.players[actor]; if(!c||!p||!enemy||enemy.hp<=0)return false;
+  if(p.className==="Magiker") return true;
+  const livingFront=c.enemies.some(x=>x.hp>0&&x.position==="fram");
+  return enemy.position==="fram" || !livingFront;
+}
+function mpSelectCombatAction(mode){ mpCombatAction=mode; mpRenderCombat(); }
+function mpSwitchPosition(actor){
+  if(!mpTurnAllowed(actor))return;
+  const c=mp.combat,p=mp.players[actor];
+  c.positions[actor]=c.positions[actor]==="fram"?"bak":"fram";
+  mp.combatLog.push(`<div class="log-main">${p.name} flyttar till <span class="gold">${c.positions[actor]==="fram"?"framlinjen":"baklinjen"}</span>.</div>`);
+  mpAfterPlayerAction(actor);
+}
+function mpCombatHelp(actor,target){
+  if(!mpTurnAllowed(actor)||actor===target||!mp.players[target]||mp.players[target].hp<=0)return;
+  mp.combat.advantage[target]=true;
+  mp.combatLog.push(`<div class="log-main">${mp.players[actor].name} hjälper ${mp.players[target].name}. <span class="good">Nästa attack får Advantage.</span></div>`);
+  mpAfterPlayerAction(actor);
+}
+function mpAttackRoll(actor,bonus){
+  const c=mp.combat,adv=!!c.advantage[actor]; c.advantage[actor]=false;
+  return rollAttackWithAdvantage(bonus,adv);
+}
+
+function mpStartCombat(def){
+  const enemies=mpScaleEnemies(def.enemies).map(e=>({...e,dex:e.dex??10,role:combatRoleForEnemy(e),position:combatPositionForEnemy(e),intent:null,phase:1}));
+  const entries=[];
+  Array.from({length:mp.partySize},(_,i)=>i).forEach(i=>{
+    const p=mp.players[i]; if(!p) return;
+    const surprised=def.surprise==="players";
+    const ir=initiativeRoll2024(surprised), mod=initiativeModFromDex(p.dex);
+    entries.push({type:"player",index:i,name:p.name,die:ir.die,rollDetail:ir.detail,mod,total:ir.die+mod,surprised});
+  });
+  enemies.forEach((e,i)=>{
+    const surprised=def.surprise==="enemies";
+    const ir=initiativeRoll2024(surprised), mod=initiativeModFromDex(e.dex);
+    entries.push({type:"enemy",index:i,name:e.name,die:ir.die,rollDetail:ir.detail,mod,total:ir.die+mod,surprised});
+  });
+  entries.forEach(x=>x.tie=roll(20));
+  entries.sort((a,b)=>b.total-a.total || b.tie-a.tie);
+  mp.combat={
+    enemies,onWin:def.onWin,
+    xpReward:Math.round((def.xp||0)*(1+0.25*(mp.partySize-1))),
+    initiative:entries,currentTurn:0,activePlayer:-1,
+    dodging:Array(mp.partySize).fill(false),abilityUsed:Array(mp.partySize).fill(false),victory:false,round:1,
+    damageDealt:Array(mp.partySize).fill(0),damageTaken:Array(mp.partySize).fill(0),crits:Array(mp.partySize).fill(0),potionsUsed:Array(mp.partySize).fill(0),herbsUsed:Array(mp.partySize).fill(0),
+    positions:Array.from({length:mp.partySize},(_,i)=>playerDefaultPosition(mp.players[i]?.className)),advantage:Array(mp.partySize).fill(false)
+  };
+  mpCombatAction="attack";
+  mp.combatLog=[`<div class="log-main">Striden börjar. Initiativ slås enligt D&D 2024.</div>`];
+  entries.forEach(x=>mp.combatLog.push(`<div class="log-detail">${x.name}: ${x.rollDetail}${x.mod>=0?"+":""}${x.mod} = ${x.total}${x.surprised?" · surprise: disadvantage":""}</div>`));
+  mpPrepareCurrentTurn(true);
+}
+
+function mpLivingEnemies(){ return (mp.combat?.enemies||[]).filter(e=>e.hp>0); }
+
+function mpNextLivingPlayer(after){
+  for(let step=1;step<=mp.partySize;step++){
+    const i=(after+step)%mp.partySize;
+    if(mp.players[i] && mp.players[i].hp>0) return i;
+  }
+  return -1;
+}
+
+function mpCurrentEntry(){ return mp.combat?.initiative?.[mp.combat.currentTurn] || null; }
+function mpTurnAllowed(actor){
+  const e=mpCurrentEntry();
+  return mp.combat && !mp.combat.victory && e?.type==="player" && e.index===actor && mp.players[actor]?.hp>0;
+}
+function mpAdvanceTurn(){
+  const c=mp.combat; if(!c||c.victory) return;
+  c.currentTurn++;
+  if(c.currentTurn>=c.initiative.length){ c.currentTurn=0; c.round++; }
+  mpPrepareCurrentTurn(false);
+}
+function mpPrepareCurrentTurn(initial=false){
+  const c=mp.combat; if(!c||c.victory) return;
+  let safety=0;
+  while(safety++<30){
+    const e=mpCurrentEntry(); if(!e) return;
+    const alive=e.type==="player" ? mp.players[e.index]?.hp>0 : c.enemies[e.index]?.hp>0;
+    if(!alive){ mpAdvanceTurn(); return; }
+    if(e.type==="player"){
+      if(c.dodging[e.index]) c.dodging[e.index]=false;
+      c.activePlayer=e.index; return;
+    }
+    c.activePlayer=-1;
+    mpEnemyTurn(e.index);
+    if(c.victory || mp.scene==="gameover") return;
+    c.currentTurn++;
+    if(c.currentTurn>=c.initiative.length){ c.currentTurn=0; c.round++; }
+  }
+}
+
+function mpDamageTypeLabel(type){
+  return type || "Fysisk";
+}
+
+function mpResolveTypedDamage(enemy, rawDamage, damageType){
+  const type = mpDamageTypeLabel(damageType);
+  const weak = (enemy.weaknesses||[]).includes(type);
+  const resist = (enemy.resistances||[]).includes(type);
+  let finalDamage = rawDamage;
+  let note = "";
+  if(weak){
+    finalDamage = rawDamage * 2;
+    note = ` <span class="good">(${type}: sårbarhet)</span>`;
+  }else if(resist){
+    finalDamage = Math.max(1, Math.floor(rawDamage * 0.5));
+    note = ` <span class="small">(${type}: motstånd)</span>`;
+  }else{
+    note = ` <span class="small">(${type})</span>`;
+  }
+  return {finalDamage,note,type};
+}
+
+function mpCombatAttack(actor,enemyIndex){
+  if(!mpTurnAllowed(actor)) return;
+  const c=mp.combat, p=mp.players[actor], enemy=c.enemies[enemyIndex];
+  if(!enemy || enemy.hp<=0) return;
+  const ar=mpAttackRoll(actor,p.attackBonus), r=ar.r, total=ar.total;
+  if(r===20){
+    const dice=[p.damage[0],p.damage[1],0], flat=p.damage[2]||0;
+    const raw=dmgRoll(dice)+dmgRoll(dice)+flat;
+    const hit=mpResolveTypedDamage(enemy,raw,p.damageType);
+    enemy.hp-=hit.finalDamage; c.damageDealt[actor]+=hit.finalDamage; c.crits[actor]++;
+    mp.combatLog.push(`<div class="log-main">⚔ <span class="gold">Kritisk träff!</span> ${p.name} träffar ${enemy.name} med ${weaponDisplayName(p.weapon)} för ${hit.finalDamage} ${hit.type.toLowerCase()}skada.${hit.note}</div>`);
+  }else if(r===1 || total<enemy.ac){
+    mp.combatLog.push(`<div class="log-main">${p.name} missar ${enemy.name} med ${weaponDisplayName(p.weapon)}.</div><span class="log-detail">Attackslag: ${r}+${p.attackBonus}=${total} mot AC ${enemy.ac}.</span>`);
+  }else{
+    const raw=dmgRoll(p.damage);
+    const hit=mpResolveTypedDamage(enemy,raw,p.damageType);
+    enemy.hp-=hit.finalDamage; c.damageDealt[actor]+=hit.finalDamage;
+    mp.combatLog.push(`<div class="log-main">${p.name} träffar ${enemy.name} med ${weaponDisplayName(p.weapon)} för ${hit.finalDamage} ${hit.type.toLowerCase()}skada.${hit.note}</div><span class="log-detail">Attackslag: ${r}+${p.attackBonus}=${total} mot AC ${enemy.ac}.</span>`);
+  }
+  if(enemy.hp<=0 && !enemy._fallLogged){ enemy._fallLogged=true; mp.combatLog.push(`<div class="log-main"><span class="good">✓ ${enemy.name} faller.</span></div>`); }
+  mpAfterPlayerAction(actor);
+}
+
+
+function mpCombatPowerStrike(actor,enemyIndex){
+  if(!mpTurnAllowed(actor) || !mpAbilityAvailable(actor)) return;
+  const c=mp.combat, p=mp.players[actor], enemy=c.enemies[enemyIndex];
+  if(p.className!=="Krigare" || !enemy || enemy.hp<=0) return;
+  mp.combat.abilityUsed[actor]=true;
+  const penalty=3;
+  const ar=mpAttackRoll(actor,p.attackBonus-penalty), r=ar.r, total=ar.total;
+  if(r===20){
+    const dice=[p.damage[0],p.damage[1],0], flat=p.damage[2]||0;
+    const raw=dmgRoll(dice)+dmgRoll(dice)+flat+roll(p.damage[1])+roll(p.damage[1]);
+    const hit=mpResolveTypedDamage(enemy,raw,p.damageType);
+    enemy.hp-=hit.finalDamage; c.damageDealt[actor]+=hit.finalDamage; c.crits[actor]++;
+    mp.combatLog.push(`<div class="log-main">⚔ <span class="gold">Kritiskt Kraftslag!</span> ${p.name} träffar ${enemy.name} för ${hit.finalDamage} ${hit.type.toLowerCase()}skada.${hit.note}</div><span class="log-detail">Attackslag: ${r}+${p.attackBonus}-${penalty}=${total} mot AC ${enemy.ac}. Extra skada: 1T${p.damage[1]}.</span>`);
+  }else if(r===1 || total<enemy.ac){
+    mp.combatLog.push(`<div class="log-main">${p.name} försöker ett <span class="gold">Kraftslag</span> mot ${enemy.name}, men missar.</div><span class="log-detail">Attackslag: ${r}+${p.attackBonus}-${penalty}=${total} mot AC ${enemy.ac}.</span>`);
+  }else{
+    const raw=dmgRoll(p.damage)+roll(p.damage[1]);
+    const hit=mpResolveTypedDamage(enemy,raw,p.damageType);
+    enemy.hp-=hit.finalDamage; c.damageDealt[actor]+=hit.finalDamage;
+    mp.combatLog.push(`<div class="log-main">⚔ ${p.name} använder <span class="gold">Kraftslag</span> på ${enemy.name} för ${hit.finalDamage} ${hit.type.toLowerCase()}skada.${hit.note}</div><span class="log-detail">Attackslag: ${r}+${p.attackBonus}-${penalty}=${total} mot AC ${enemy.ac}. Extra skada: 1T${p.damage[1]}.</span>`);
+  }
+  if(enemy.hp<=0 && !enemy._fallLogged){ enemy._fallLogged=true; mp.combatLog.push(`<div class="log-main"><span class="good">✓ ${enemy.name} faller.</span></div>`); }
+  mpAfterPlayerAction(actor);
+}
+
+function mpCombatClericHeal(actor,target){
+  if(!mpTurnAllowed(actor) || !mpAbilityAvailable(actor)) return;
+  const p=mp.players[actor], t=mp.players[target];
+  if(p.className!=="Kleriker" || !t || t.hp<=0 || t.hp>=t.maxHp) return;
+  const heal=roll(6)+mpAbilityMod(p,"wis");
+  const actual=Math.min(heal,t.maxHp-t.hp);
+  t.hp+=actual;
+  mp.combat.abilityUsed[actor]=true;
+  mp.combatLog.push(`<div class="log-main">✨ ${p.name} använder <span class="gold">Helande ord</span> på ${t.name} och återställer <span class="good">${actual} HP</span>.</div>`);
+  mpAfterPlayerAction(actor);
+}
+
+function mpCombatProtect(actor){
+  if(!mpTurnAllowed(actor) || !mpAbilityAvailable(actor)) return;
+  const p=mp.players[actor];
+  if(p.className!=="Krigare") return;
+  const target=actor===0?1:0;
+  const ally=mp.players[target];
+  if(!ally || ally.hp<=0) return;
+  mp.combat.abilityUsed[actor]=true;
+  mp.combat.protectedBy[target]=actor;
+  mp.combatLog.push(`<div class="log-main">🛡 ${p.name} använder <span class="gold">Skydda</span>. ${ally.name} får +2 AC under nästa fiendefas.</div>`);
+  mpAfterPlayerAction(actor);
+}
+
+function mpCombatSneakAttack(actor,enemyIndex){
+  if(!mpTurnAllowed(actor) || !mpAbilityAvailable(actor)) return;
+  const c=mp.combat, p=mp.players[actor], enemy=c.enemies[enemyIndex];
+  if(p.className!=="Tjuv" || !enemy || enemy.hp<=0) return;
+  mp.combat.abilityUsed[actor]=true;
+  const ar=mpAttackRoll(actor,p.attackBonus), r=ar.r, total=ar.total;
+  if(r===20){
+    const dice=[p.damage[0],p.damage[1],0], flat=p.damage[2]||0;
+    const raw=dmgRoll(dice)+dmgRoll(dice)+flat+roll(6)+roll(6);
+    const hit=mpResolveTypedDamage(enemy,raw,p.damageType);
+    enemy.hp-=hit.finalDamage; c.damageDealt[actor]+=hit.finalDamage; c.crits[actor]++;
+    mp.combatLog.push(`<div class="log-main">🗡 <span class="gold">Kritisk smygattack!</span> ${p.name} träffar ${enemy.name} med ${weaponDisplayName(p.weapon)} för ${hit.finalDamage} ${hit.type.toLowerCase()}skada.${hit.note}</div>`);
+  }else if(r===1 || total<enemy.ac){
+    mp.combatLog.push(`<div class="log-main">${p.name} försöker en <span class="gold">Smygattack</span> mot ${enemy.name}, men missar.</div><span class="log-detail">Attackslag: ${r}+${p.attackBonus}=${total} mot AC ${enemy.ac}.</span>`);
+  }else{
+    const raw=dmgRoll(p.damage)+roll(6);
+    const hit=mpResolveTypedDamage(enemy,raw,p.damageType);
+    enemy.hp-=hit.finalDamage; c.damageDealt[actor]+=hit.finalDamage;
+    mp.combatLog.push(`<div class="log-main">🗡 ${p.name} gör en <span class="gold">Smygattack</span> på ${enemy.name} för ${hit.finalDamage} ${hit.type.toLowerCase()}skada.${hit.note}</div><span class="log-detail">Attackslag: ${r}+${p.attackBonus}=${total} mot AC ${enemy.ac}. Extra skada: 1T6.</span>`);
+  }
+  if(enemy.hp<=0) mp.combatLog.push(`<div class="log-main"><span class="good">✓ ${enemy.name} faller.</span></div>`);
+  mpAfterPlayerAction(actor);
+}
+
+function mpCombatBurningHands(actor){
+  if(!mpTurnAllowed(actor) || !mpAbilityAvailable(actor)) return;
+  const c=mp.combat, p=mp.players[actor];
+  if(p.className!=="Magiker") return;
+  mp.combat.abilityUsed[actor]=true;
+  const base=roll(6)+mpAbilityMod(p,"int");
+  let totalDamage=0;
+  mpLivingEnemies().forEach(enemy=>{
+    const hit=mpResolveTypedDamage(enemy,base,"Eld");
+    enemy.hp-=hit.finalDamage;
+    totalDamage+=hit.finalDamage;
+    if(enemy.hp<=0) enemy.hp=0;
+  });
+  c.damageDealt[actor]+=totalDamage;
+  mp.combatLog.push(`<div class="log-main">🔥 ${p.name} använder <span class="gold">Brinnande händer</span>. Elden sveper över fienderna och gör totalt <span class="good">${totalDamage} eldskada</span>.</div><span class="log-detail">${base} grundskada per levande fiende före sårbarhet/motstånd.</span>`);
+  c.enemies.filter(e=>e.hp<=0).forEach(e=>{
+    if(!e._fallLogged){ e._fallLogged=true; mp.combatLog.push(`<div class="log-main"><span class="good">✓ ${e.name} faller.</span></div>`); }
+  });
+  mpAfterPlayerAction(actor);
+}
+
+function mpCombatDefend(actor){
+  if(!mpTurnAllowed(actor)) return;
+  mp.combat.dodging[actor]=true;
+  mp.combatLog.push(`<div class="log-main">🛡 ${mp.players[actor].name} använder <span class="gold">Dodge</span>. Attackslag mot ${mp.players[actor].name} har disadvantage tills början av nästa tur.</div>`);
+  mpAfterPlayerAction(actor);
+}
+
+function mpCombatPotion(actor){
+  if(!mpTurnAllowed(actor)) return;
+  const p=mp.players[actor];
+  if(p.potions<=0 || p.hp>=p.maxHp) return;
+  p.potions--; mp.combat.potionsUsed[actor]++;
+  const heal=roll(8)+6;
+  const actual=Math.min(heal,p.maxHp-p.hp);
+  p.hp+=actual;
+  mp.combatLog.push(`<div class="log-main">✚ ${p.name} dricker läkebrygd och återfår ${actual} HP.</div>`);
+  mpAfterPlayerAction(actor);
+}
+
+function mpCombatHerbs(actor){
+  if(!mpTurnAllowed(actor)) return;
+  const p=mp.players[actor];
+  if(p.herbs<=0 || p.hp>=p.maxHp) return;
+  p.herbs--; mp.combat.herbsUsed[actor]++;
+  const heal=roll(4)+3;
+  const actual=Math.min(heal,p.maxHp-p.hp);
+  p.hp+=actual;
+  mp.combatLog.push(`<div class="log-main">✚ ${p.name} använder örter och återfår ${actual} HP.</div>`);
+  mpAfterPlayerAction(actor);
+}
+
+function mpAfterPlayerAction(actor){
+  if(mpLivingEnemies().length===0){ mpCombatVictory(); return; }
+  mpAdvanceTurn();
+}
+
+function mpEnemyTurn(enemyIndex){
+  const c=mp.combat, e=c?.enemies?.[enemyIndex]; if(!c||!e||e.hp<=0) return;
+  const living=Array.from({length:mp.partySize},(_,i)=>i).filter(i=>mp.players[i]?.hp>0); if(!living.length){ mpPartyGameOver(); return; }
+
+  if(e.role==="Boss"){
+    if(e.hp<=Math.ceil(e.maxHp/2) && e.phase===1){ e.phase=2; e.attack+=1; e.dmg=[e.dmg[0],e.dmg[1],(e.dmg[2]||0)+1]; mp.combatLog.push(`<div class="log-main"><span class="bad">Kryptväktaren blir vildare när den såras.</span></div>`); }
+    if(!e.intent){
+      const front=living.filter(i=>c.positions[i]==="fram"), pool=front.length?front:living;
+      const target=pool[Math.floor(Math.random()*pool.length)];
+      e.intent={target,text:`Kryptväktaren laddar ett utfall mot ${mp.players[target].name}`};
+      mp.combatLog.push(`<div class="log-main"><span class="gold">⚠ Kryptväktaren riktar in sig på ${mp.players[target].name} och förbereder ett våldsamt utfall.</span></div>`);
+      return;
+    }
+  }
+
+  let candidates=living;
+  if(e.role==="Bågskytt"){
+    const rear=living.filter(i=>c.positions[i]==="bak"); if(rear.length)candidates=rear;
+  }else{
+    const front=living.filter(i=>c.positions[i]==="fram"); if(front.length)candidates=front;
+  }
+  let target;
+  if(e.role==="Boss" && e.intent){ target=e.intent.target; if(!living.includes(target)) target=candidates[0]; e.intent=null; }
+  else target=candidates[Math.floor(Math.random()*candidates.length)];
+  const p=mp.players[target];
+  let r, detail="";
+  if(c.dodging[target]){const d=rollWithDisadvantage();r=d.result;detail=` · disadvantage ${d.a}/${d.b} → ${r}`;}else r=roll(20);
+  const total=r+e.attack;
+  if(r===20){
+    const diceOnly=[e.dmg[0],e.dmg[1],0], flat=e.dmg[2]||0;
+    const dmg=dmgRoll(diceOnly)+dmgRoll(diceOnly)+flat;
+    p.hp-=dmg; c.damageTaken[target]+=dmg;
+    mp.combatLog.push(`<div class="log-main"><span class="bad">${e.name} träffar ${p.name} kritiskt för ${dmg} skada.</span></div><span class="log-detail">Attackslag ${r}${detail}.</span>`);
+  }else if(r===1 || total<p.ac){
+    mp.combatLog.push(`<div class="log-main">${e.name} missar ${p.name}.</div><span class="log-detail">Attackslag: ${r}+${e.attack}=${total} mot AC ${p.ac}${detail}.</span>`);
+  }else{
+    const dmg=dmgRoll(e.dmg); p.hp-=dmg; c.damageTaken[target]+=dmg;
+    mp.combatLog.push(`<div class="log-main"><span class="bad">${e.name} träffar ${p.name} för ${dmg} skada.</span></div><span class="log-detail">Attackslag: ${r}+${e.attack}=${total} mot AC ${p.ac}${detail}.</span>`);
+  }
+  if(p.hp<=0){ p.hp=0; mp.combatLog.push(`<div class="log-main"><span class="bad">⚠ ${p.name} faller och är utslagen.</span></div>`); }
+  if(mp.players.slice(0,mp.partySize).every(q=>!q||q.hp<=0)) mpPartyGameOver();
+}
+
+function mpCombatVictory(){
+  const c=mp.combat; c.victory=true; c.activePlayer=-1;
+  const eligible=Array.from({length:mp.partySize},(_,i)=>i).filter(i=>mp.players[i]);
+  const share=eligible.length ? Math.floor(c.xpReward/eligible.length) : 0;
+  c.xpShare=share; c.xpPartyTotal=c.xpReward;
+  mp.combatLog.push(`<div class="log-main"><span class="good">★ Striden är vunnen.</span></div>`);
+  mp.combatLog.push(`<div class="log-main"><span class="gold">Gruppen får ${c.xpReward} XP. ${eligible.length} rollpersoner delar: +${share} XP var.</span></div>`);
+  eligible.forEach(i=>mpGainXp(i,share));
+}
+
+function mpGainXp(index,amount){
+  const p=mp.players[index]; if(!p||!amount) return;
+  p.xp+=amount;
+  while(p.level<20 && p.xp>=XP_THRESHOLDS[p.level]){
+    p.level++;
+    const hpGain=fixedHpGainForClass(p.className,p.con);
+    p.maxHp+=hpGain; p.hp+=hpGain;
+    p.nextXp=p.level<20?XP_THRESHOLDS[p.level]:355000;
+    mp.combatLog.push(`<div class="log-main"><span class="gold">★ ${p.name} når nivå ${p.level}: max HP +${hpGain}.</span></div>`);
+  }
+  p.nextXp=p.level<20?XP_THRESHOLDS[p.level]:355000;
+}
+
+function mpFinishCombat(actor){
+  const next=mp.combat.onWin;
+  mp.combat=null;
+  mp.combatLog=[];
+  mpGoScene(next,actor);
+}
+
+function mpPartyGameOver(){
+  setCombatPageActive(false);
+  mp.combat=null;
+  mp.scene="gameover";
+  document.getElementById("story").innerHTML=`<h2>Gruppen faller</h2><p>Alla hjältarna är utslagna. Äventyret slutar här — den här gången.</p>`;
+  document.getElementById("combat").innerHTML="";
+  document.getElementById("choices").innerHTML=`<button onclick="location.reload()">Börja om</button>`;
+}
+
+function mpRenderCombat(){
+  const c=mp.combat;
+  if(!c){ setCombatPageActive(false); return; }
+  setCombatPageActive(true);
+  document.getElementById("choices").innerHTML="";
+  const me=mp.players[mp.localIndex];
+  const myTurn=c.activePlayer===mp.localIndex && !c.victory && me?.hp>0;
+  const current=mpCurrentEntry(), turnName=current?.name||"";
+  const log=mp.combatLog.map(x=>`<div class="log-neutral">${x}</div>`).join("");
+  const alive=mpLivingEnemies(), targetable=alive.filter(e=>mpPlayerCanTarget(mp.localIndex,e));
+  const intent=c.enemies.find(e=>e.intent)?.intent;
+  let targets="";
+  if(c.victory){ targets=`<button class="combat-target" onclick="mpLocalAction({action:'continue'})">Fortsätt</button>`; }
+  else if(myTurn){
+    if(mpCombatAction==="attack") targets=targetable.map(e=>{const i=c.enemies.indexOf(e);return `<button class="combat-target" onclick="mpLocalAction({action:'attack',index:${i}})">⚔ ${e.name}<br><span class="small">${Math.max(0,e.hp)}/${e.maxHp} HP</span></button>`}).join("");
+    else if(mpCombatAction==="special"){
+      const used=!!c.abilityUsed?.[mp.localIndex];
+      if(me.className==="Krigare") targets=targetable.map(e=>{const i=c.enemies.indexOf(e);return `<button class="combat-target" onclick="mpLocalAction({action:'powerStrike',index:${i}})" ${used?'disabled':''}>Kraftslag · ${e.name}</button>`}).join("");
+      else if(me.className==="Tjuv") targets=targetable.map(e=>{const i=c.enemies.indexOf(e);return `<button class="combat-target" onclick="mpLocalAction({action:'sneakAttack',index:${i}})" ${used?'disabled':''}>Smygattack · ${e.name}</button>`}).join("");
+      else if(me.className==="Magiker") targets=`<button class="combat-target" onclick="mpLocalAction({action:'burningHands'})" ${used?'disabled':''}>Brinnande händer · alla</button>`;
+      else if(me.className==="Kleriker") targets=mp.players.slice(0,mp.partySize).map((p,i)=>`<button class="combat-target" onclick="mpLocalAction({action:'clericHeal',target:${i}})" ${used||!p||p.hp<=0||p.hp>=p.maxHp?'disabled':''}>✚ ${p?.name||`P${i+1}`}<br><span class="small">${p?`${p.hp}/${p.maxHp} HP`:''}</span></button>`).join("");
+    }else if(mpCombatAction==="help"){
+      targets=mp.players.slice(0,mp.partySize).map((p,i)=>i===mp.localIndex||!p||p.hp<=0?'':`<button class="combat-target" onclick="mpLocalAction({action:'help',target:${i}})">Hjälp ${p.name}</button>`).join("");
+    }
+  }
+  const ability=me?.className==="Krigare"?"Kraftslag":me?.className==="Tjuv"?"Smygattack":me?.className==="Magiker"?"Brinnande händer":"Helande ord";
+  document.getElementById("combat").innerHTML=`
+    <div class="combat">
+      <div class="combat-head"><div><h3>${c.victory?'<span class="gold">Striden vunnen</span>':'Strid'}</h3><div class="mp-turn ${myTurn?'yours':''}">${c.victory?`Gruppen fick ${c.xpPartyTotal||0} XP · din andel +${c.xpShare||0} XP`:(myTurn?'Din tur':`${turnName}s tur`)}</div></div></div>
+      <div class="tactical-strip">
+        <span class="tactical-pill">Du: ${c.positions?.[mp.localIndex]==="bak"?"Baklinje":"Framlinje"}</span>
+        ${c.advantage?.[mp.localIndex]?'<span class="tactical-pill good">Advantage nästa attack</span>':''}
+        ${intent?`<span class="tactical-pill intent">⚠ ${intent.text}</span>`:''}
+      </div>
+      <div class="combat-enemies">${c.enemies.map(e=>`<div class="combat-enemy-card"><div><strong>${e.name}</strong><span class="enemy-role">${e.role} · ${e.position==="fram"?"fram":"bak"}</span><div class="enemy-meta">AC ${e.ac}${(e.weaknesses&&e.weaknesses.length)?` · Svag: ${e.weaknesses.join(", ")}`:""}${(e.resistances&&e.resistances.length)?` · Motstånd: ${e.resistances.join(", ")}`:""}</div></div><strong class="enemy-hp ${e.hp<=0?'bad':''}">${Math.max(0,e.hp)}/${e.maxHp} HP</strong></div>`).join("")}</div>
+      <div class="combatlog compact" id="combatlog">${log}</div>
+      <button id="combatLogToggle" class="combat-log-toggle" onclick="toggleCombatLog()">Visa hela stridsloggen</button>
+      <div class="combat-actions">
+        <div class="combat-actions-label">${c.victory?'Striden är över':(myTurn?'Välj handling':`Väntar på ${turnName||"striden"}`)}</div>
+        ${myTurn?`<div class="combat-action-types">
+          <button class="${mpCombatAction==='attack'?'selected':''}" onclick="mpSelectCombatAction('attack')">Attack</button>
+          <button class="${mpCombatAction==='special'?'selected':''}" onclick="mpSelectCombatAction('special')">${ability}</button>
+          ${mp.partySize>1?`<button class="${mpCombatAction==='help'?'selected':''}" onclick="mpSelectCombatAction('help')">Hjälp</button>`:''}
+          <button onclick="mpLocalAction({action:'defend'})">Försvara</button>
+          <button onclick="mpLocalAction({action:'switchPosition'})">Byt ${c.positions?.[mp.localIndex]==='fram'?'bak':'fram'}</button>
+          <button onclick="toggleCombatMore()">Mer…</button>
+        </div>`:''}
+        <div class="combat-targets">${targets||(myTurn?'<span class="small">Inga giltiga mål.</span>':'')}</div>
+        <div id="combatMorePanel" class="combat-more-panel">${myTurn?`<button onclick="mpLocalAction({action:'potion'})" ${me.potions<=0||me.hp>=me.maxHp?'disabled':''}>Läkebrygd (${me.potions})</button><button onclick="mpLocalAction({action:'herbs'})" ${me.herbs<=0||me.hp>=me.maxHp?'disabled':''}>Örter (${me.herbs})</button>`:''}</div>
+      </div>
+    </div>`;
+  const el=document.getElementById("combatlog"); if(el) scrollCombatLogToLatest();
+  mpUpdatePartyPanel();
+}
+
+
+function mpConnectionLost(index=null){
+  if(mp.role==="host" && index!=null){
+    delete mp.conns[index];
+    mp.connected=mpConnectedGuestCount()>0;
+    mpBadge(`v021 · P1 host · ${mpConnectedGuestCount()+1}/${mp.partySize}`);
+    const el=document.getElementById("mpHostStatus");
+    if(el){ el.className="mp-note mp-wait"; el.innerHTML=`Spelare ${index+1} tappade anslutningen. Kod: <strong>${mp.code}</strong>.`; }
+    mpUpdatePartyPanel();
+    return;
+  }
+  if(!mp.connected) return;
+  mp.connected=false;
+  mpBadge("v021 · anslutning bruten");
+  const box=document.getElementById("choices");
+  if(box) box.insertAdjacentHTML("afterbegin",`<div class="mp-note">Anslutningen bröts. Starta ett nytt rum för att fortsätta multiplayer-testet.</div>`);
+}
+
+function mpPeerError(err){
+  console.error(err);
+  const msg=err?.type==="unavailable-id"
+    ?"Rumskoden används redan. Skapa ett nytt rum."
+    :err?.type==="peer-unavailable"
+      ?"Hittar inte hosten. Kontrollera koden och att hostens sida är öppen."
+      :`Anslutningsfel: ${err?.type||err?.message||"okänt fel"}`;
+  const el=document.getElementById("mpHostStatus")||document.getElementById("mpJoinStatus");
+  if(el){ el.className="mp-note bad"; el.textContent=msg; }
+  mpBadge("v021 · anslutningsfel");
+}
+
+function mpFatal(msg){
+  document.getElementById("story").innerHTML=`<div class="mp-start"><h2>Kunde inte starta multiplayer</h2><div class="mp-note bad">${msg}</div><button onclick="mpDisconnect()">Tillbaka</button></div>`;
+}
+
+function mpDisconnect(){
+  try{mp.conn?.close()}catch(e){}
+  try{Object.values(mp.conns||{}).forEach(c=>c?.close())}catch(e){}
+  try{mp.peer?.destroy()}catch(e){}
+  location.reload();
+}
+
+/* Multiplayer character sheet items operate on the local player's own inventory. */
+const mpOrigPotionOutside=usePotionOutsideCombat;
+usePotionOutsideCombat=function(){
+  if(mp.mode!=="multi"){ mpOrigPotionOutside(); return; }
+  if(mp.combat) return;
+  const p=mp.players[mp.localIndex];
+  if(!p || p.potions<=0 || p.hp>=p.maxHp) return;
+  if(mp.role==="guest"){
+    // Outside-combat item usage is intentionally host-authoritative in v021.
+    mpSend({type:"action",action:"outsidePotion"});
+    return;
+  }
+  p.potions--; const heal=roll(8)+6; p.hp=Math.min(p.maxHp,p.hp+heal);
+  mpRenderCurrent(); mpBroadcast();
+};
+
+const mpOrigHerbsOutside=useHerbsOutsideCombat;
+useHerbsOutsideCombat=function(){
+  if(mp.mode!=="multi"){ mpOrigHerbsOutside(); return; }
+  if(mp.combat) return;
+  const p=mp.players[mp.localIndex];
+  if(!p || p.herbs<=0 || p.hp>=p.maxHp) return;
+  if(mp.role==="guest"){ mpSend({type:"action",action:"outsideHerbs"}); return; }
+  p.herbs--; const heal=roll(4)+3; p.hp=Math.min(p.maxHp,p.hp+heal);
+  mpRenderCurrent(); mpBroadcast();
+};
+
+// Extend host action processor for guest inventory use outside combat.
+const mpBaseProcessAction=mpProcessAction;
+mpProcessAction=function(actor,msg){
+  if(msg.action==="outsidePotion" && !mp.combat){
+    const p=mp.players[actor];
+    if(p?.potions>0 && p.hp<p.maxHp){ p.potions--; p.hp=Math.min(p.maxHp,p.hp+roll(8)+6); }
+    mpRenderCurrent(); mpBroadcast(); return;
+  }
+  if(msg.action==="outsideHerbs" && !mp.combat){
+    const p=mp.players[actor];
+    if(p?.herbs>0 && p.hp<p.maxHp){ p.herbs--; p.hp=Math.min(p.maxHp,p.hp+roll(4)+3); }
+    mpRenderCurrent(); mpBroadcast(); return;
+  }
+  mpBaseProcessAction(actor,msg);
+};
+
+mpRenderMenu();
+</script>
+
+</body>
+</html>

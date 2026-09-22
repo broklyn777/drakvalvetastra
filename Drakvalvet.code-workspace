@@ -1,0 +1,23 @@
+{
+  "folders": [
+    {
+      "name": "Drakvalvet",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "task.allowAutomaticTasks": "on",
+    "remote.autoForwardPorts": true,
+    "remote.restoreForwardedPorts": true,
+    "remote.portsAttributes": {
+      "3000": {
+        "label": "Drakvalvet",
+        "onAutoForward": "openBrowser"
+      },
+      "4001": {
+        "label": "Drakvalvet spelserver",
+        "onAutoForward": "silent"
+      }
+    }
+  }
+}

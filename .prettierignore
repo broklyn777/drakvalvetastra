@@ -1,0 +1,9 @@
+node_modules
+.next
+dist
+.data
+.cache
+upload
+artifacts
+test-results
+package-lock.json
