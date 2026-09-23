@@ -174,11 +174,34 @@ export interface JournalEntry {
   title: string;
   turn: number;
 }
+export interface DiceRollEvent {
+  attackerId: string;
+  targetId: string;
+  attack: {
+    sides: 20;
+    rolls: number[];
+    chosen: number;
+    bonus: number;
+    total: number;
+    ac: number;
+    mode: 'normal' | 'advantage' | 'disadvantage';
+    critical: boolean;
+    hit: boolean;
+  };
+  damage?: {
+    sides: number;
+    rolls: number[];
+    bonus: number;
+    total: number;
+    critical: boolean;
+  };
+}
 export interface GameEvent {
   id: number;
   kind: 'story' | 'roll' | 'damage' | 'heal' | 'success' | 'warning';
   text: string;
   detail?: string;
+  dice?: DiceRollEvent;
 }
 export interface GameState {
   schemaVersion: 1;
