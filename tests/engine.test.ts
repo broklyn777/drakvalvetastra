@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { campaigns, getCampaign, raceData, classData, talentData } from '../packages/content/src';
-import { createCharacter } from '../packages/engine/src/characters';
+import { createCharacter, createLevel1PaladinPreset } from '../packages/engine/src/characters';
 import { availableChoices, createGame, dispatch, sceneFor } from '../packages/engine/src/engine';
-import { canTarget, currentActor, startCombat, typedDamage } from '../packages/engine/src/combat';
+import { attackAvailability, canTarget, currentActor, startCombat, typedDamage } from '../packages/engine/src/combat';
 import { gainXp } from '../packages/engine/src/events';
 import { parseSave } from '../packages/persistence/src/saves';
 import { makeSave } from '../packages/protocol/src/schema';
@@ -41,7 +41,12 @@ function battle(s: GameState) {
   for (let i = 0; i < 200 && s.combat && !s.combat.victory && s.status === 'active'; i++) {
     const p = s.players.find((p) => p.id === currentActor(s)?.id)!;
     const target = s.combat.enemies.find((e) => canTarget(s, p, e))!;
-    if (p.hp < p.maxHp * 0.6 && p.potions) s = action(s, { type: 'potion' });
+    const availability = attackAvailability(s, p, target);
+    if (!availability.ok && s.combat.usesDistance) {
+      if ((s.combat.movementRemaining[p.id] ?? 0) > 0)
+        s = action(s, { type: 'move', target: target.id });
+      else s = action(s, { type: 'dash', target: target.id });
+    } else if (p.hp < p.maxHp * 0.6 && p.potions) s = action(s, { type: 'potion' });
     else if (!s.combat.used[p.id]) s = action(s, { type: 'ability', target: target.id });
     else s = action(s, { type: 'attack', target: target.id });
   }
@@ -159,6 +164,16 @@ describe('kampanj och karaktärer', () => {
   });
 });
 describe('taktisk strid', () => {
+  it('builds the fixed level-1 D&D 2024 paladin preset without granting a level-2 Fighting Style', () => {
+    const paladin = createLevel1PaladinPreset();
+    expect(paladin.className).toBe('Paladin');
+    expect(paladin.level).toBe(1);
+    expect(paladin.ac).toBe(18);
+    expect(paladin.shield).toBe(true);
+    expect(paladin.weapon).toBe('Longsword');
+    expect(paladin.armor).toBe('Chain Mail');
+    expect(paladin.fightingStyles).toEqual([]);
+  });
   it('is reproducible across engines and JSON snapshots', () => {
     const sequence = ['inn', 'window', 'ambush'];
     let a = game(73),
@@ -170,12 +185,13 @@ describe('taktisk strid', () => {
     expect(a).toEqual(b);
     expect(battle(a)).toEqual(battle(JSON.parse(JSON.stringify(b))));
   });
-  it('blocks melee attacks on the backline and rejects out-of-turn actions', () => {
+  it('uses real distance for the first fight and rejects out-of-turn actions', () => {
     let s = choose(choose(game(42), 'inn'), 'door');
-    const rear = s.combat!.enemies.find((e) => e.position === 'bak')!;
-    expect(canTarget(s, s.players[0], rear)).toBe(false);
+    const rangedBandit = s.combat!.enemies.find((e) => e.preferredAttack === 'ranged')!;
+    expect(rangedBandit.distance).toBe(50);
+    expect(attackAvailability(s, s.players[0], rangedBandit).ok).toBe(false);
     const before = JSON.stringify(s);
-    expect(dispatch(s, campaign, 'hero-0', { type: 'attack', target: rear.id }).ok).toBe(false);
+    expect(dispatch(s, campaign, 'hero-0', { type: 'attack', target: rangedBandit.id }).ok).toBe(false);
     expect(JSON.stringify(s)).toBe(before);
     s = game(10, 2);
     s = choose(choose(s, 'inn'), 'door');
@@ -205,7 +221,7 @@ describe('taktisk strid', () => {
   it('scales encounters to 4 players and boss health to the party', () => {
     const s = game(2, 4);
     startCombat(s, campaign.scenes(s, 'hero-0').door.combat!);
-    expect(s.combat!.enemies).toHaveLength(5);
+    expect(s.combat!.enemies).toHaveLength(2);
     const boss = game(2, 4);
     startCombat(boss, campaign.scenes(boss, 'hero-0').cryptBeast.combat!);
     expect(boss.combat!.enemies[0].maxHp).toBe(40);
