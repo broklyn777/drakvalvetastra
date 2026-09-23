@@ -1,8 +1,20 @@
 import type { GameState, GameEvent, Character } from './types';
 import { modifier } from './random';
 import { XP_THRESHOLDS } from './characters';
-export function emit(s: GameState, kind: GameEvent['kind'], text: string, detail?: string) {
-  s.events.push({ id: ++s.eventSeq, kind, text, ...(detail ? { detail } : {}) });
+export function emit(
+  s: GameState,
+  kind: GameEvent['kind'],
+  text: string,
+  detail?: string,
+  dice?: GameEvent['dice'],
+) {
+  s.events.push({
+    id: ++s.eventSeq,
+    kind,
+    text,
+    ...(detail ? { detail } : {}),
+    ...(dice ? { dice } : {}),
+  });
   if (s.events.length > 150) s.events.splice(0, s.events.length - 150);
 }
 export function gainXp(s: GameState, p: Character, xp: number) {
