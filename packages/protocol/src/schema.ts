@@ -227,6 +227,7 @@ export const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('ability'), target: id.optional() }).strict(),
   z.object({ type: z.literal('help'), target: id }).strict(),
   z.object({ type: z.literal('move'), target: id.optional() }).strict(),
+  z.object({ type: z.literal('dash'), target: id.optional() }).strict(),
   ...(['defend', 'breakthrough', 'potion', 'herbs', 'continue'] as const).map((type) =>
     z.object({ type: z.literal(type) }).strict(),
   ),
