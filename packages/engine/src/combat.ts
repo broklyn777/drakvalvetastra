@@ -5,6 +5,12 @@ import { emit, gainXp } from './events';
 export function currentActor(s: GameState) {
   return s.combat?.initiative[s.combat.turn];
 }
+
+export function attackHits(roll: number, bonus: number, ac: number) {
+  if (roll === 1) return false;
+  if (roll === 20) return true;
+  return roll + bonus >= ac;
+}
 export function canTarget(s: GameState, p: Character, e: Enemy) {
   if (s.combat?.usesDistance) return e.hp > 0;
   return (
@@ -244,8 +250,8 @@ function enemyTurn(s: GameState, e: Enemy) {
       detail += `/${second} (nackdel)`;
       roll = Math.min(roll, second);
     }
-    detail += ` + ${e.attack} mot försvar ${target.ac}.`;
-    if (roll !== 1 && (roll === 20 || roll + e.attack >= target.ac)) {
+    detail += ` + ${e.attack} = ${roll + e.attack} vs AC ${target.ac}.`;
+    if (attackHits(roll, e.attack, target.ac)) {
       const amount = rollDamage(s, e.dmg, roll === 20);
       target.hp = Math.max(0, target.hp - amount);
       c.stats[target.id].taken += amount;
@@ -341,8 +347,8 @@ function enemyTurn(s: GameState, e: Enemy) {
     roll = Math.min(roll, second);
   }
   if (cover) detail += ' · Half Cover +2 AC';
-  detail += ` + ${attack.attack} mot försvar ${ac}.`;
-  const hit = roll !== 1 && (roll === 20 || roll + attack.attack >= ac);
+  detail += ` + ${attack.attack} = ${roll + attack.attack} vs AC ${ac}.`;
+  const hit = attackHits(roll, attack.attack, ac);
   const enemyDiceBase = {
     attackerId: e.id,
     targetId: target.id,
@@ -483,8 +489,8 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
   const ac = e.ac + (cover ? 2 : 0);
   const rangeText = c.usesDistance ? ` · ${distance} ft` : '';
   const coverText = cover ? ' · Half Cover +2 AC' : '';
-  const detail = `T20 ${rollText} + ${bonus} mot försvar ${ac}${rangeText}${coverText}.`;
-  const hit = roll !== 1 && (roll === 20 || roll + bonus >= ac);
+  const detail = `D20 ${rollText} + ${bonus} = ${roll + bonus} vs AC ${ac}${rangeText}${coverText}.`;
+  const hit = attackHits(roll, bonus, ac);
   const attackDice = {
     attackerId: p.id,
     targetId: e.id,
