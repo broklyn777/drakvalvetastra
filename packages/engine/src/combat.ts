@@ -193,48 +193,144 @@ function enemyTurn(s: GameState, e: Enemy) {
   );
   const pool = preferred.length ? preferred : living;
   if (!pool.length) return;
-  if (e.role === 'boss' && e.hp <= Math.ceil(e.maxHp / 2) && e.phase === 1) {
-    e.phase = 2;
-    e.attack++;
-    e.dmg[2]++;
-    emit(s, 'warning', `${e.name} blir ursinnig.`, 'Anfall och skada ökar med 1.');
-  }
-  if (e.role === 'boss' && !e.intent) {
-    const target = pool[die(s, pool.length) - 1];
-    e.intent = target.id;
-    emit(
-      s,
-      'warning',
-      `${e.name} förbereder ett utfall mot ${target.name}.`,
-      'Försvara dig eller låt en krigare skydda dig.',
-    );
+
+  if (!c.usesDistance || !e.attacks?.length) {
+    if (e.role === 'boss' && e.hp <= Math.ceil(e.maxHp / 2) && e.phase === 1) {
+      e.phase = 2;
+      e.attack++;
+      e.dmg[2]++;
+      emit(s, 'warning', `${e.name} blir ursinnig.`, 'Anfall och skada ökar med 1.');
+    }
+    if (e.role === 'boss' && !e.intent) {
+      const target = pool[die(s, pool.length) - 1];
+      e.intent = target.id;
+      emit(
+        s,
+        'warning',
+        `${e.name} förbereder ett utfall mot ${target.name}.`,
+        'Försvara dig inför anfallet.',
+      );
+      return;
+    }
+    const target = living.find((p) => p.id === e.intent) ?? pool[die(s, pool.length) - 1];
+    e.intent = null;
+    let roll = die(s, 20);
+    let detail = `T20: ${roll}`;
+    if (c.dodging[target.id]) {
+      const second = die(s, 20);
+      detail += `/${second} (nackdel)`;
+      roll = Math.min(roll, second);
+    }
+    detail += ` + ${e.attack} mot försvar ${target.ac}.`;
+    if (roll !== 1 && (roll === 20 || roll + e.attack >= target.ac)) {
+      const amount = rollDamage(s, e.dmg, roll === 20);
+      target.hp = Math.max(0, target.hp - amount);
+      c.stats[target.id].taken += amount;
+      emit(
+        s,
+        'damage',
+        `${e.name} träffar ${target.name} för ${amount} skada${roll === 20 ? ' — kritisk träff' : ''}.`,
+        detail,
+      );
+      if (!target.hp) emit(s, 'warning', `${target.name} faller.`);
+    } else emit(s, 'roll', `${e.name} missar ${target.name}.`, detail);
     return;
   }
-  const target = living.find((p) => p.id === e.intent) ?? pool[die(s, pool.length) - 1];
-  e.intent = null;
+
+  const target = [...living].sort(
+    (a, b) => distanceBetween(c, e.id, a.id) - distanceBetween(c, e.id, b.id),
+  )[0];
+  let attack =
+    e.attacks.find((a) => a.kind === e.preferredAttack) ??
+    e.attacks[0];
+  let distance = distanceBetween(c, e.id, target.id);
+
+  if (attack.kind === 'ranged' && distance <= 5) {
+    attack = e.attacks.find((a) => a.kind === 'melee') ?? attack;
+  }
+
+  if (attack.kind === 'melee') {
+    const reach = attack.reach ?? 5;
+    if (distance > reach) {
+      const move = Math.min(e.speed ?? 30, Math.max(0, distance - reach));
+      e.distance += actorDistance(c, target.id) < e.distance ? -move : move;
+      distance = distanceBetween(c, e.id, target.id);
+      emit(s, 'story', `${e.name} rör sig ${move} ft mot ${target.name}.`);
+    }
+    if (distance > reach) {
+      const dash = Math.min(e.speed ?? 30, Math.max(0, distance - reach));
+      e.distance += actorDistance(c, target.id) < e.distance ? -dash : dash;
+      emit(s, 'story', `${e.name} använder Dash och rör sig ytterligare ${dash} ft.`);
+      return;
+    }
+  } else {
+    const longRange = attack.longRange ?? attack.normalRange ?? 0;
+    if (distance > longRange) {
+      const move = Math.min(e.speed ?? 30, distance - longRange);
+      e.distance += actorDistance(c, target.id) < e.distance ? -move : move;
+      distance = distanceBetween(c, e.id, target.id);
+      emit(s, 'story', `${e.name} rör sig ${move} ft för att komma inom räckvidd.`);
+      if (distance > longRange) return;
+    }
+  }
+
+  let disadvantage =
+    c.dodging[target.id] ||
+    (attack.kind === 'ranged' &&
+      (distance <= 5 || distance > (attack.normalRange ?? attack.longRange ?? 0)));
+
+  const activeProtection = Object.entries(c.protectionActive).find(
+    ([protectedId, defenderId]) =>
+      protectedId === target.id &&
+      s.players.some(
+        (p) =>
+          p.id === defenderId &&
+          p.hp > 0 &&
+          distanceBetween(c, p.id, target.id) <= 5,
+      ),
+  );
+  if (activeProtection) disadvantage = true;
+  else {
+    const defender = protectionDefender(s, target);
+    if (defender) {
+      c.reactionUsed[defender.id] = true;
+      c.protectionActive[target.id] = defender.id;
+      disadvantage = true;
+      emit(
+        s,
+        'story',
+        `${defender.name} använder Protection för att skydda ${target.name}.`,
+        'Attacken får nackdel. Skyddet gäller medan de förblir inom 5 ft till försvararens nästa tur.',
+      );
+    }
+  }
+
+  const cover = attack.kind === 'ranged' && hasCreatureCover(s, e.id, target.id);
+  const ac = target.ac + (cover ? 2 : 0);
   let roll = die(s, 20);
-  let detail = `T20: ${roll}`;
-  if (c.dodging[target.id]) {
+  let detail = `${attack.name} · ${distance} ft · T20: ${roll}`;
+  if (disadvantage) {
     const second = die(s, 20);
     detail += `/${second} (nackdel)`;
     roll = Math.min(roll, second);
   }
-  const protector = c.protectedBy[target.id];
-  const ac =
-    target.ac + (protector && s.players.some((p) => p.id === protector && p.hp > 0) ? 2 : 0);
-  detail += ` + ${e.attack} mot försvar ${ac}.`;
-  if (roll !== 1 && (roll === 20 || roll + e.attack >= ac)) {
-    const amount = rollDamage(s, e.dmg, roll === 20);
+  if (cover) detail += ' · Half Cover +2 AC';
+  detail += ` + ${attack.attack} mot försvar ${ac}.`;
+
+  if (roll !== 1 && (roll === 20 || roll + attack.attack >= ac)) {
+    const amount = rollDamage(s, attack.dmg, roll === 20);
     target.hp = Math.max(0, target.hp - amount);
     c.stats[target.id].taken += amount;
     emit(
       s,
       'damage',
-      `${e.name} träffar ${target.name} för ${amount} skada${roll === 20 ? ' — kritisk träff' : ''}.`,
+      `${e.name} träffar ${target.name} med ${attack.name} för ${amount} skada${roll === 20 ? ' — kritisk träff' : ''}.`,
       detail,
     );
     if (!target.hp) emit(s, 'warning', `${target.name} faller.`);
-  } else emit(s, 'roll', `${e.name} missar ${target.name}.`, detail);
+  } else {
+    emit(s, 'roll', `${e.name} missar ${target.name} med ${attack.name}.`, detail);
+  }
 }
 /** Iterative turn scheduler, no recursive enemy loops or UI timers. */
 function prepareTurn(s: GameState) {
