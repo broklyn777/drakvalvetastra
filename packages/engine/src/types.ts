@@ -112,6 +112,7 @@ export interface Encounter {
   xp: number;
   surprise?: 'players' | 'enemies';
   fixedEnemies?: boolean;
+  usesDistance?: boolean;
 }
 export type Choice = [label: string, next: string];
 export interface Scene {
@@ -148,6 +149,7 @@ export interface CombatStats {
 }
 export interface Combat {
   enemies: Enemy[];
+  usesDistance: boolean;
   initiative: Initiative[];
   turn: number;
   round: number;
