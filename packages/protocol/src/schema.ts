@@ -191,6 +191,36 @@ export const gameStateSchema = z
             kind: z.enum(['story', 'roll', 'damage', 'heal', 'success', 'warning']),
             text: z.string().max(2000),
             detail: z.string().max(5000).optional(),
+            dice: z
+              .object({
+                attackerId: id,
+                targetId: id,
+                attack: z
+                  .object({
+                    sides: z.literal(20),
+                    rolls: z.array(z.number().int().min(1).max(20)).min(1).max(2),
+                    chosen: z.number().int().min(1).max(20),
+                    bonus: z.number().int().min(-20).max(100),
+                    total: z.number().int().min(-20).max(200),
+                    ac: z.number().int().min(0).max(200),
+                    mode: z.enum(['normal', 'advantage', 'disadvantage']),
+                    critical: z.boolean(),
+                    hit: z.boolean(),
+                  })
+                  .strict(),
+                damage: z
+                  .object({
+                    sides: z.number().int().min(2).max(100),
+                    rolls: z.array(z.number().int().min(1).max(100)).min(1).max(40),
+                    bonus: z.number().int().min(-100).max(100),
+                    total: z.number().int().min(0).max(10000),
+                    critical: z.boolean(),
+                  })
+                  .strict()
+                  .optional(),
+              })
+              .strict()
+              .optional(),
           })
           .strict(),
       )
