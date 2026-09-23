@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Swords,
   Shield,
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { abilities } from '../../packages/engine/src/characters';
 import { attackAvailability, canTarget, currentActor } from '../../packages/engine/src/combat';
-import type { Character, GameCommand, GameState } from '../../packages/engine/src/types';
+import type { Character, GameCommand, GameState, GameEvent } from '../../packages/engine/src/types';
 export function CombatPanel({
   game,
   hero,
@@ -31,6 +31,13 @@ export function CombatPanel({
   const [selected, setSelected] = useState('');
   const [ally, setAlly] = useState(hero.id);
   const [fullLog, setFullLog] = useState(false);
+  const [diceRoll, setDiceRoll] = useState<{
+    targetId: string;
+    eventSeq: number;
+    phase: 'ready' | 'rolling' | 'waiting' | 'attack-result' | 'damage-rolling' | 'done';
+    result?: NonNullable<GameEvent['dice']>;
+  } | null>(null);
+  const rollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const c = game.combat!;
   const active = currentActor(game);
   const yourTurn = !disabled && active?.id === hero.id && !c.victory && game.status === 'active';
@@ -38,6 +45,59 @@ export function CombatPanel({
     c.enemies.find((e) => e.id === selected && canTarget(game, hero, e)) ??
     c.enemies.find((e) => canTarget(game, hero, e));
   const ability = abilities[hero.selection.class];
+
+  useEffect(() => {
+    return () => {
+      if (rollTimer.current) clearTimeout(rollTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!diceRoll || diceRoll.phase !== 'waiting') return;
+    const event = game.events.find(
+      (entry) =>
+        entry.id > diceRoll.eventSeq &&
+        entry.dice?.attackerId === hero.id &&
+        entry.dice.targetId === diceRoll.targetId,
+    );
+    if (!event?.dice) return;
+    setDiceRoll((current) =>
+      current
+        ? {
+            ...current,
+            phase: 'attack-result',
+            result: event.dice,
+          }
+        : null,
+    );
+  }, [game.events, game.eventSeq, hero.id, diceRoll]);
+
+  function openAttackRoll(targetId: string) {
+    setDiceRoll({
+      targetId,
+      eventSeq: game.eventSeq,
+      phase: 'ready',
+    });
+  }
+
+  function rollAttack() {
+    if (!diceRoll || diceRoll.phase !== 'ready') return;
+    setDiceRoll({ ...diceRoll, phase: 'rolling' });
+    rollTimer.current = setTimeout(() => {
+      setDiceRoll((current) => (current ? { ...current, phase: 'waiting' } : null));
+      act({ type: 'attack', target: diceRoll.targetId });
+    }, 650);
+  }
+
+  function revealDamage() {
+    if (!diceRoll?.result?.damage || diceRoll.phase !== 'attack-result') return;
+    setDiceRoll({ ...diceRoll, phase: 'damage-rolling' });
+    rollTimer.current = setTimeout(() => {
+      setDiceRoll((current) => (current ? { ...current, phase: 'done' } : null));
+    }, 600);
+  }
+
+  const diceTarget = diceRoll ? c.enemies.find((e) => e.id === diceRoll.targetId) : undefined;
   const log = game.events.filter(
     (e) =>
       e.id > (game.events.findLast((e) => e.text === 'Striden börjar. Slå initiativ.')?.id ?? 0),
@@ -166,7 +226,7 @@ export function CombatPanel({
               className="button primary"
               disabled={!yourTurn || !target || !attackAvailability(game, hero, target).ok}
               title={target ? attackAvailability(game, hero, target).reason : undefined}
-              onClick={() => act({ type: 'attack', target: target!.id })}
+              onClick={() => openAttackRoll(target!.id)}
             >
               <Swords size={17} />
               Anfall
@@ -277,6 +337,112 @@ export function CombatPanel({
           </details>
         </>
       )}
+      {diceRoll && diceTarget && (
+        <div className="dice-overlay" role="dialog" aria-modal="true" aria-label="Tärningsslag">
+          <div className="dice-panel">
+            <p className="eyebrow">ATTACK ROLL</p>
+            <h2>{hero.name} mot {diceTarget.name}</h2>
+            <p className="dice-context">
+              {hero.weapon} · Attack Bonus +{hero.attackBonus} · AC {diceTarget.ac}
+            </p>
+
+            {(diceRoll.phase === 'ready' || diceRoll.phase === 'rolling' || diceRoll.phase === 'waiting') && (
+              <>
+                <div className={`dice-stage ${diceRoll.phase !== 'ready' ? 'rolling' : ''}`}>
+                  <div className="die d20">
+                    <span>D20</span>
+                    <strong>?</strong>
+                  </div>
+                </div>
+                <button
+                  className="button primary dice-roll-button"
+                  disabled={diceRoll.phase !== 'ready'}
+                  onClick={rollAttack}
+                >
+                  {diceRoll.phase === 'ready' ? 'Slå D20' : 'Tärningen rullar…'}
+                </button>
+              </>
+            )}
+
+            {diceRoll.result && ['attack-result', 'damage-rolling', 'done'].includes(diceRoll.phase) && (
+              <>
+                <div className="dice-stage dice-results">
+                  {diceRoll.result.attack.rolls.map((value, index) => (
+                    <div
+                      className={`die d20 ${value === diceRoll.result!.attack.chosen ? 'chosen' : ''}`}
+                      key={`${value}-${index}`}
+                    >
+                      <span>D20</span>
+                      <strong>{value}</strong>
+                    </div>
+                  ))}
+                </div>
+                <div className="dice-equation">
+                  <strong>
+                    {diceRoll.result.attack.chosen} + {diceRoll.result.attack.bonus} = {diceRoll.result.attack.total}
+                  </strong>
+                  <span>mot AC {diceRoll.result.attack.ac}</span>
+                </div>
+                <p className={`dice-verdict ${diceRoll.result.attack.hit ? 'hit' : 'miss'}`}>
+                  {diceRoll.result.attack.critical
+                    ? 'Critical Hit!'
+                    : diceRoll.result.attack.hit
+                      ? 'Träff!'
+                      : 'Miss!'}
+                </p>
+
+                {!diceRoll.result.attack.hit && (
+                  <button className="button dice-roll-button" onClick={() => setDiceRoll(null)}>
+                    Stäng
+                  </button>
+                )}
+
+                {diceRoll.result.attack.hit && diceRoll.result.damage && diceRoll.phase === 'attack-result' && (
+                  <button className="button primary dice-roll-button" onClick={revealDamage}>
+                    Slå {diceRoll.result.damage.rolls.length > 1 ? `${diceRoll.result.damage.rolls.length}×D${diceRoll.result.damage.sides}` : `D${diceRoll.result.damage.sides}`} skada
+                  </button>
+                )}
+
+                {diceRoll.phase === 'damage-rolling' && (
+                  <div className="dice-stage rolling damage-stage">
+                    <div className="die damage-die">
+                      <span>D{diceRoll.result.damage?.sides}</span>
+                      <strong>?</strong>
+                    </div>
+                  </div>
+                )}
+
+                {diceRoll.phase === 'done' && diceRoll.result.damage && (
+                  <>
+                    <div className="dice-stage dice-results damage-stage">
+                      {diceRoll.result.damage.rolls.map((value, index) => (
+                        <div className="die damage-die chosen" key={`${value}-${index}`}>
+                          <span>D{diceRoll.result!.damage!.sides}</span>
+                          <strong>{value}</strong>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="dice-equation">
+                      <strong>
+                        {diceRoll.result.damage.rolls.join(' + ')}
+                        {diceRoll.result.damage.bonus
+                          ? ` + ${diceRoll.result.damage.bonus}`
+                          : ''}{' '}
+                        = {diceRoll.result.damage.total}
+                      </strong>
+                      <span>{hero.damageType}skada</span>
+                    </div>
+                    <button className="button dice-roll-button" onClick={() => setDiceRoll(null)}>
+                      Fortsätt
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="combat-log">
         <button className="text-button" onClick={() => setFullLog(!fullLog)}>
           <ScrollText size={14} />
