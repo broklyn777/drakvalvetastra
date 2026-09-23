@@ -506,6 +506,29 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
       );
       break;
     }
+    case 'dash': {
+      if (!c.usesDistance) throw new Error('Dash används bara i strider med avstånd.');
+      const target =
+        c.enemies.find((e) => e.id === cmd.target && e.hp > 0) ??
+        [...c.enemies]
+          .filter((e) => e.hp > 0)
+          .sort((a, b) => distanceBetween(c, p.id, a.id) - distanceBetween(c, p.id, b.id))[0];
+      if (!target) throw new Error('Det finns inget mål att röra sig mot.');
+      const from = c.distances[p.id] ?? 0;
+      const available = (c.movementRemaining[p.id] ?? 0) + p.speed;
+      const desired = target.distance > from ? target.distance - 5 : target.distance + 5;
+      const delta = desired - from;
+      const move = Math.sign(delta) * Math.min(Math.abs(delta), available);
+      c.distances[p.id] = from + move;
+      c.movementRemaining[p.id] = 0;
+      emit(
+        s,
+        'story',
+        `${p.name} använder Dash och rör sig ${Math.abs(move)} ft mot ${target.name}.`,
+        `${distanceBetween(c, p.id, target.id)} ft återstår. Action används.`,
+      );
+      break;
+    }
     case 'breakthrough': {
       const roll = die(s, 20),
         bonus = Math.max(modifier(p.str), modifier(p.dex));
