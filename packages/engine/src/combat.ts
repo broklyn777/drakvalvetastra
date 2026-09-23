@@ -330,29 +330,71 @@ function enemyTurn(s: GameState, e: Enemy) {
 
   const cover = attack.kind === 'ranged' && hasCreatureCover(s, e.id, target.id);
   const ac = target.ac + (cover ? 2 : 0);
-  let roll = die(s, 20);
+  const attackRolls = [die(s, 20)];
+  let roll = attackRolls[0];
   let detail = `${attack.name} · ${distance} ft · T20: ${roll}`;
+  const mode: 'normal' | 'disadvantage' = disadvantage ? 'disadvantage' : 'normal';
   if (disadvantage) {
     const second = die(s, 20);
+    attackRolls.push(second);
     detail += `/${second} (nackdel)`;
     roll = Math.min(roll, second);
   }
   if (cover) detail += ' · Half Cover +2 AC';
   detail += ` + ${attack.attack} mot försvar ${ac}.`;
+  const hit = roll !== 1 && (roll === 20 || roll + attack.attack >= ac);
+  const enemyDiceBase = {
+    attackerId: e.id,
+    targetId: target.id,
+    attackName: attack.name,
+    distance,
+    ...(cover ? { coverBonus: 2 } : {}),
+    damageType: attack.damageType,
+    attack: {
+      sides: 20 as const,
+      rolls: attackRolls,
+      chosen: roll,
+      bonus: attack.attack,
+      total: roll + attack.attack,
+      ac,
+      mode,
+      critical: roll === 20,
+      hit,
+    },
+  };
 
-  if (roll !== 1 && (roll === 20 || roll + attack.attack >= ac)) {
-    const amount = rollDamage(s, attack.dmg, roll === 20);
+  if (hit) {
+    const [count, sides, damageBonus] = attack.dmg;
+    const critical = roll === 20;
+    const damageRolls = Array.from({ length: count * (critical ? 2 : 1) }, () => die(s, sides));
+    const amount = Math.max(0, damageBonus + damageRolls.reduce((sum, value) => sum + value, 0));
     target.hp = Math.max(0, target.hp - amount);
     c.stats[target.id].taken += amount;
     emit(
       s,
       'damage',
-      `${e.name} träffar ${target.name} med ${attack.name} för ${amount} skada${roll === 20 ? ' — kritisk träff' : ''}.`,
+      `${e.name} träffar ${target.name} med ${attack.name} för ${amount} skada${critical ? ' — kritisk träff' : ''}.`,
       detail,
+      {
+        ...enemyDiceBase,
+        damage: {
+          sides,
+          rolls: damageRolls,
+          bonus: damageBonus,
+          total: amount,
+          critical,
+        },
+      },
     );
     if (!target.hp) emit(s, 'warning', `${target.name} faller.`);
   } else {
-    emit(s, 'roll', `${e.name} missar ${target.name} med ${attack.name}.`, detail);
+    emit(
+      s,
+      'roll',
+      `${e.name} missar ${target.name} med ${attack.name}.`,
+      detail,
+      enemyDiceBase,
+    );
   }
 }
 /** Iterative turn scheduler, no recursive enemy loops or UI timers. */
@@ -446,6 +488,10 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
   const attackDice = {
     attackerId: p.id,
     targetId: e.id,
+    attackName: p.weapon,
+    ...(c.usesDistance ? { distance } : {}),
+    ...(cover ? { coverBonus: 2 } : {}),
+    damageType: p.damageType,
     attack: {
       sides: 20 as const,
       rolls: attackRolls,
