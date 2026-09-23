@@ -430,7 +430,7 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
   let rollText = `${roll}`;
   const advantage = !!c.advantage[p.id];
   if (advantage) c.advantage[p.id] = false;
-  const mode =
+  const mode: 'normal' | 'advantage' | 'disadvantage' =
     advantage === disadvantage ? 'normal' : advantage ? 'advantage' : 'disadvantage';
   if (mode !== 'normal') {
     const second = die(s, 20);
