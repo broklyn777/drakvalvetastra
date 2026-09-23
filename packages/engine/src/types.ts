@@ -13,6 +13,17 @@ export type TalentId = 'iron' | 'keen' | 'supply';
 export type Dice = [number, number, number];
 export type DamageType = 'Hugg' | 'Stick' | 'Kross' | 'Eld' | 'Riv';
 export type Position = 'fram' | 'bak';
+export type FightingStyle = 'protection';
+export interface AttackProfile {
+  name: string;
+  kind: 'melee' | 'ranged';
+  attack: number;
+  dmg: Dice;
+  damageType: DamageType;
+  reach?: number;
+  normalRange?: number;
+  longRange?: number;
+}
 export interface CharacterSelection {
   name: string;
   race: RaceId;
@@ -48,6 +59,8 @@ export interface Character extends Attributes {
   towerKey: boolean;
   bossWeakened: boolean;
   rested: boolean;
+  speed: number;
+  fightingStyles: FightingStyle[];
 }
 export interface World {
   miraTrust: number;
@@ -80,6 +93,10 @@ export interface EnemyDefinition {
   resistances?: DamageType[];
   weaknesses?: DamageType[];
   dex?: number;
+  speed?: number;
+  startDistance?: number;
+  preferredAttack?: 'melee' | 'ranged';
+  attacks?: AttackProfile[];
 }
 export interface Enemy extends EnemyDefinition {
   id: string;
@@ -87,12 +104,14 @@ export interface Enemy extends EnemyDefinition {
   role: 'melee' | 'archer' | 'boss';
   phase: number;
   intent: string | null;
+  distance: number;
 }
 export interface Encounter {
   enemies: EnemyDefinition[];
   onWin: string;
   xp: number;
   surprise?: 'players' | 'enemies';
+  fixedEnemies?: boolean;
 }
 export type Choice = [label: string, next: string];
 export interface Scene {
@@ -140,6 +159,10 @@ export interface Combat {
   advantage: Record<string, boolean>;
   used: Record<string, boolean>;
   protectedBy: Record<string, string>;
+  reactionUsed: Record<string, boolean>;
+  protectionActive: Record<string, string>;
+  distances: Record<string, number>;
+  movementRemaining: Record<string, number>;
   breached: Record<string, boolean>;
   stats: Record<string, CombatStats>;
 }
@@ -175,9 +198,9 @@ export type GameCommand =
   | { type: 'choose'; next: string }
   | { type: 'attack'; target: string }
   | { type: 'ability'; target?: string }
-  | { type: 'protect'; target: string }
-  | { type: 'help'; target: string }
-  | { type: 'defend' | 'move' | 'breakthrough' | 'potion' | 'herbs' | 'continue' };
+    | { type: 'help'; target: string }
+  | { type: 'move'; target?: string }
+  | { type: 'defend' | 'breakthrough' | 'potion' | 'herbs' | 'continue' };
 export interface CommandEnvelope {
   id: string;
   revision: number;
