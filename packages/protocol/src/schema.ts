@@ -195,6 +195,10 @@ export const gameStateSchema = z
               .object({
                 attackerId: id,
                 targetId: id,
+                attackName: z.string().max(100),
+                distance: z.number().int().min(0).max(10000).optional(),
+                coverBonus: z.number().int().min(0).max(10).optional(),
+                damageType: damage.optional(),
                 attack: z
                   .object({
                     sides: z.literal(20),
