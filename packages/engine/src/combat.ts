@@ -57,6 +57,29 @@ function heroAttackProfile(p: Character) {
     return { kind: 'ranged' as const, normalRange: 120, longRange: 120, reach: 0 };
   return { kind: 'melee' as const, normalRange: 0, longRange: 0, reach: 5 };
 }
+
+export function attackAvailability(s: GameState, p: Character, e: Enemy) {
+  if (!canTarget(s, p, e)) return { ok: false, reason: 'Målet kan inte nås.' };
+  const c = s.combat;
+  if (!c?.usesDistance) return { ok: true, reason: '' };
+  const profile = heroAttackProfile(p);
+  const distance = distanceBetween(c, p.id, e.id);
+  if (profile.kind === 'melee' && distance > profile.reach)
+    return {
+      ok: false,
+      reason: `${distance} ft bort · ditt vapen når ${profile.reach} ft`,
+    };
+  if (profile.kind === 'ranged' && distance > profile.longRange)
+    return {
+      ok: false,
+      reason: `${distance} ft bort · max range ${profile.longRange} ft`,
+    };
+  if (profile.kind === 'ranged' && distance > profile.normalRange)
+    return { ok: true, reason: `${distance} ft · long range, nackdel` };
+  if (profile.kind === 'ranged' && distance <= 5)
+    return { ok: true, reason: `${distance} ft · fiende nära, nackdel` };
+  return { ok: true, reason: `${distance} ft bort` };
+}
 export function typedDamage(e: Enemy, amount: number, type: Character['damageType']) {
   if (e.weaknesses?.includes(type)) return amount * 2;
   if (e.resistances?.includes(type)) return Math.floor(amount / 2);
@@ -378,6 +401,8 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     e = c.enemies.find((e) => e.id === target);
   if (!e || !canTarget(s, p, e))
     throw new Error('Målet kan inte nås. Bryt igenom framlinjen först.');
+  const availability = attackAvailability(s, p, e);
+  if (!availability.ok) throw new Error(availability.reason);
 
   const profile = heroAttackProfile(p);
   const distance = c.usesDistance ? distanceBetween(c, p.id, e.id) : 0;
