@@ -202,7 +202,7 @@ export type GameCommand =
   | { type: 'attack'; target: string }
   | { type: 'ability'; target?: string }
     | { type: 'help'; target: string }
-  | { type: 'move'; target?: string }
+  | { type: 'move' | 'dash'; target?: string }
   | { type: 'defend' | 'breakthrough' | 'potion' | 'herbs' | 'continue' };
 export interface CommandEnvelope {
   id: string;
