@@ -177,7 +177,7 @@ export interface JournalEntry {
 export interface DiceRollEvent {
   attackerId: string;
   targetId: string;
-  attackName: string;
+  attackName?: string;
   distance?: number;
   coverBonus?: number;
   damageType?: DamageType;
