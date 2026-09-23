@@ -6,6 +6,7 @@ export function currentActor(s: GameState) {
   return s.combat?.initiative[s.combat.turn];
 }
 export function canTarget(s: GameState, p: Character, e: Enemy) {
+  if (s.combat?.usesDistance) return e.hp > 0;
   return (
     e.hp > 0 &&
     (p.className === 'Magiker' ||
@@ -13,6 +14,48 @@ export function canTarget(s: GameState, p: Character, e: Enemy) {
       e.position === 'fram' ||
       !s.combat?.enemies.some((x) => x.hp > 0 && x.position === 'fram'))
   );
+}
+
+function actorDistance(c: Combat, id: string) {
+  const enemy = c.enemies.find((e) => e.id === id);
+  return enemy ? enemy.distance : (c.distances[id] ?? 0);
+}
+
+function distanceBetween(c: Combat, a: string, b: string) {
+  return Math.abs(actorDistance(c, a) - actorDistance(c, b));
+}
+
+function hasCreatureCover(s: GameState, attackerId: string, targetId: string) {
+  const c = s.combat!;
+  if (!c.usesDistance) return false;
+  const from = actorDistance(c, attackerId);
+  const to = actorDistance(c, targetId);
+  const low = Math.min(from, to);
+  const high = Math.max(from, to);
+  const occupied = [
+    ...s.players.filter((p) => p.hp > 0).map((p) => ({ id: p.id, at: actorDistance(c, p.id) })),
+    ...c.enemies.filter((e) => e.hp > 0).map((e) => ({ id: e.id, at: e.distance })),
+  ];
+  return occupied.some((x) => x.id !== attackerId && x.id !== targetId && x.at > low && x.at < high);
+}
+
+function protectionDefender(s: GameState, target: Character) {
+  const c = s.combat!;
+  return s.players.find(
+    (p) =>
+      p.id !== target.id &&
+      p.hp > 0 &&
+      p.shield &&
+      p.fightingStyles.includes('protection') &&
+      !c.reactionUsed[p.id] &&
+      distanceBetween(c, p.id, target.id) <= 5,
+  );
+}
+
+function heroAttackProfile(p: Character) {
+  if (p.className === 'Magiker')
+    return { kind: 'ranged' as const, normalRange: 120, longRange: 120, reach: 0 };
+  return { kind: 'melee' as const, normalRange: 0, longRange: 0, reach: 5 };
 }
 export function typedDamage(e: Enemy, amount: number, type: Character['damageType']) {
   if (e.weaknesses?.includes(type)) return amount * 2;
@@ -39,9 +82,10 @@ export function startCombat(s: GameState, def: Encounter) {
       position: e.position ?? (role === 'archer' ? 'bak' : 'fram'),
       phase: 1,
       intent: null,
+      distance: e.startDistance ?? (role === 'archer' ? 50 : 10),
     };
   });
-  if (!enemies.some((e) => e.role === 'boss'))
+  if (!def.fixedEnemies && !enemies.some((e) => e.role === 'boss'))
     for (let i = 1; i < size; i++) {
       const base = enemies[(i - 1) % def.enemies.length];
       enemies.push({
@@ -73,6 +117,7 @@ export function startCombat(s: GameState, def: Encounter) {
     .sort((a, b) => b.total - a.total || b.tie - a.tie);
   const c: Combat = {
     enemies,
+    usesDistance: !!def.usesDistance,
     initiative,
     turn: 0,
     round: 1,
@@ -84,11 +129,18 @@ export function startCombat(s: GameState, def: Encounter) {
     advantage: {},
     used: {},
     protectedBy: {},
+    reactionUsed: {},
+    protectionActive: {},
+    distances: {},
+    movementRemaining: {},
     breached: {},
     stats: {},
   };
   for (const p of s.players) {
     c.positions[p.id] = p.className === 'Magiker' ? 'bak' : 'fram';
+    c.distances[p.id] = 0;
+    c.movementRemaining[p.id] = p.speed;
+    c.reactionUsed[p.id] = false;
     c.stats[p.id] = { damage: 0, taken: 0, crits: 0, healing: 0 };
   }
   s.combat = c;
@@ -194,6 +246,8 @@ function prepareTurn(s: GameState) {
       const p = s.players.find((p) => p.id === entry.id)!;
       if (p.hp > 0) {
         c.dodging[p.id] = false;
+        c.reactionUsed[p.id] = false;
+        c.movementRemaining[p.id] = p.speed;
         for (const [target, protector] of Object.entries(c.protectedBy))
           if (protector === p.id) delete c.protectedBy[target];
         return;
