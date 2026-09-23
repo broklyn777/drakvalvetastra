@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { campaigns, getCampaign, raceData, classData, talentData } from '../packages/content/src';
 import { createCharacter, createLevel1PaladinPreset } from '../packages/engine/src/characters';
 import { availableChoices, createGame, dispatch, sceneFor } from '../packages/engine/src/engine';
-import { attackAvailability, canTarget, currentActor, startCombat, typedDamage } from '../packages/engine/src/combat';
+import { attackAvailability, attackHits, canTarget, currentActor, startCombat, typedDamage } from '../packages/engine/src/combat';
 import { gainXp } from '../packages/engine/src/events';
 import { parseSave } from '../packages/persistence/src/saves';
 import { makeSave } from '../packages/protocol/src/schema';
@@ -164,6 +164,12 @@ describe('kampanj och karaktärer', () => {
   });
 });
 describe('taktisk strid', () => {
+  it('uses one D&D hit rule for AC, natural 1 and natural 20', () => {
+    expect(attackHits(12, 3, 14)).toBe(true);
+    expect(attackHits(10, 3, 14)).toBe(false);
+    expect(attackHits(1, 99, 14)).toBe(false);
+    expect(attackHits(20, -5, 30)).toBe(true);
+  });
   it('builds the fixed level-1 D&D 2024 paladin preset without granting a level-2 Fighting Style', () => {
     const paladin = createLevel1PaladinPreset();
     expect(paladin.className).toBe('Paladin');
