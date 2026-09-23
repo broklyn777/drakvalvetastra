@@ -346,6 +346,8 @@ function prepareTurn(s: GameState) {
         c.movementRemaining[p.id] = p.speed;
         for (const [target, protector] of Object.entries(c.protectedBy))
           if (protector === p.id) delete c.protectedBy[target];
+        for (const [target, defender] of Object.entries(c.protectionActive))
+          if (defender === p.id) delete c.protectionActive[target];
         return;
       }
     } else {
@@ -376,18 +378,42 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     e = c.enemies.find((e) => e.id === target);
   if (!e || !canTarget(s, p, e))
     throw new Error('Målet kan inte nås. Bryt igenom framlinjen först.');
+
+  const profile = heroAttackProfile(p);
+  const distance = c.usesDistance ? distanceBetween(c, p.id, e.id) : 0;
+  let disadvantage = false;
+  let cover = false;
+  if (c.usesDistance) {
+    if (profile.kind === 'melee' && distance > profile.reach)
+      throw new Error(
+        `${e.name} är ${distance} ft bort. Ditt vapen når ${profile.reach} ft. Flytta närmare först.`,
+      );
+    if (profile.kind === 'ranged') {
+      if (distance > profile.longRange)
+        throw new Error(
+          `${e.name} är ${distance} ft bort. Vapnets maximala räckvidd är ${profile.longRange} ft.`,
+        );
+      disadvantage = distance <= 5 || distance > profile.normalRange;
+      cover = hasCreatureCover(s, p.id, e.id);
+    }
+  }
+
   const power = special && p.className === 'Krigare';
   const bonus = p.attackBonus - (power ? 3 : 0);
   let roll = die(s, 20);
   let rollText = `${roll}`;
-  if (c.advantage[p.id]) {
+  const advantage = !!c.advantage[p.id];
+  if (advantage) c.advantage[p.id] = false;
+  if (advantage !== disadvantage) {
     const second = die(s, 20);
-    rollText += `/${second} (fördel)`;
-    roll = Math.max(roll, second);
-    c.advantage[p.id] = false;
+    rollText += `/${second} (${advantage ? 'fördel' : 'nackdel'})`;
+    roll = advantage ? Math.max(roll, second) : Math.min(roll, second);
   }
-  const detail = `T20 ${rollText} + ${bonus} mot försvar ${e.ac}.`;
-  if (roll === 1 || (roll !== 20 && roll + bonus < e.ac)) {
+  const ac = e.ac + (cover ? 2 : 0);
+  const rangeText = c.usesDistance ? ` · ${distance} ft` : '';
+  const coverText = cover ? ' · Half Cover +2 AC' : '';
+  const detail = `T20 ${rollText} + ${bonus} mot försvar ${ac}${rangeText}${coverText}.`;
+  if (roll === 1 || (roll !== 20 && roll + bonus < ac)) {
     emit(s, 'roll', `${p.name} missar ${e.name}.`, detail);
     return;
   }
