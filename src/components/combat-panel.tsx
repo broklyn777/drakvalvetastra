@@ -98,6 +98,15 @@ export function CombatPanel({
   }
 
   const diceTarget = diceRoll ? c.enemies.find((e) => e.id === diceRoll.targetId) : undefined;
+
+  function combatantName(id: string) {
+    return (
+      game.players.find((p) => p.id === id)?.name ??
+      c.enemies.find((e) => e.id === id)?.name ??
+      id
+    );
+  }
+
   const log = game.events.filter(
     (e) =>
       e.id > (game.events.findLast((e) => e.text === 'Striden börjar. Slå initiativ.')?.id ?? 0),
@@ -450,12 +459,67 @@ export function CombatPanel({
           <span>{log.length} händelser</span>
         </button>
         <div role="log" aria-live="polite">
-          {(fullLog ? log : log.slice(-4)).map((event) => (
-            <p className={`log-${event.kind}`} key={event.id}>
-              {event.text}
-              {event.detail && <small>{event.detail}</small>}
-            </p>
-          ))}
+          {(fullLog ? log : log.slice(-4)).map((event) => {
+            if (!event.dice) {
+              return (
+                <p className={`log-${event.kind}`} key={event.id}>
+                  {event.text}
+                  {event.detail && <small>{event.detail}</small>}
+                </p>
+              );
+            }
+
+            const dice = event.dice;
+            const attack = dice.attack;
+            const incoming = game.players.some((p) => p.id === dice.targetId);
+            const outcome = attack.critical ? 'CRITICAL HIT' : attack.hit ? 'TRÄFF' : 'MISS';
+            const modeLabel =
+              attack.mode === 'advantage'
+                ? 'Advantage'
+                : attack.mode === 'disadvantage'
+                  ? 'Disadvantage'
+                  : null;
+            const baseAc = attack.ac - (dice.coverBonus ?? 0);
+            const damageNotation = dice.damage
+              ? `${dice.damage.rolls.length}d${dice.damage.sides}${dice.damage.bonus >= 0 ? ' + ' : ' - '}${Math.abs(dice.damage.bonus)}`
+              : null;
+
+            return (
+              <div
+                className={`combat-roll-entry ${attack.hit ? 'hit' : 'miss'} ${incoming ? 'incoming' : 'outgoing'} ${attack.critical ? 'critical' : ''}`}
+                key={event.id}
+              >
+                <strong className="combat-roll-heading">
+                  {combatantName(dice.attackerId)} → {combatantName(dice.targetId)} ·{' '}
+                  {dice.attackName ?? 'Attack'}
+                  {typeof dice.distance === 'number' ? ` · ${dice.distance} ft` : ''}
+                </strong>
+
+                {!!dice.coverBonus && (
+                  <span className="combat-roll-cover">
+                    Half Cover: AC {baseAc} → {attack.ac}
+                  </span>
+                )}
+
+                {attack.rolls.length > 1 && modeLabel && (
+                  <span className="combat-roll-mode">
+                    D20: {attack.rolls.join(' / ')} → använder {attack.chosen} · {modeLabel}
+                  </span>
+                )}
+
+                <span className="combat-roll-attack">
+                  {attack.rolls.length === 1 ? `D20 ${attack.chosen}` : attack.chosen} + {attack.bonus} ={' '}
+                  {attack.total} vs AC {attack.ac} → <b>{outcome}</b>
+                </span>
+
+                {dice.damage && damageNotation && (
+                  <span className="combat-roll-damage">
+                    {damageNotation} = <b>{dice.damage.total} skada</b>
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
