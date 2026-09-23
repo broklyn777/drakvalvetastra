@@ -2780,3 +2780,63 @@ summary::-webkit-details-marker {
     font-size: 36px;
   }
 }
+
+
+.combat-roll-entry {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  margin: 0 0 7px;
+  border-left: 2px solid #566054;
+  background: #0d1710aa;
+  border-radius: 0 4px 4px 0;
+  font-size: 10px;
+}
+.combat-roll-entry.hit.outgoing {
+  border-color: #7f9c64;
+}
+.combat-roll-entry.hit.incoming {
+  border-color: #a46e53;
+}
+.combat-roll-entry.miss {
+  border-color: #566054;
+  color: #8e978a;
+}
+.combat-roll-entry.critical {
+  border-color: var(--gold);
+}
+.combat-roll-heading {
+  font-weight: 500;
+  color: #d8cba8;
+}
+.combat-roll-entry.incoming .combat-roll-heading {
+  color: #d9aa91;
+}
+.combat-roll-cover {
+  color: #c4b879;
+}
+.combat-roll-mode {
+  color: #b7ad86;
+}
+.combat-roll-attack,
+.combat-roll-damage,
+.combat-roll-cover,
+.combat-roll-mode {
+  display: block;
+  line-height: 1.5;
+}
+.combat-roll-attack b {
+  color: #d8d4c4;
+}
+.combat-roll-entry.hit.outgoing .combat-roll-attack b,
+.combat-roll-entry.hit.outgoing .combat-roll-damage b {
+  color: #a6c286;
+}
+.combat-roll-entry.hit.incoming .combat-roll-attack b,
+.combat-roll-entry.hit.incoming .combat-roll-damage b {
+  color: #d8a086;
+}
+.combat-roll-entry.critical .combat-roll-attack b,
+.combat-roll-entry.critical .combat-roll-damage b {
+  color: var(--gold-light);
+}
