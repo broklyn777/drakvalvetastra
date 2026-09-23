@@ -62,3 +62,54 @@ export const abilities = {
     description: 'Återställ 1T6 + VIS liv, även på en fallen vän. En gång per strid.',
   },
 } as const;
+
+
+/** Fixed D&D 2024 level-1 Paladin used for combat-rule testing only.
+ * Not exposed by the character creator.
+ */
+export function createLevel1PaladinPreset(id = 'paladin-test', name = 'Paladin'): Character {
+  return {
+    id,
+    name,
+    rulesClass: 'paladin',
+    selection: {
+      name,
+      race: 'human',
+      class: 'warrior',
+      talent: 'keen',
+    },
+    race: 'Human',
+    className: 'Paladin',
+    talent: 'D&D 2024 test preset',
+    str: 16,
+    dex: 10,
+    con: 14,
+    int: 8,
+    wis: 12,
+    cha: 15,
+    hp: 12,
+    maxHp: 12,
+    ac: 18,
+    attackBonus: 5,
+    damage: [1, 8, 3],
+    damageType: 'Hugg',
+    gold: 9,
+    level: 1,
+    xp: 0,
+    nextXp: 300,
+    weapon: 'Longsword',
+    armor: 'Chain Mail',
+    shield: true,
+    potions: 0,
+    herbs: 0,
+    sigil: false,
+    torch: false,
+    rope: false,
+    warned: false,
+    towerKey: false,
+    bossWeakened: false,
+    rested: false,
+    speed: 30,
+    fightingStyles: [],
+  };
+}
