@@ -35,6 +35,7 @@ export interface Character extends Attributes {
   name: string;
   race: string;
   className: string;
+  rulesClass?: 'paladin';
   talent: string;
   selection: CharacterSelection;
   hp: number;
