@@ -29,6 +29,7 @@ export const characterSchema = z
     name: z.string().min(1).max(24),
     race: z.string().max(30),
     className: z.string().max(30),
+    rulesClass: z.literal('paladin').optional(),
     talent: z.string().max(30),
     selection: selectionSchema,
     str: stat,
@@ -59,6 +60,8 @@ export const characterSchema = z
     towerKey: z.boolean(),
     bossWeakened: z.boolean(),
     rested: z.boolean(),
+    speed: z.number().int().min(0).max(500).default(30),
+    fightingStyles: z.array(z.enum(['protection'])).max(10).default([]),
   })
   .strict()
   .refine((p) => p.hp <= p.maxHp, 'Liv överstiger maxliv.');
@@ -78,15 +81,37 @@ const enemySchema = z
     resistances: z.array(damage).max(5).optional(),
     weaknesses: z.array(damage).max(5).optional(),
     dex: stat.optional(),
+    speed: z.number().int().min(0).max(500).optional(),
+    startDistance: z.number().int().min(0).max(10000).optional(),
+    preferredAttack: z.enum(['melee', 'ranged']).optional(),
+    attacks: z
+      .array(
+        z
+          .object({
+            name: z.string().max(100),
+            kind: z.enum(['melee', 'ranged']),
+            attack: z.number().int().min(-20).max(50),
+            dmg: dice,
+            damageType: damage,
+            reach: z.number().int().min(0).max(100).optional(),
+            normalRange: z.number().int().min(0).max(10000).optional(),
+            longRange: z.number().int().min(0).max(10000).optional(),
+          })
+          .strict(),
+      )
+      .max(20)
+      .optional(),
     role: z.enum(['melee', 'archer', 'boss']),
     phase: z.number().int().min(1).max(2),
     intent: id.nullable(),
+    distance: z.number().int().min(-10000).max(10000).default(0),
   })
   .strict();
 const recordBool = z.record(id, z.boolean());
 const combatSchema = z
   .object({
     enemies: z.array(enemySchema).min(1).max(30),
+    usesDistance: z.boolean().default(false),
     initiative: z
       .array(
         z
@@ -113,6 +138,10 @@ const combatSchema = z
     advantage: recordBool,
     used: recordBool,
     protectedBy: z.record(id, id),
+    reactionUsed: recordBool.default({}),
+    protectionActive: z.record(id, id).default({}),
+    distances: z.record(id, z.number().int().min(-10000).max(10000)).default({}),
+    movementRemaining: z.record(id, z.number().int().min(0).max(1000)).default({}),
     breached: recordBool,
     stats: z.record(
       id,
@@ -196,9 +225,9 @@ export const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('choose'), next: id }).strict(),
   z.object({ type: z.literal('attack'), target: id }).strict(),
   z.object({ type: z.literal('ability'), target: id.optional() }).strict(),
-  z.object({ type: z.literal('protect'), target: id }).strict(),
   z.object({ type: z.literal('help'), target: id }).strict(),
-  ...(['defend', 'move', 'breakthrough', 'potion', 'herbs', 'continue'] as const).map((type) =>
+  z.object({ type: z.literal('move'), target: id.optional() }).strict(),
+  ...(['defend', 'breakthrough', 'potion', 'herbs', 'continue'] as const).map((type) =>
     z.object({ type: z.literal(type) }).strict(),
   ),
 ]);
