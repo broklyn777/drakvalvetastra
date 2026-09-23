@@ -425,25 +425,47 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
 
   const power = special && p.className === 'Krigare';
   const bonus = p.attackBonus - (power ? 3 : 0);
-  let roll = die(s, 20);
+  const attackRolls = [die(s, 20)];
+  let roll = attackRolls[0];
   let rollText = `${roll}`;
   const advantage = !!c.advantage[p.id];
   if (advantage) c.advantage[p.id] = false;
-  if (advantage !== disadvantage) {
+  const mode =
+    advantage === disadvantage ? 'normal' : advantage ? 'advantage' : 'disadvantage';
+  if (mode !== 'normal') {
     const second = die(s, 20);
-    rollText += `/${second} (${advantage ? 'fördel' : 'nackdel'})`;
-    roll = advantage ? Math.max(roll, second) : Math.min(roll, second);
+    attackRolls.push(second);
+    rollText += `/${second} (${mode === 'advantage' ? 'fördel' : 'nackdel'})`;
+    roll = mode === 'advantage' ? Math.max(roll, second) : Math.min(roll, second);
   }
   const ac = e.ac + (cover ? 2 : 0);
   const rangeText = c.usesDistance ? ` · ${distance} ft` : '';
   const coverText = cover ? ' · Half Cover +2 AC' : '';
   const detail = `T20 ${rollText} + ${bonus} mot försvar ${ac}${rangeText}${coverText}.`;
-  if (roll === 1 || (roll !== 20 && roll + bonus < ac)) {
-    emit(s, 'roll', `${p.name} missar ${e.name}.`, detail);
+  const hit = roll !== 1 && (roll === 20 || roll + bonus >= ac);
+  const attackDice = {
+    attackerId: p.id,
+    targetId: e.id,
+    attack: {
+      sides: 20 as const,
+      rolls: attackRolls,
+      chosen: roll,
+      bonus,
+      total: roll + bonus,
+      ac,
+      mode,
+      critical: roll === 20,
+      hit,
+    },
+  };
+  if (!hit) {
+    emit(s, 'roll', `${p.name} missar ${e.name}.`, detail, special ? undefined : attackDice);
     return;
   }
   const critical = roll === 20;
-  let raw = rollDamage(s, p.damage, critical);
+  const [count, sides, damageBonus] = p.damage;
+  const damageRolls = Array.from({ length: count * (critical ? 2 : 1) }, () => die(s, sides));
+  let raw = Math.max(0, damageBonus + damageRolls.reduce((sum, value) => sum + value, 0));
   if (special) raw += rollDamage(s, [1, power ? 8 : 6, 0], critical);
   const amount = typedDamage(e, raw, p.damageType);
   e.hp = Math.max(0, e.hp - amount);
@@ -454,6 +476,18 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     'damage',
     `${p.name} träffar ${e.name} för ${amount} ${p.damageType.toLowerCase()}skada${critical ? ' — kritisk träff' : ''}.`,
     `${detail}${amount !== raw ? ` ${raw} grundskada; motstånd/sårbarhet tillämpas.` : ''}`,
+    special
+      ? undefined
+      : {
+          ...attackDice,
+          damage: {
+            sides,
+            rolls: damageRolls,
+            bonus: damageBonus,
+            total: raw,
+            critical,
+          },
+        },
   );
   if (!e.hp) emit(s, 'success', `${e.name} faller.`);
 }
