@@ -15,7 +15,7 @@ import {
   Target,
 } from 'lucide-react';
 import { abilities } from '../../packages/engine/src/characters';
-import { canTarget, currentActor } from '../../packages/engine/src/combat';
+import { attackAvailability, canTarget, currentActor } from '../../packages/engine/src/combat';
 import type { Character, GameCommand, GameState } from '../../packages/engine/src/types';
 export function CombatPanel({
   game,
@@ -93,12 +93,13 @@ export function CombatPanel({
           <div className="enemies">
             {c.enemies.map((e) => {
               const reachable = canTarget(game, hero, e);
+              const availability = attackAvailability(game, hero, e);
               return (
                 <button
                   className={`enemy-card ${target?.id === e.id ? 'targeted' : ''} ${e.hp === 0 ? 'fallen' : ''}`}
                   key={e.id}
                   onClick={() => setSelected(e.id)}
-                  disabled={!reachable || !yourTurn}
+                  disabled={e.hp === 0 || !yourTurn}
                   aria-pressed={target?.id === e.id}
                   aria-label={`Välj ${e.name}`}
                 >
@@ -132,7 +133,13 @@ export function CombatPanel({
                       <small className="gold">Svaghet: {e.weaknesses.join(', ')}</small>
                     )}
                     {e.resistances?.length && <small>Motstånd: {e.resistances.join(', ')}</small>}
-                    {!reachable && e.hp > 0 && <small>Skyddad av framlinjen</small>}
+                    {c.usesDistance && e.hp > 0 && (
+                      <small>
+                        {e.distance} ft · {e.weapon}
+                        {!availability.ok ? ` · ${availability.reason}` : ''}
+                      </small>
+                    )}
+                    {!c.usesDistance && !reachable && e.hp > 0 && <small>Skyddad av framlinjen</small>}
                   </div>
                   {e.intent && (
                     <p className="intent">
@@ -148,12 +155,17 @@ export function CombatPanel({
             {yourTurn
               ? 'Din tur. Välj din handling.'
               : `${active?.name ?? 'Sällskapet'} har turen.`}
-            <small>Du står i {c.positions[hero.id] === 'fram' ? 'framlinjen' : 'baklinjen'}.</small>
+            <small>
+              {c.usesDistance
+                ? `Position: ${c.distances[hero.id] ?? 0} ft · Movement: ${c.movementRemaining[hero.id] ?? 0} ft`
+                : `Du står i ${c.positions[hero.id] === 'fram' ? 'framlinjen' : 'baklinjen'}.`}
+            </small>
           </div>
           <div className="combat-actions">
             <button
               className="button primary"
-              disabled={!yourTurn || !target}
+              disabled={!yourTurn || !target || !attackAvailability(game, hero, target).ok}
+              title={target ? attackAvailability(game, hero, target).reason : undefined}
               onClick={() => act({ type: 'attack', target: target!.id })}
             >
               <Swords size={17} />
@@ -168,7 +180,8 @@ export function CombatPanel({
                 (hero.className === 'Kleriker'
                   ? game.players.find((p) => p.id === ally)!.hp >=
                     game.players.find((p) => p.id === ally)!.maxHp
-                  : hero.className !== 'Magiker' && !target)
+                  : hero.className !== 'Magiker' &&
+                    (!target || !attackAvailability(game, hero, target).ok))
               }
               onClick={() =>
                 act({ type: 'ability', target: hero.className === 'Kleriker' ? ally : target?.id })
@@ -190,20 +203,24 @@ export function CombatPanel({
             <div className="tactics-grid">
               <button
                 className="button subtle"
-                disabled={!yourTurn}
-                onClick={() => act({ type: 'move' })}
+                disabled={!yourTurn || (c.usesDistance && (c.movementRemaining[hero.id] ?? 0) <= 0)}
+                onClick={() => act({ type: 'move', target: target?.id })}
               >
                 <MoveHorizontal size={15} />
-                Byt position
+                {c.usesDistance
+                  ? `Flytta mot mål (${c.movementRemaining[hero.id] ?? 0} ft kvar)`
+                  : 'Byt position'}
               </button>
-              <button
-                className="button subtle"
-                disabled={!yourTurn || !!c.breached[hero.id]}
-                onClick={() => act({ type: 'breakthrough' })}
-              >
-                <ChevronsRight size={15} />
-                Bryt igenom
-              </button>
+              {!c.usesDistance && (
+                <button
+                  className="button subtle"
+                  disabled={!yourTurn || !!c.breached[hero.id]}
+                  onClick={() => act({ type: 'breakthrough' })}
+                >
+                  <ChevronsRight size={15} />
+                  Bryt igenom
+                </button>
+              )}
               <button
                 className="button subtle"
                 disabled={!yourTurn || hero.potions < 1 || hero.hp >= hero.maxHp}
@@ -244,16 +261,7 @@ export function CombatPanel({
                     Hjälp
                   </button>
                 )}
-                {hero.className === 'Krigare' && (
-                  <button
-                    className="button subtle"
-                    disabled={!yourTurn || c.used[hero.id]}
-                    onClick={() => act({ type: 'protect', target: ally })}
-                  >
-                    <Shield size={15} />
-                    Skydda
-                  </button>
-                )}
+
               </div>
             )}
           </details>
