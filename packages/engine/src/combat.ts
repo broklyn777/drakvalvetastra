@@ -449,7 +449,30 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
         'Fiendens anfall får nackdel till din nästa tur.',
       );
       break;
-    case 'move':
+    case 'move': {
+      if (c.usesDistance) {
+        const target =
+          c.enemies.find((e) => e.id === cmd.target && e.hp > 0) ??
+          [...c.enemies]
+            .filter((e) => e.hp > 0)
+            .sort((a, b) => distanceBetween(c, p.id, a.id) - distanceBetween(c, p.id, b.id))[0];
+        if (!target) throw new Error('Det finns inget mål att röra sig mot.');
+        const remaining = c.movementRemaining[p.id] ?? p.speed;
+        if (remaining <= 0) throw new Error('Du har ingen förflyttning kvar den här turen.');
+        const from = c.distances[p.id] ?? 0;
+        const desired = target.distance > from ? target.distance - 5 : target.distance + 5;
+        const delta = desired - from;
+        const move = Math.sign(delta) * Math.min(Math.abs(delta), remaining);
+        c.distances[p.id] = from + move;
+        c.movementRemaining[p.id] = remaining - Math.abs(move);
+        emit(
+          s,
+          'story',
+          `${p.name} rör sig ${Math.abs(move)} ft mot ${target.name}.`,
+          `${distanceBetween(c, p.id, target.id)} ft återstår · ${c.movementRemaining[p.id]} ft movement kvar.`,
+        );
+        return;
+      }
       c.positions[p.id] = c.positions[p.id] === 'fram' ? 'bak' : 'fram';
       emit(
         s,
@@ -457,6 +480,7 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
         `${p.name} flyttar till ${c.positions[p.id] === 'fram' ? 'framlinjen' : 'baklinjen'}.`,
       );
       break;
+    }
     case 'breakthrough': {
       const roll = die(s, 20),
         bonus = Math.max(modifier(p.str), modifier(p.dex));
@@ -481,20 +505,6 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
       if (!ally) throw new Error('Välj en levande kamrat.');
       c.advantage[ally.id] = true;
       emit(s, 'story', `${p.name} hjälper ${ally.name}.`, 'Nästa vapenattack får fördel.');
-      break;
-    }
-    case 'protect': {
-      const ally = s.players.find((q) => q.id === cmd.target && q.hp > 0);
-      if (p.className !== 'Krigare' || c.used[p.id] || !ally)
-        throw new Error('Skydda är inte tillgänglig.');
-      c.used[p.id] = true;
-      c.protectedBy[ally.id] = p.id;
-      emit(
-        s,
-        'story',
-        `${p.name} skyddar ${ally.name}.`,
-        '+2 försvar till krigarens nästa tur. Delar användning med Kraftslag.',
-      );
       break;
     }
     case 'ability': {
