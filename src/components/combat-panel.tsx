@@ -211,6 +211,16 @@ export function CombatPanel({
                   ? `Flytta mot mål (${c.movementRemaining[hero.id] ?? 0} ft kvar)`
                   : 'Byt position'}
               </button>
+              {c.usesDistance && (
+                <button
+                  className="button subtle"
+                  disabled={!yourTurn || !target}
+                  onClick={() => act({ type: 'dash', target: target?.id })}
+                >
+                  <ChevronsRight size={15} />
+                  Dash mot mål (+{hero.speed} ft)
+                </button>
+              )}
               {!c.usesDistance && (
                 <button
                   className="button subtle"
