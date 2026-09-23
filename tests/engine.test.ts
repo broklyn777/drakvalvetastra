@@ -198,6 +198,26 @@ describe('taktisk strid', () => {
     const other = s.players.find((p) => p.id !== currentActor(s)?.id)!;
     expect(dispatch(s, campaign, other.id, { type: 'defend' }).ok).toBe(false);
   });
+  it('records the exact attack and damage dice used by the combat engine', () => {
+    const s = game(42);
+    startCombat(s, campaign.scenes(s, 'hero-0').door.combat!);
+    s.combat!.initiative.sort((a, b) => (a.id === 'hero-0' ? -1 : b.id === 'hero-0' ? 1 : 0));
+    s.combat!.turn = 0;
+    const target = s.combat!.enemies.find((e) => e.preferredAttack === 'melee')!;
+    s.combat!.distances['hero-0'] = 5;
+    const result = action(s, { type: 'attack', target: target.id }, 'hero-0');
+    const event = result.events.find(
+      (entry) => entry.dice?.attackerId === 'hero-0' && entry.dice.targetId === target.id,
+    );
+    expect(event?.dice?.attack.rolls.length).toBeGreaterThanOrEqual(1);
+    expect(event?.dice?.attack.chosen).toBeGreaterThanOrEqual(1);
+    expect(event?.dice?.attack.chosen).toBeLessThanOrEqual(20);
+    if (event?.dice?.attack.hit) {
+      expect(event.dice.damage?.rolls.length).toBeGreaterThanOrEqual(1);
+      expect(event.dice.damage?.total).toBeGreaterThan(0);
+    }
+  });
+
   it('handles resistance, weakness and critical-dice damage separately', () => {
     const s = game();
     s.scene = 'towerHall';
