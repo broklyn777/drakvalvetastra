@@ -46,6 +46,8 @@ export function createCharacter(selection: CharacterSelection, id: string): Char
     towerKey: false,
     bossWeakened: false,
     rested: false,
+    speed: 30,
+    fightingStyles: [],
   };
 }
 export const abilities = {
