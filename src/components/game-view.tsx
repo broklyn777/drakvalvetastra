@@ -85,7 +85,7 @@ export function CharacterSheet({
             <small>RUSTNING</small>
             {hero.armor}
           </span>
-          <b>{hero.ac} försvar</b>
+          <b>AC {hero.ac}</b>
         </div>
         {hero.shield && (
           <div>
@@ -301,7 +301,7 @@ export function GameView({
             <div>
               <Shield size={15} />
               <strong>{hero.ac}</strong>
-              <small>Försvar</small>
+              <small>AC</small>
             </div>
             <div>
               <Swords size={15} />
