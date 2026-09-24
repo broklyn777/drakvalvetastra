@@ -154,7 +154,7 @@ export function CharacterCreator({
             <div>
               <Shield size={18} />
               <strong>{preview.ac}</strong>
-              <small>Försvar</small>
+              <small>AC</small>
             </div>
             <div>
               <Swords size={18} />
