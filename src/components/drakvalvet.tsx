@@ -27,7 +27,11 @@ import { CharacterCreator } from './character-creator';
 import { GameView } from './game-view';
 import { Multiplayer } from './multiplayer';
 import { AccountDialog, Modal, SaveDialog } from './dialogs';
-export default function Drakvalvet() {
+export default function Drakvalvet({
+  buildInfo,
+}: {
+  buildInfo: { environment: 'PREVIEW' | 'PRODUCTION' | 'LOCAL'; branch: string; patch: string };
+}) {
   const c = useGame();
   const [dialog, setDialog] = useState<'save' | 'account' | 'help' | null>(null);
   const selected = campaigns[c.campaignId];
@@ -161,6 +165,11 @@ export default function Drakvalvet() {
           )}
           {c.screen === 'home' && (
             <div className="home page-enter">
+              <div className={`build-banner ${buildInfo.environment.toLowerCase()}`}>
+                <strong>{buildInfo.environment}</strong>
+                <span>{buildInfo.branch}</span>
+                <span>PATCH {buildInfo.patch}</span>
+              </div>
               <div className="section-heading">
                 <div>
                   <p className="eyebrow">ETT BORD. TUSEN BERÄTTELSER.</p>
