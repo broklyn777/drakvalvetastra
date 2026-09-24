@@ -2840,3 +2840,42 @@ summary::-webkit-details-marker {
 .combat-roll-entry.critical .combat-roll-damage b {
   color: var(--gold-light);
 }
+
+
+.build-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 18px;
+  padding: 9px 12px;
+  border: 1px solid #5e6546;
+  background: #252c1d;
+  border-radius: 5px;
+  font-size: 9px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #b8c19c;
+}
+.build-banner strong {
+  color: var(--gold-light);
+}
+.build-banner.preview {
+  border-color: #8d7645;
+  background: #332b1c;
+}
+.build-banner.production {
+  border-color: #485448;
+  background: #19231b;
+}
+.build-banner.local {
+  border-color: #45505c;
+  background: #182028;
+}
+@media (max-width: 760px) {
+  .build-banner {
+    margin-bottom: 14px;
+    font-size: 8px;
+    gap: 7px;
+  }
+}
