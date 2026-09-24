@@ -167,6 +167,7 @@ export default function Drakvalvet({
             <div className="home page-enter">
               <div className={`build-banner ${buildInfo.environment.toLowerCase()}`}>
                 <strong>{buildInfo.environment}</strong>
+                <span className="build-patch-type">STRIDSPATCH</span>
                 <span>{buildInfo.branch}</span>
                 <span>PATCH {buildInfo.patch}</span>
               </div>
