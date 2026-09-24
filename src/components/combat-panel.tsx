@@ -86,7 +86,7 @@ export function CombatPanel({
     rollTimer.current = setTimeout(() => {
       setDiceRoll((current) => (current ? { ...current, phase: 'waiting' } : null));
       act({ type: 'attack', target: diceRoll.targetId });
-    }, 650);
+    }, 900);
   }
 
   function revealDamage() {
@@ -94,7 +94,7 @@ export function CombatPanel({
     setDiceRoll({ ...diceRoll, phase: 'damage-rolling' });
     rollTimer.current = setTimeout(() => {
       setDiceRoll((current) => (current ? { ...current, phase: 'done' } : null));
-    }, 600);
+    }, 900);
   }
 
   const diceTarget = diceRoll ? c.enemies.find((e) => e.id === diceRoll.targetId) : undefined;
