@@ -9,13 +9,16 @@ export function createCharacter(selection: CharacterSelection, id: string): Char
     cls = classData[selection.class],
     talent = talentData[selection.talent];
   if (!race || !cls || !talent) throw new Error('Ogiltig rollperson.');
+  // Standard Array + background +2/+1; D&D 2024 species add no ability scores.
   const attrs = Object.fromEntries(
     Object.entries(cls.base).map(([key, value]) => [
       key,
-      value + race.mods[key as keyof Attributes],
+      value + ((cls.asi as Partial<Attributes>)[key as keyof Attributes] ?? 0),
     ]),
   ) as Attributes;
-  const maxHp = cls.maxHp + race.hpBonus + talent.hpBonus;
+  // Dwarven Toughness +1 and Tough +2 per level (see traits.ts).
+  const maxHp =
+    cls.maxHp + (selection.race === 'dwarf' ? 1 : 0) + (selection.talent === 'iron' ? 2 : 0);
   return {
     ...attrs,
     id,
@@ -26,8 +29,8 @@ export function createCharacter(selection: CharacterSelection, id: string): Char
     talent: talent.label,
     hp: maxHp,
     maxHp,
-    ac: cls.ac + race.acBonus + talent.acBonus,
-    attackBonus: cls.attack + talent.attackBonus,
+    ac: cls.ac,
+    attackBonus: cls.attack,
     damage: [...cls.damage],
     damageType: cls.damageType,
     weapon: cls.weapon,
@@ -37,8 +40,8 @@ export function createCharacter(selection: CharacterSelection, id: string): Char
     level: 1,
     xp: 0,
     nextXp: 300,
-    potions: cls.potions + talent.potions,
-    herbs: cls.herbs + talent.herbs,
+    potions: cls.potions,
+    herbs: cls.herbs + (selection.talent === 'supply' ? 1 : 0),
     sigil: false,
     torch: false,
     rope: false,
@@ -48,6 +51,7 @@ export function createCharacter(selection: CharacterSelection, id: string): Char
     rested: false,
     speed: 30,
     fightingStyles: [],
+    ...(selection.race === 'human' ? { inspiration: true } : {}),
   };
 }
 export const abilities = {

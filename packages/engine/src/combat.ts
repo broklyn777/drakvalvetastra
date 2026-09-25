@@ -1,6 +1,7 @@
 import type { Character, Combat, Encounter, Enemy, GameCommand, GameState } from './types';
 import { die, modifier, rollDamage } from './random';
 import { emit, gainXp } from './events';
+import { hasFeat, heroD20, hitDie, initiativeBonus, PROFICIENCY } from './traits';
 
 export function currentActor(s: GameState) {
   return s.combat?.initiative[s.combat.turn];
@@ -128,7 +129,7 @@ export function startCombat(s: GameState, def: Encounter) {
       id: p.id,
       name: p.name,
       kind: 'hero' as const,
-      modifier: modifier(p.dex),
+      modifier: modifier(p.dex) + initiativeBonus(p),
     })),
     ...enemies.map((e) => ({
       id: e.id,
@@ -138,9 +139,11 @@ export function startCombat(s: GameState, def: Encounter) {
     })),
   ]
     .map((entry) => {
-      let roll = die(s, 20);
+      const hero = s.players.find((p) => p.id === entry.id);
+      const d20 = () => (hero ? heroD20(s, hero).roll : die(s, 20));
+      let roll = d20();
       if (def.surprise === (entry.kind === 'hero' ? 'players' : 'enemies'))
-        roll = Math.min(roll, die(s, 20));
+        roll = Math.min(roll, d20());
       return { ...entry, die: roll, total: roll + entry.modifier, tie: die(s, 20) };
     })
     .sort((a, b) => b.total - a.total || b.tie - a.tie);
@@ -434,14 +437,25 @@ export function healItem(s: GameState, p: Character, type: 'potion' | 'herbs') {
   if (p[key] <= 0 || p.hp >= p.maxHp || p.hp <= 0)
     throw new Error('Du kan inte använda detta föremål nu.');
   p[key]--;
-  const amount = Math.min(p.maxHp - p.hp, type === 'potion' ? die(s, 8) + 6 : die(s, 4) + 3);
+  // Healer (Battle Medic): herbs work as a Healer's Kit — one Hit Die + Proficiency, 1s rerolled.
+  const healer = type === 'herbs' && hasFeat(p, 'supply');
+  const healerDie = () => {
+    const roll = die(s, hitDie(p));
+    return roll === 1 ? die(s, hitDie(p)) : roll;
+  };
+  const rolled = type === 'potion' ? die(s, 8) + 6 : healer ? healerDie() + PROFICIENCY : die(s, 4) + 3;
+  const amount = Math.min(p.maxHp - p.hp, rolled);
   p.hp += amount;
   if (s.combat) s.combat.stats[p.id].healing += amount;
   emit(
     s,
     'heal',
     `${p.name} återfår ${amount} liv.`,
-    type === 'potion' ? 'Läkebrygd: 1T8 + 6.' : 'Läkande örter: 1T4 + 3.',
+    type === 'potion'
+      ? 'Läkebrygd: 1T8 + 6.'
+      : healer
+        ? `Healer: 1d${hitDie(p)} + ${PROFICIENCY}, 1:or slås om.`
+        : 'Läkande örter: 1T4 + 3.',
   );
 }
 function weaponAttack(s: GameState, p: Character, target: string | undefined, special: boolean) {
@@ -473,7 +487,9 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
 
   const power = special && p.className === 'Krigare';
   const bonus = p.attackBonus - (power ? 3 : 0);
-  const attackRolls = [die(s, 20)];
+  const first = heroD20(s, p);
+  const attackRolls = [first.roll];
+  let luck = first.lucky;
   let roll = attackRolls[0];
   let rollText = `${roll}`;
   const advantage = !!c.advantage[p.id];
@@ -481,11 +497,14 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
   const mode: 'normal' | 'advantage' | 'disadvantage' =
     advantage === disadvantage ? 'normal' : advantage ? 'advantage' : 'disadvantage';
   if (mode !== 'normal') {
-    const second = die(s, 20);
+    const extra = heroD20(s, p);
+    const second = extra.roll;
+    luck ||= extra.lucky;
     attackRolls.push(second);
     rollText += `/${second} (${mode === 'advantage' ? 'fördel' : 'nackdel'})`;
     roll = mode === 'advantage' ? Math.max(roll, second) : Math.min(roll, second);
   }
+  if (luck) rollText += ' (Luck: slog om en 1:a)';
   const ac = e.ac + (cover ? 2 : 0);
   const rangeText = c.usesDistance ? ` · ${distance} ft` : '';
   const coverText = cover ? ' · Half Cover +2 AC' : '';
@@ -516,8 +535,17 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
   }
   const critical = roll === 20;
   const [count, sides, damageBonus] = p.damage;
-  const damageRolls = Array.from({ length: count * (critical ? 2 : 1) }, () => die(s, sides));
-  let raw = Math.max(0, damageBonus + damageRolls.reduce((sum, value) => sum + value, 0));
+  const rollWeapon = () => Array.from({ length: count * (critical ? 2 : 1) }, () => die(s, sides));
+  const sum = (rolls: number[]) => rolls.reduce((total, value) => total + value, 0);
+  let damageRolls = rollWeapon();
+  let savageText = '';
+  // Savage Attacker: roll the weapon's damage dice twice and use either roll.
+  if (hasFeat(p, 'savage')) {
+    const other = rollWeapon();
+    savageText = ` Savage Attacker: ${sum(damageRolls)} / ${sum(other)}.`;
+    if (sum(other) > sum(damageRolls)) damageRolls = other;
+  }
+  let raw = Math.max(0, damageBonus + sum(damageRolls));
   if (special) raw += rollDamage(s, [1, power ? 8 : 6, 0], critical);
   const amount = typedDamage(e, raw, p.damageType);
   e.hp = Math.max(0, e.hp - amount);
@@ -527,7 +555,7 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     s,
     'damage',
     `${p.name} träffar ${e.name} för ${amount} ${p.damageType.toLowerCase()}skada${critical ? ' — kritisk träff' : ''}.`,
-    `${detail}${amount !== raw ? ` ${raw} grundskada; motstånd/sårbarhet tillämpas.` : ''}`,
+    `${detail}${savageText}${amount !== raw ? ` ${raw} grundskada; motstånd/sårbarhet tillämpas.` : ''}`,
     special
       ? undefined
       : {
@@ -616,7 +644,7 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
       break;
     }
     case 'breakthrough': {
-      const roll = die(s, 20),
+      const roll = heroD20(s, p).roll,
         bonus = Math.max(modifier(p.str), modifier(p.dex));
       if (roll + bonus >= 12) {
         c.breached[p.id] = true;

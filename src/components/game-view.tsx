@@ -34,6 +34,7 @@ import {
   attributeLabels,
   checkAttribute,
   checkChance,
+  checkModifier,
   checkTarget,
 } from '../../packages/engine/src/checks';
 export function StoryText({ text }: { text: string }) {
@@ -139,7 +140,7 @@ export function CharacterSheet({
         {hero.towerKey && <p>Järnmynt med drakmärke</p>}
       </div>
       <p className="muted">
-        Talang: {hero.talent} · {hero.gold} guld
+        Origin Feat: {hero.talent} · {hero.gold} guld
       </p>
     </>
   );
@@ -352,8 +353,8 @@ export function GameView({
               <h2>{checkRoll.label}</h2>
               <p className="dice-context">
                 {hero.name} · d20 + {attributeLabels[checkAttribute(hero, checkRoll.check)]} (
-                {modifier(hero[checkAttribute(hero, checkRoll.check)]) >= 0 ? '+' : ''}
-                {modifier(hero[checkAttribute(hero, checkRoll.check)])}) · DC {checkRoll.check.dc}
+                {checkModifier(hero, checkRoll.check) >= 0 ? '+' : ''}
+                {checkModifier(hero, checkRoll.check)}) · DC {checkRoll.check.dc}
               </p>
               {checkRoll.phase !== 'result' && (
                 <p className="dice-target">

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { raceData, classData, talentData } from '../../packages/content/src';
 import { createCharacter } from '../../packages/engine/src/characters';
+import { attributeLabels } from '../../packages/engine/src/checks';
 import type { CharacterSelection } from '../../packages/engine/src/types';
 const classIcons = { warrior: Swords, mage: WandSparkles, thief: Eye, cleric: Cross };
 export function CharacterCreator({
@@ -62,7 +63,7 @@ export function CharacterCreator({
           />
           <fieldset>
             <legend>
-              02 <span>Ursprung</span>
+              02 <span>Species</span>
             </legend>
             <div className="option-grid four">
               {Object.entries(raceData).map(([key, item]) => (
@@ -113,9 +114,9 @@ export function CharacterCreator({
           </fieldset>
           <fieldset>
             <legend>
-              04 <span>Talang</span>
+              04 <span>Origin Feat</span>
             </legend>
-            <div className="option-grid three">
+            <div className="option-grid four">
               {Object.entries(talentData).map(([key, item]) => (
                 <button
                   key={key}
@@ -163,9 +164,9 @@ export function CharacterCreator({
             </div>
           </div>
           <div className="attribute-grid">
-            {(['str', 'dex', 'con', 'int', 'wis', 'cha'] as const).map((key, i) => (
+            {(['str', 'dex', 'con', 'int', 'wis', 'cha'] as const).map((key) => (
               <div key={key}>
-                <small>{['STY', 'SMI', 'KON', 'INT', 'VIS', 'KAR'][i]}</small>
+                <small>{attributeLabels[key]}</small>
                 <strong>{preview[key]}</strong>
               </div>
             ))}

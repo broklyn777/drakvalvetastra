@@ -94,7 +94,7 @@ export function TestMode({ onStart }: { onStart: (test: TestStart) => void }) {
           </select>
         </label>
         <label>
-          Folk
+          Species
           <select value={selection.race} onChange={set('race')}>
             {Object.entries(raceData).map(([id, r]) => (
               <option key={id} value={id}>
@@ -114,7 +114,7 @@ export function TestMode({ onStart }: { onStart: (test: TestStart) => void }) {
           </select>
         </label>
         <label>
-          Talang
+          Origin Feat
           <select value={selection.talent} onChange={set('talent')}>
             {Object.entries(talentData).map(([id, t]) => (
               <option key={id} value={id}>

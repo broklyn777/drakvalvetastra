@@ -20,7 +20,7 @@ export const selectionSchema = z
     name: z.string().trim().min(1).max(24),
     race: z.enum(['human', 'elf', 'dwarf', 'halfling']),
     class: z.enum(['warrior', 'mage', 'thief', 'cleric']),
-    talent: z.enum(['iron', 'keen', 'supply']),
+    talent: z.enum(['iron', 'keen', 'supply', 'savage']),
   })
   .strict();
 export const characterSchema = z
@@ -62,6 +62,7 @@ export const characterSchema = z
     rested: z.boolean(),
     speed: z.number().int().min(0).max(500).default(30),
     fightingStyles: z.array(z.enum(['protection'])).max(10).default([]),
+    inspiration: z.boolean().optional(),
   })
   .strict()
   .refine((p) => p.hp <= p.maxHp, 'Liv överstiger maxliv.');

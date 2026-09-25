@@ -1,36 +1,28 @@
-// Character content preserved from Drakvalvet v021.
+// Class content from Drakvalvet v021; species and Origin Feats follow D&D 2024.
+/**
+ * D&D 2024 species. Species give traits, not ability score increases; those come from the
+ * background (see `asi` on each class).
+ */
 export const raceData = {
   human: {
-    label: 'Människa',
-    desc: 'Anpassningsbar och envis. Jämn styrka i allt.',
-    bonus: 'STY +1, SMI +1, KON +1, INT +1, VIS +1, KAR +1',
-    mods: { str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1 },
-    hpBonus: 0,
-    acBonus: 0,
+    label: 'Human',
+    desc: 'Anpassningsbar och envis. Hittar alltid en väg till.',
+    bonus: 'Heroic Inspiration: slå om ett misslyckat Ability Check, en gång per Long Rest',
   },
   elf: {
-    label: 'Alv',
+    label: 'Elf',
     desc: 'Kvicktänkt och lättfotad, med skarpa sinnen.',
-    bonus: 'SMI +2, INT +1',
-    mods: { str: 0, dex: 2, con: 0, int: 1, wis: 0, cha: 0 },
-    hpBonus: 0,
-    acBonus: 1,
+    bonus: 'Keen Senses: +2 på Perception, Insight och Survival · Darkvision',
   },
   dwarf: {
-    label: 'Dvärg',
+    label: 'Dwarf',
     desc: 'Härdad och stryktålig, van vid mörker och sten.',
-    bonus: 'KON +2, STY +1',
-    mods: { str: 1, dex: 0, con: 2, int: 0, wis: 0, cha: 0 },
-    hpBonus: 2,
-    acBonus: 0,
+    bonus: 'Dwarven Toughness: +1 HP per nivå · Darkvision',
   },
   halfling: {
-    label: 'Halvling',
-    desc: 'Liten, snabb och förvånansvärt övertalande.',
-    bonus: 'SMI +2, KAR +1',
-    mods: { str: 0, dex: 2, con: 0, int: 0, wis: 0, cha: 1 },
-    hpBonus: 0,
-    acBonus: 1,
+    label: 'Halfling',
+    desc: 'Liten, snabb och förvånansvärt modig.',
+    bonus: 'Luck: slå om en naturlig 1:a på d20 · Brave',
   },
 } as const;
 
@@ -39,7 +31,10 @@ export const classData = {
     label: 'Krigare',
     desc: 'Lever på stål och envishet.',
     bonus: 'Vapen: Svärd (d8) · Livstärning d10 · Klassförmåga: Skydda',
-    base: { str: 15, dex: 11, con: 14, int: 9, wis: 10, cha: 10 },
+    // D&D 2024 Standard Array for the class, plus a background's +2/+1.
+    base: { str: 15, dex: 14, con: 13, int: 8, wis: 10, cha: 12 },
+    asi: { str: 2, con: 1 },
+    hitDie: 10,
     maxHp: 16,
     ac: 14,
     attack: 5,
@@ -55,7 +50,9 @@ export const classData = {
     label: 'Magiker',
     desc: 'Formar lågan med tanken.',
     bonus: 'Vapen: Eldpil (d8) · Livstärning d6 · Klassförmåga: Brinnande händer',
-    base: { str: 9, dex: 12, con: 11, int: 16, wis: 13, cha: 10 },
+    base: { str: 8, dex: 12, con: 13, int: 15, wis: 14, cha: 10 },
+    asi: { int: 2, con: 1 },
+    hitDie: 6,
     maxHp: 11,
     ac: 12,
     attack: 5,
@@ -71,7 +68,9 @@ export const classData = {
     label: 'Tjuv',
     desc: 'Slår till där ingen ser.',
     bonus: 'Vapen: Dolk (d6) · Livstärning d8 · Klassförmåga: Smygattack',
-    base: { str: 11, dex: 15, con: 12, int: 12, wis: 11, cha: 12 },
+    base: { str: 12, dex: 15, con: 13, int: 14, wis: 10, cha: 8 },
+    asi: { dex: 2, con: 1 },
+    hitDie: 8,
     maxHp: 13,
     ac: 15,
     attack: 5,
@@ -87,7 +86,9 @@ export const classData = {
     label: 'Kleriker',
     desc: 'Bär ett ljus som inte slocknar.',
     bonus: 'Vapen: Stridsklubba (d6) · Livstärning d8 · Klassförmåga: Helande ord',
-    base: { str: 13, dex: 10, con: 13, int: 11, wis: 15, cha: 12 },
+    base: { str: 14, dex: 8, con: 13, int: 10, wis: 15, cha: 12 },
+    asi: { wis: 2, con: 1 },
+    hitDie: 8,
     maxHp: 14,
     ac: 14,
     attack: 4,
@@ -101,35 +102,26 @@ export const classData = {
   },
 } as const;
 
+/** D&D 2024 Origin Feats. Ids are kept from the old talents so saves and links still work. */
 export const talentData = {
   iron: {
-    label: 'Stålsinne',
-    desc: 'Du är svår att fälla och får mer uthållighet.',
-    bonus: '+4 max HP',
-    hpBonus: 4,
-    attackBonus: 0,
-    acBonus: 0,
-    potions: 0,
-    herbs: 0,
+    label: 'Tough',
+    desc: 'Du är svår att fälla.',
+    bonus: '+2 HP per nivå',
   },
   keen: {
-    label: 'Skarp blick',
-    desc: 'Du läser striden bättre än de flesta.',
-    bonus: '+1 på attacker',
-    hpBonus: 0,
-    attackBonus: 1,
-    acBonus: 0,
-    potions: 0,
-    herbs: 0,
+    label: 'Alert',
+    desc: 'Du är alltid redo när striden bryter ut.',
+    bonus: '+2 på Initiative',
   },
   supply: {
-    label: 'Packråtta',
-    desc: 'Du reser alltid bättre förberedd än andra.',
-    bonus: '+1 hälsodryck, +1 ört',
-    hpBonus: 0,
-    attackBonus: 0,
-    acBonus: 0,
-    potions: 1,
-    herbs: 1,
+    label: 'Healer',
+    desc: 'Du bär förband och vet hur de ska användas.',
+    bonus: 'Örter läker Hit Die + 2 och slår om 1:or · +1 ört',
+  },
+  savage: {
+    label: 'Savage Attacker',
+    desc: 'Dina hugg träffar där det gör ont.',
+    bonus: 'Slå vapenskadan två gånger och behåll den högsta',
   },
 } as const;

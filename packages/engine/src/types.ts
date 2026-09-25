@@ -9,7 +9,7 @@ export type Attributes = {
 };
 export type RaceId = 'human' | 'elf' | 'dwarf' | 'halfling';
 export type ClassId = 'warrior' | 'mage' | 'thief' | 'cleric';
-export type TalentId = 'iron' | 'keen' | 'supply';
+export type TalentId = 'iron' | 'keen' | 'supply' | 'savage';
 export type Dice = [number, number, number];
 export type DamageType = 'Hugg' | 'Stick' | 'Kross' | 'Eld' | 'Riv';
 export type Position = 'fram' | 'bak';
@@ -62,6 +62,8 @@ export interface Character extends Attributes {
   rested: boolean;
   speed: number;
   fightingStyles: FightingStyle[];
+  /** Human Resourceful: Heroic Inspiration, spent on a reroll until the next Long Rest. */
+  inspiration?: boolean;
 }
 export interface World {
   miraTrust: number;

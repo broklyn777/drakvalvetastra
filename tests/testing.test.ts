@@ -34,7 +34,7 @@ describe('testläge', () => {
     expect(s.seed).not.toBe(0);
     expect(s.players[0]).toMatchObject({
       className: 'Krigare',
-      race: 'Dvärg',
+      race: 'Dwarf',
       rope: true,
       sigil: true,
     });
