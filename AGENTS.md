@@ -21,5 +21,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Run `npm test` and `npm run typecheck` before push/merge when the environment allows it.
 - Do not claim tests or typechecks passed unless they were actually executed and verified.
 - Record validation status clearly in the pull request description.
+- Any pull request with player-visible changes must add one or more short, player-facing lines under `## Opublicerat` in `CHANGELOG.md`. Pure test, tooling, or internal maintenance changes do not need a changelog entry.
+- When a branch owner asks for review, include the Vercel preview URL in the form `https://drakvalvetastra-git-<branch>-broklyn777s-projects.vercel.app`.
 
 <!-- END:drakvalvet-collaboration-rules -->
