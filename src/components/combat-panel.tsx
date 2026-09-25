@@ -17,7 +17,7 @@ import {
 import { abilities } from '../../packages/engine/src/characters';
 import { attackAvailability, canTarget, currentActor } from '../../packages/engine/src/combat';
 import type { Character, GameCommand, GameState, GameEvent } from '../../packages/engine/src/types';
-import { D20 } from './d20';
+import { D20, DiceBox } from './d20';
 export function CombatPanel({
   game,
   hero,
@@ -95,7 +95,7 @@ export function CombatPanel({
     setDiceRoll({ ...diceRoll, phase: 'damage-rolling' });
     rollTimer.current = setTimeout(() => {
       setDiceRoll((current) => (current ? { ...current, phase: 'done' } : null));
-    }, 900);
+    }, 630);
   }
 
   const diceTarget = diceRoll ? c.enemies.find((e) => e.id === diceRoll.targetId) : undefined;
@@ -418,23 +418,28 @@ export function CombatPanel({
                   </button>
                 )}
 
-                {diceRoll.phase === 'damage-rolling' && (
-                  <div className="dice-stage rolling damage-stage">
-                    <div className="die damage-die">
-                      <span>D{diceRoll.result.damage?.sides}</span>
-                      <strong>?</strong>
-                    </div>
+                {diceRoll.phase === 'damage-rolling' && diceRoll.result.damage && (
+                  <div className="dice-stage compact-dice-stage damage-stage">
+                    {diceRoll.result.damage.rolls.map((_, index) => (
+                      <DiceBox
+                        key={index}
+                        rolling
+                        sides={diceRoll.result!.damage!.sides}
+                      />
+                    ))}
                   </div>
                 )}
 
                 {diceRoll.phase === 'done' && diceRoll.result.damage && (
                   <>
-                    <div className="dice-stage dice-results damage-stage">
+                    <div className="dice-stage compact-dice-stage dice-results damage-stage">
                       {diceRoll.result.damage.rolls.map((value, index) => (
-                        <div className="die damage-die chosen" key={`${value}-${index}`}>
-                          <span>D{diceRoll.result!.damage!.sides}</span>
-                          <strong>{value}</strong>
-                        </div>
+                        <DiceBox
+                          key={`${value}-${index}`}
+                          rolling={false}
+                          value={value}
+                          sides={diceRoll.result!.damage!.sides}
+                        />
                       ))}
                     </div>
                     <div className="dice-equation">
