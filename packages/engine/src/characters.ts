@@ -57,6 +57,11 @@ export const abilities = {
     description: '1T6 + INT eldskada mot alla fiender. En gång per strid.',
   },
   thief: { name: 'Smygattack', description: '+1T6 vapenskada. En gång per strid.' },
+  ranger: {
+    name: "Hunter's Mark",
+    description:
+      'Bonus Action: markera ett mål. Dina vapenträffar mot det gör +1d6 skada resten av striden. Kostar inte din tur. En gång per strid.',
+  },
   cleric: {
     name: 'Helande ord',
     description: 'Återställ 1T6 + VIS liv, även på en fallen vän. En gång per strid.',

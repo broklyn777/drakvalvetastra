@@ -19,7 +19,7 @@ export const selectionSchema = z
   .object({
     name: z.string().trim().min(1).max(24),
     race: z.enum(['human', 'elf', 'dwarf', 'halfling']),
-    class: z.enum(['warrior', 'mage', 'thief', 'cleric']),
+    class: z.enum(['warrior', 'mage', 'thief', 'cleric', 'ranger']),
     talent: z.enum(['iron', 'keen', 'supply']),
   })
   .strict();
@@ -143,6 +143,8 @@ const combatSchema = z
     distances: z.record(id, z.number().int().min(-10000).max(10000)).default({}),
     movementRemaining: z.record(id, z.number().int().min(0).max(1000)).default({}),
     breached: recordBool,
+    marked: z.record(id, id).default({}),
+    slowed: z.record(id, id).default({}),
     stats: z.record(
       id,
       z.object({ damage: natural, taken: natural, crits: natural, healing: natural }).strict(),

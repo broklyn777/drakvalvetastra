@@ -8,7 +8,7 @@ export type Attributes = {
   cha: number;
 };
 export type RaceId = 'human' | 'elf' | 'dwarf' | 'halfling';
-export type ClassId = 'warrior' | 'mage' | 'thief' | 'cleric';
+export type ClassId = 'warrior' | 'mage' | 'thief' | 'cleric' | 'ranger';
 export type TalentId = 'iron' | 'keen' | 'supply';
 export type Dice = [number, number, number];
 export type DamageType = 'Hugg' | 'Stick' | 'Kross' | 'Eld' | 'Riv';
@@ -175,6 +175,10 @@ export interface Combat {
   distances: Record<string, number>;
   movementRemaining: Record<string, number>;
   breached: Record<string, boolean>;
+  /** Hunter's Mark: hero id → marked enemy id. */
+  marked: Record<string, string>;
+  /** Weapon Mastery Slow: enemy id → hero whose next turn ends it. */
+  slowed: Record<string, string>;
   stats: Record<string, CombatStats>;
 }
 export interface JournalEntry {

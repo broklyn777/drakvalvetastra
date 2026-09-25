@@ -99,6 +99,22 @@ export const classData = {
     potions: 2,
     herbs: 1,
   },
+  ranger: {
+    label: 'Ranger',
+    desc: 'Spårar bytet genom Gråskogen och fäller det på avstånd.',
+    bonus: "Vapen: Longbow (d8, 150/600 ft) · Livstärning d10 · Klassförmåga: Hunter's Mark",
+    base: { str: 12, dex: 15, con: 13, int: 8, wis: 14, cha: 10 },
+    maxHp: 14,
+    ac: 14,
+    attack: 5,
+    damage: [1, 8, 2],
+    damageType: 'Stick',
+    weapon: 'Longbow (d8)',
+    armor: 'Studded Leather',
+    shield: false,
+    potions: 2,
+    herbs: 1,
+  },
 } as const;
 
 export const talentData = {

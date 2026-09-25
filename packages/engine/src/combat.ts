@@ -15,7 +15,7 @@ export function canTarget(s: GameState, p: Character, e: Enemy) {
   if (s.combat?.usesDistance) return e.hp > 0;
   return (
     e.hp > 0 &&
-    (p.className === 'Magiker' ||
+    (isRangedHero(p) ||
       s.combat?.breached[p.id] ||
       e.position === 'fram' ||
       !s.combat?.enemies.some((x) => x.hp > 0 && x.position === 'fram'))
@@ -61,7 +61,24 @@ function protectionDefender(s: GameState, target: Character) {
 function heroAttackProfile(p: Character) {
   if (p.className === 'Magiker')
     return { kind: 'ranged' as const, normalRange: 120, longRange: 120, reach: 0 };
+  // D&D 2024 Longbow: 150/600 ft, Weapon Mastery Slow. Follows the weapon, not the class.
+  if (p.weapon.startsWith('Longbow'))
+    return {
+      kind: 'ranged' as const,
+      normalRange: 150,
+      longRange: 600,
+      reach: 0,
+      mastery: 'slow' as const,
+    };
   return { kind: 'melee' as const, normalRange: 0, longRange: 0, reach: 5 };
+}
+
+export function isRangedHero(p: Character) {
+  return heroAttackProfile(p).kind === 'ranged';
+}
+
+function enemySpeed(c: Combat, e: Enemy) {
+  return Math.max(0, (e.speed ?? 30) - (c.slowed[e.id] ? 10 : 0));
 }
 
 export function attackAvailability(s: GameState, p: Character, e: Enemy) {
@@ -163,10 +180,12 @@ export function startCombat(s: GameState, def: Encounter) {
     distances: {},
     movementRemaining: {},
     breached: {},
+    marked: {},
+    slowed: {},
     stats: {},
   };
   for (const p of s.players) {
-    c.positions[p.id] = p.className === 'Magiker' ? 'bak' : 'fram';
+    c.positions[p.id] = isRangedHero(p) ? 'bak' : 'fram';
     c.distances[p.id] = 0;
     c.movementRemaining[p.id] = p.speed;
     c.reactionUsed[p.id] = false;
@@ -281,13 +300,13 @@ function enemyTurn(s: GameState, e: Enemy) {
   if (attack.kind === 'melee') {
     const reach = attack.reach ?? 5;
     if (distance > reach) {
-      const move = Math.min(e.speed ?? 30, Math.max(0, distance - reach));
+      const move = Math.min(enemySpeed(c, e), Math.max(0, distance - reach));
       e.distance += actorDistance(c, target.id) < e.distance ? -move : move;
       distance = distanceBetween(c, e.id, target.id);
       emit(s, 'story', `${e.name} rör sig ${move} ft mot ${target.name}.`);
     }
     if (distance > reach) {
-      const dash = Math.min(e.speed ?? 30, Math.max(0, distance - reach));
+      const dash = Math.min(enemySpeed(c, e), Math.max(0, distance - reach));
       e.distance += actorDistance(c, target.id) < e.distance ? -dash : dash;
       emit(s, 'story', `${e.name} använder Dash och rör sig ytterligare ${dash} ft.`);
       return;
@@ -295,7 +314,7 @@ function enemyTurn(s: GameState, e: Enemy) {
   } else {
     const longRange = attack.longRange ?? attack.normalRange ?? 0;
     if (distance > longRange) {
-      const move = Math.min(e.speed ?? 30, distance - longRange);
+      const move = Math.min(enemySpeed(c, e), distance - longRange);
       e.distance += actorDistance(c, target.id) < e.distance ? -move : move;
       distance = distanceBetween(c, e.id, target.id);
       emit(s, 'story', `${e.name} rör sig ${move} ft för att komma inom räckvidd.`);
@@ -415,6 +434,8 @@ function prepareTurn(s: GameState) {
         c.dodging[p.id] = false;
         c.reactionUsed[p.id] = false;
         c.movementRemaining[p.id] = p.speed;
+        for (const [enemy, slower] of Object.entries(c.slowed))
+          if (slower === p.id) delete c.slowed[enemy];
         for (const [target, protector] of Object.entries(c.protectedBy))
           if (protector === p.id) delete c.protectedBy[target];
         for (const [target, defender] of Object.entries(c.protectionActive))
@@ -519,6 +540,14 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
   const damageRolls = Array.from({ length: count * (critical ? 2 : 1) }, () => die(s, sides));
   let raw = Math.max(0, damageBonus + damageRolls.reduce((sum, value) => sum + value, 0));
   if (special) raw += rollDamage(s, [1, power ? 8 : 6, 0], critical);
+  // The dice panel shows the weapon roll; Hunter's Mark is reported in the log text.
+  const weaponRaw = raw;
+  let markText = '';
+  if (c.marked[p.id] === e.id) {
+    const mark = rollDamage(s, [1, 6, 0], critical);
+    raw += mark;
+    markText = ` Hunter's Mark +${mark}.`;
+  }
   const amount = typedDamage(e, raw, p.damageType);
   e.hp = Math.max(0, e.hp - amount);
   c.stats[p.id].damage += amount;
@@ -527,7 +556,7 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     s,
     'damage',
     `${p.name} träffar ${e.name} för ${amount} ${p.damageType.toLowerCase()}skada${critical ? ' — kritisk träff' : ''}.`,
-    `${detail}${amount !== raw ? ` ${raw} grundskada; motstånd/sårbarhet tillämpas.` : ''}`,
+    `${detail}${markText}${amount !== raw ? ` ${raw} grundskada; motstånd/sårbarhet tillämpas.` : ''}`,
     special
       ? undefined
       : {
@@ -536,12 +565,17 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
             sides,
             rolls: damageRolls,
             bonus: damageBonus,
-            total: raw,
+            total: weaponRaw,
             critical,
           },
         },
   );
   if (!e.hp) emit(s, 'success', `${e.name} faller.`);
+  else if ('mastery' in profile && profile.mastery === 'slow' && amount > 0) {
+    c.slowed[e.id] = p.id;
+    if (c.usesDistance)
+      emit(s, 'story', `Slow: ${e.name} rör sig 10 ft kortare till ${p.name}s nästa tur.`);
+  }
 }
 export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
   const c = s.combat!;
@@ -643,6 +677,19 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
     }
     case 'ability': {
       if (c.used[p.id]) throw new Error('Klassförmågan har redan använts.');
+      if (p.className === 'Ranger') {
+        const e = c.enemies.find((e) => e.id === cmd.target && e.hp > 0);
+        if (!e || !attackAvailability(s, p, e).ok) throw new Error('Välj ett mål du kan se och nå.');
+        c.marked[p.id] = e.id;
+        c.used[p.id] = true;
+        emit(
+          s,
+          'story',
+          `${p.name} markerar ${e.name} med Hunter's Mark.`,
+          'Bonus Action: dina vapenträffar mot målet gör +1d6 skada. Du kan fortfarande anfalla den här turen.',
+        );
+        return;
+      }
       if (p.className === 'Magiker') {
         const raw = die(s, 6) + Math.max(0, modifier(p.int));
         for (const e of c.enemies.filter((e) => e.hp > 0)) {

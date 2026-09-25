@@ -25,7 +25,7 @@ export function gainXp(s: GameState, p: Character, xp: number) {
     p.level++;
     const gain = Math.max(
       1,
-      (p.className === 'Krigare' ? 6 : p.className === 'Magiker' ? 4 : 5) + modifier(p.con),
+      (p.className === 'Krigare' || p.className === 'Ranger' ? 6 : p.className === 'Magiker' ? 4 : 5) + modifier(p.con),
     );
     p.maxHp += gain;
     p.hp = Math.min(p.maxHp, p.hp + gain);
