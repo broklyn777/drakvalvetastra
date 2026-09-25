@@ -245,7 +245,9 @@ export function CombatPanel({
               : `${active?.name ?? 'Sällskapet'} har turen.`}
             <small>
               {c.usesDistance
-                ? `Position: ${c.distances[hero.id] ?? 0} ft · Movement: ${c.movementRemaining[hero.id] ?? 0} ft`
+                ? target
+                  ? `Avstånd till mål: ${Math.abs((target.distance ?? 0) - (c.distances[hero.id] ?? 0))} ft · Movement kvar: ${c.movementRemaining[hero.id] ?? 0} ft`
+                  : `Position: ${c.distances[hero.id] ?? 0} ft · Movement kvar: ${c.movementRemaining[hero.id] ?? 0} ft`
                 : `Du står i ${c.positions[hero.id] === 'fram' ? 'framlinjen' : 'baklinjen'}.`}
             </small>
           </div>
