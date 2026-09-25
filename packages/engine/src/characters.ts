@@ -1,5 +1,6 @@
 import { classData, raceData, talentData } from '../../content/src/characters';
 import type { Attributes, Character, CharacterSelection } from './types';
+import { modifier } from './random';
 export const XP_THRESHOLDS = [
   0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000,
   195000, 225000, 265000, 305000, 355000,
@@ -16,9 +17,14 @@ export function createCharacter(selection: CharacterSelection, id: string): Char
       value + ((cls.asi as Partial<Attributes>)[key as keyof Attributes] ?? 0),
     ]),
   ) as Attributes;
+  // Classes with `rules` follow D&D 2024 math; the others keep the original game's fixed values.
+  const rules = 'rules' in cls ? cls.rules : undefined;
   // Dwarven Toughness +1 and Tough +2 per level (see traits.ts).
   const maxHp =
-    cls.maxHp + (selection.race === 'dwarf' ? 1 : 0) + (selection.talent === 'iron' ? 2 : 0);
+    (rules ? rules.hitDie + modifier(attrs.con) : cls.maxHp) +
+    (selection.race === 'dwarf' ? 1 : 0) +
+    (selection.talent === 'iron' ? 2 : 0);
+  const abilityMod = rules ? modifier(attrs[rules.attackAbility]) : 0;
   return {
     ...attrs,
     id,
@@ -29,9 +35,9 @@ export function createCharacter(selection: CharacterSelection, id: string): Char
     talent: talent.label,
     hp: maxHp,
     maxHp,
-    ac: cls.ac,
-    attackBonus: cls.attack,
-    damage: [...cls.damage],
+    ac: rules ? rules.armorBase + modifier(attrs.dex) : cls.ac,
+    attackBonus: rules ? rules.proficiency + abilityMod : cls.attack,
+    damage: rules ? [cls.damage[0], cls.damage[1], abilityMod] : [...cls.damage],
     damageType: cls.damageType,
     weapon: cls.weapon,
     armor: cls.armor,
@@ -52,6 +58,8 @@ export function createCharacter(selection: CharacterSelection, id: string): Char
     speed: 30,
     fightingStyles: [],
     ...(selection.race === 'human' ? { inspiration: true } : {}),
+    // Favored Enemy: two Hunter's Mark casts per Long Rest.
+    ...(selection.class === 'ranger' ? { hunterMarks: 2 } : {}),
   };
 }
 export const abilities = {
@@ -61,6 +69,11 @@ export const abilities = {
     description: '1T6 + INT eldskada mot alla fiender. En gång per strid.',
   },
   thief: { name: 'Smygattack', description: '+1T6 vapenskada. En gång per strid.' },
+  ranger: {
+    name: "Hunter's Mark",
+    description:
+      'Bonus Action, 90 ft: dina träffar mot målet gör +1d6 skada. Faller målet kan du flytta märket gratis. Kostar inte din tur. 2 gånger per Long Rest.',
+  },
   cleric: {
     name: 'Helande ord',
     description: 'Återställ 1T6 + VIS liv, även på en fallen vän. En gång per strid.',

@@ -19,7 +19,7 @@ export const selectionSchema = z
   .object({
     name: z.string().trim().min(1).max(24),
     race: z.enum(['human', 'elf', 'dwarf', 'halfling']),
-    class: z.enum(['warrior', 'mage', 'thief', 'cleric']),
+    class: z.enum(['warrior', 'mage', 'thief', 'cleric', 'ranger']),
     talent: z.enum(['iron', 'keen', 'supply', 'savage']),
   })
   .strict();
@@ -64,6 +64,7 @@ export const characterSchema = z
     fightingStyles: z.array(z.enum(['protection'])).max(10).default([]),
     inspiration: z.boolean().optional(),
     hitDiceUsed: z.number().int().min(0).max(20).optional(),
+    hunterMarks: z.number().int().min(0).max(10).optional(),
   })
   .strict()
   .refine((p) => p.hp <= p.maxHp, 'Liv överstiger maxliv.');
@@ -146,6 +147,9 @@ const combatSchema = z
     movementRemaining: z.record(id, z.number().int().min(0).max(1000)).default({}),
     breached: recordBool,
     swapPending: id.nullable().optional(),
+    marked: z.record(id, id).default({}),
+    slowed: z.record(id, id).default({}),
+    vexed: z.record(id, id).default({}),
     stats: z.record(
       id,
       z.object({ damage: natural, taken: natural, crits: natural, healing: natural }).strict(),

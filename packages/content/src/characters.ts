@@ -100,6 +100,27 @@ export const classData = {
     potions: 2,
     herbs: 1,
   },
+  ranger: {
+    label: 'Ranger',
+    desc: 'Spårar bytet genom Gråskogen och fäller det på avstånd.',
+    bonus:
+      "Vapen: Longbow (d8, 150/600 ft) och Shortsword (d6) · Livstärning d10 · Klassförmåga: Hunter's Mark",
+    base: { str: 12, dex: 15, con: 13, int: 8, wis: 14, cha: 10 },
+    asi: { dex: 2, con: 1 },
+    hitDie: 10,
+    // D&D 2024 rules scale: HP, AC, attack and damage are derived from the ability scores.
+    rules: { hitDie: 10, armorBase: 12, proficiency: 2, attackAbility: 'dex' },
+    maxHp: 10,
+    ac: 12,
+    attack: 2,
+    damage: [1, 8, 0],
+    damageType: 'Stick',
+    weapon: 'Longbow (d8)',
+    armor: 'Studded Leather',
+    shield: false,
+    potions: 2,
+    herbs: 1,
+  },
 } as const;
 
 /** D&D 2024 Origin Feats. Ids are kept from the old talents so saves and links still work. */

@@ -1,7 +1,7 @@
 import type { GameState, GameEvent, Character } from './types';
 import { modifier } from './random';
 import { XP_THRESHOLDS } from './characters';
-import { hpPerLevelBonus } from './traits';
+import { hitDie, hpPerLevelBonus } from './traits';
 export function emit(
   s: GameState,
   kind: GameEvent['kind'],
@@ -26,7 +26,8 @@ export function gainXp(s: GameState, p: Character, xp: number) {
     p.level++;
     const gain = Math.max(
       1,
-      (p.className === 'Krigare' ? 6 : p.className === 'Magiker' ? 4 : 5) + modifier(p.con),
+      // Fixed Hit Die average: d6 → 4, d8 → 5, d10 → 6.
+      hitDie(p) / 2 + 1 + modifier(p.con),
     ) + hpPerLevelBonus(p);
     p.maxHp += gain;
     p.hp = Math.min(p.maxHp, p.hp + gain);

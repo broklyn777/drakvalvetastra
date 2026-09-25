@@ -9,6 +9,7 @@ import {
   Flame,
   WandSparkles,
   Cross,
+  Crosshair,
   Eye,
   Check,
 } from 'lucide-react';
@@ -16,7 +17,13 @@ import { raceData, classData, talentData } from '../../packages/content/src';
 import { createCharacter } from '../../packages/engine/src/characters';
 import { attributeLabels } from '../../packages/engine/src/checks';
 import type { CharacterSelection } from '../../packages/engine/src/types';
-const classIcons = { warrior: Swords, mage: WandSparkles, thief: Eye, cleric: Cross };
+const classIcons = {
+  warrior: Swords,
+  mage: WandSparkles,
+  thief: Eye,
+  cleric: Cross,
+  ranger: Crosshair,
+};
 export function CharacterCreator({
   onSubmit,
   onBack,
