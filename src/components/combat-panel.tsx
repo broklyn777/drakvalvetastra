@@ -17,6 +17,7 @@ import {
 import { abilities } from '../../packages/engine/src/characters';
 import { attackAvailability, canTarget, currentActor } from '../../packages/engine/src/combat';
 import type { Character, GameCommand, GameState, GameEvent } from '../../packages/engine/src/types';
+import { D20 } from './d20';
 export function CombatPanel({
   game,
   hero,
@@ -86,7 +87,7 @@ export function CombatPanel({
     rollTimer.current = setTimeout(() => {
       setDiceRoll((current) => (current ? { ...current, phase: 'waiting' } : null));
       act({ type: 'attack', target: diceRoll.targetId });
-    }, 900);
+    }, 630);
   }
 
   function revealDamage() {
@@ -357,11 +358,8 @@ export function CombatPanel({
 
             {(diceRoll.phase === 'ready' || diceRoll.phase === 'rolling' || diceRoll.phase === 'waiting') && (
               <>
-                <div className={`dice-stage ${diceRoll.phase !== 'ready' ? 'rolling' : ''}`}>
-                  <div className="die d20">
-                    <span>D20</span>
-                    <strong>?</strong>
-                  </div>
+                <div className="dice-stage compact-dice-stage">
+                  <D20 rolling={diceRoll.phase === 'rolling' || diceRoll.phase === 'waiting'} />
                 </div>
                 <button
                   className="button primary dice-roll-button"
@@ -375,29 +373,37 @@ export function CombatPanel({
 
             {diceRoll.result && ['attack-result', 'damage-rolling', 'done'].includes(diceRoll.phase) && (
               <>
-                <div className="dice-stage dice-results">
-                  {diceRoll.result.attack.rolls.map((value, index) => (
-                    <div
-                      className={`die d20 ${value === diceRoll.result!.attack.chosen ? 'chosen' : ''}`}
-                      key={`${value}-${index}`}
-                    >
-                      <span>D20</span>
-                      <strong>{value}</strong>
-                    </div>
-                  ))}
+                <div className="dice-stage compact-dice-stage dice-results">
+                  {diceRoll.result.attack.rolls.map((value, index) => {
+                    const chosen = value === diceRoll.result!.attack.chosen;
+                    return (
+                      <D20
+                        key={`${value}-${index}`}
+                        rolling={false}
+                        value={value}
+                        outcome={
+                          chosen
+                            ? diceRoll.result!.attack.critical
+                              ? 'crit'
+                              : diceRoll.result!.attack.hit
+                                ? 'success'
+                                : 'failure'
+                            : undefined
+                        }
+                      />
+                    );
+                  })}
                 </div>
-                <div className="dice-equation">
+                <p className={`dice-verdict compact-verdict ${diceRoll.result.attack.hit ? 'hit' : 'miss'}`}>
+                  {diceRoll.result.attack.critical
+                    ? '✨ Critical Hit!'
+                    : diceRoll.result.attack.hit
+                      ? '✨ Träff!'
+                      : '❌ Miss!'}{' '}
                   <strong>
                     {diceRoll.result.attack.chosen} + {diceRoll.result.attack.bonus} = {diceRoll.result.attack.total}
-                  </strong>
-                  <span>mot AC {diceRoll.result.attack.ac}</span>
-                </div>
-                <p className={`dice-verdict ${diceRoll.result.attack.hit ? 'hit' : 'miss'}`}>
-                  {diceRoll.result.attack.critical
-                    ? 'Critical Hit!'
-                    : diceRoll.result.attack.hit
-                      ? 'Träff!'
-                      : 'Miss!'}
+                  </strong>{' '}
+                  <span>(Krav: AC {diceRoll.result.attack.ac})</span>
                 </p>
 
                 {!diceRoll.result.attack.hit && (
