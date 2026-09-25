@@ -23,5 +23,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Record validation status clearly in the pull request description.
 - Any pull request with player-visible changes must add one or more short, player-facing lines under `## Opublicerat` in `CHANGELOG.md`. Pure test, tooling, or internal maintenance changes do not need a changelog entry.
 - When a branch owner asks for review, include the Vercel preview URL in the form `https://drakvalvetastra-git-<branch>-broklyn777s-projects.vercel.app`.
+- Use Swedish for narrative text and general interface copy, but use official English D&D rules terminology for player-facing game mechanics whenever practical, so terms can be searched directly in the original rules.
+- Prefer original D&D labels such as `Human`, `Dwarf`, `Elf`, `Halfling`; `Fighter`, `Rogue`, `Wizard`, `Cleric`, `Ranger`, `Paladin`; `STR`, `DEX`, `CON`, `INT`, `WIS`, `CHA`; `AC`, `HP`, `DC`, `Initiative`, `Advantage`, `Disadvantage`, `Ability Check`, `Saving Throw`, `Fighting Style`, and official weapon/damage terminology.
+- For D&D 2024 terminology, prefer `Species` over `Race` in new player-facing UI and documentation. Existing internal identifiers may remain unchanged unless a separate migration is explicitly approved.
 
 <!-- END:drakvalvet-collaboration-rules -->
