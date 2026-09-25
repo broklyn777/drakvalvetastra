@@ -1,5 +1,6 @@
 import { classData, raceData, talentData } from '../../content/src/characters';
 import type { Attributes, Character, CharacterSelection } from './types';
+import { modifier } from './random';
 export const XP_THRESHOLDS = [
   0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000,
   195000, 225000, 265000, 305000, 355000,
@@ -15,7 +16,11 @@ export function createCharacter(selection: CharacterSelection, id: string): Char
       value + race.mods[key as keyof Attributes],
     ]),
   ) as Attributes;
-  const maxHp = cls.maxHp + race.hpBonus + talent.hpBonus;
+  // Classes with `rules` follow D&D 2024 math; the others keep the original game's fixed values.
+  const rules = 'rules' in cls ? cls.rules : undefined;
+  const maxHp =
+    (rules ? rules.hitDie + modifier(attrs.con) : cls.maxHp) + race.hpBonus + talent.hpBonus;
+  const abilityMod = rules ? modifier(attrs[rules.attackAbility]) : 0;
   return {
     ...attrs,
     id,
@@ -26,9 +31,9 @@ export function createCharacter(selection: CharacterSelection, id: string): Char
     talent: talent.label,
     hp: maxHp,
     maxHp,
-    ac: cls.ac + race.acBonus + talent.acBonus,
-    attackBonus: cls.attack + talent.attackBonus,
-    damage: [...cls.damage],
+    ac: (rules ? rules.armorBase + modifier(attrs.dex) : cls.ac) + race.acBonus + talent.acBonus,
+    attackBonus: (rules ? rules.proficiency + abilityMod : cls.attack) + talent.attackBonus,
+    damage: rules ? [cls.damage[0], cls.damage[1], abilityMod] : [...cls.damage],
     damageType: cls.damageType,
     weapon: cls.weapon,
     armor: cls.armor,
@@ -48,6 +53,8 @@ export function createCharacter(selection: CharacterSelection, id: string): Char
     rested: false,
     speed: 30,
     fightingStyles: [],
+    // Favored Enemy: two Hunter's Mark casts per Long Rest.
+    ...(selection.class === 'ranger' ? { hunterMarks: 2 } : {}),
   };
 }
 export const abilities = {
@@ -60,7 +67,7 @@ export const abilities = {
   ranger: {
     name: "Hunter's Mark",
     description:
-      'Bonus Action: markera ett mål. Dina vapenträffar mot det gör +1d6 skada resten av striden. Kostar inte din tur. En gång per strid.',
+      'Bonus Action, 90 ft: dina träffar mot målet gör +1d6 skada. Faller målet kan du flytta märket gratis. Kostar inte din tur. 2 gånger per Long Rest.',
   },
   cleric: {
     name: 'Helande ord',

@@ -1,4 +1,13 @@
-import type { Character, Combat, Encounter, Enemy, GameCommand, GameState } from './types';
+import type {
+  Character,
+  Combat,
+  DamageType,
+  Dice,
+  Encounter,
+  Enemy,
+  GameCommand,
+  GameState,
+} from './types';
 import { die, modifier, rollDamage } from './random';
 import { emit, gainXp } from './events';
 
@@ -58,19 +67,38 @@ function protectionDefender(s: GameState, target: Character) {
   );
 }
 
-function heroAttackProfile(p: Character) {
-  if (p.className === 'Magiker')
-    return { kind: 'ranged' as const, normalRange: 120, longRange: 120, reach: 0 };
+interface HeroAttack {
+  kind: 'melee' | 'ranged';
+  normalRange: number;
+  longRange: number;
+  reach: number;
+  mastery?: 'slow' | 'vex';
+  /** Overrides for a second weapon; otherwise the character's own weapon is used. */
+  name?: string;
+  damage?: Dice;
+  damageType?: DamageType;
+}
+
+/** `distance` is only known in fights with real distances; a ranger then draws a sword up close. */
+function heroAttackProfile(p: Character, distance = Infinity): HeroAttack {
+  if (p.className === 'Magiker') return { kind: 'ranged', normalRange: 120, longRange: 120, reach: 0 };
   // D&D 2024 Longbow: 150/600 ft, Weapon Mastery Slow. Follows the weapon, not the class.
-  if (p.weapon.startsWith('Longbow'))
-    return {
-      kind: 'ranged' as const,
-      normalRange: 150,
-      longRange: 600,
-      reach: 0,
-      mastery: 'slow' as const,
-    };
-  return { kind: 'melee' as const, normalRange: 0, longRange: 0, reach: 5 };
+  if (p.weapon.startsWith('Longbow')) {
+    // Ranger starting gear also has a Shortsword (1d6 Piercing, Weapon Mastery Vex).
+    if (p.className === 'Ranger' && distance <= 5)
+      return {
+        kind: 'melee',
+        normalRange: 0,
+        longRange: 0,
+        reach: 5,
+        mastery: 'vex',
+        name: 'Shortsword (d6)',
+        damage: [1, 6, modifier(p.dex)],
+        damageType: 'Stick',
+      };
+    return { kind: 'ranged', normalRange: 150, longRange: 600, reach: 0, mastery: 'slow' };
+  }
+  return { kind: 'melee', normalRange: 0, longRange: 0, reach: 5 };
 }
 
 export function isRangedHero(p: Character) {
@@ -85,8 +113,8 @@ export function attackAvailability(s: GameState, p: Character, e: Enemy) {
   if (!canTarget(s, p, e)) return { ok: false, reason: 'Målet kan inte nås.' };
   const c = s.combat;
   if (!c?.usesDistance) return { ok: true, reason: '' };
-  const profile = heroAttackProfile(p);
   const distance = distanceBetween(c, p.id, e.id);
+  const profile = heroAttackProfile(p, distance);
   if (profile.kind === 'melee' && distance > profile.reach)
     return {
       ok: false,
@@ -101,6 +129,7 @@ export function attackAvailability(s: GameState, p: Character, e: Enemy) {
     return { ok: true, reason: `${distance} ft · long range, nackdel` };
   if (profile.kind === 'ranged' && distance <= 5)
     return { ok: true, reason: `${distance} ft · fiende nära, nackdel` };
+  if (profile.name) return { ok: true, reason: `${distance} ft · ${profile.name}` };
   return { ok: true, reason: `${distance} ft bort` };
 }
 export function typedDamage(e: Enemy, amount: number, type: Character['damageType']) {
@@ -182,6 +211,7 @@ export function startCombat(s: GameState, def: Encounter) {
     breached: {},
     marked: {},
     slowed: {},
+    vexed: {},
     stats: {},
   };
   for (const p of s.players) {
@@ -190,6 +220,7 @@ export function startCombat(s: GameState, def: Encounter) {
     c.movementRemaining[p.id] = p.speed;
     c.reactionUsed[p.id] = false;
     c.stats[p.id] = { damage: 0, taken: 0, crits: 0, healing: 0 };
+    if (p.className === 'Ranger' && !p.hunterMarks) c.used[p.id] = true;
   }
   s.combat = c;
   emit(
@@ -436,6 +467,9 @@ function prepareTurn(s: GameState) {
         c.movementRemaining[p.id] = p.speed;
         for (const [enemy, slower] of Object.entries(c.slowed))
           if (slower === p.id) delete c.slowed[enemy];
+        // A fallen quarry frees the Bonus Action to move Hunter's Mark.
+        const quarry = c.enemies.find((e) => e.id === c.marked[p.id]);
+        if (quarry && quarry.hp <= 0) c.used[p.id] = false;
         for (const [target, protector] of Object.entries(c.protectedBy))
           if (protector === p.id) delete c.protectedBy[target];
         for (const [target, defender] of Object.entries(c.protectionActive))
@@ -473,8 +507,10 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
   const availability = attackAvailability(s, p, e);
   if (!availability.ok) throw new Error(availability.reason);
 
-  const profile = heroAttackProfile(p);
-  const distance = c.usesDistance ? distanceBetween(c, p.id, e.id) : 0;
+  const distance = c.usesDistance ? distanceBetween(c, p.id, e.id) : Infinity;
+  const profile = heroAttackProfile(p, distance);
+  const weapon = profile.name ?? p.weapon;
+  const damageType = profile.damageType ?? p.damageType;
   let disadvantage = false;
   let cover = false;
   if (c.usesDistance) {
@@ -497,8 +533,10 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
   const attackRolls = [die(s, 20)];
   let roll = attackRolls[0];
   let rollText = `${roll}`;
-  const advantage = !!c.advantage[p.id];
-  if (advantage) c.advantage[p.id] = false;
+  const vex = c.vexed[p.id] === e.id;
+  delete c.vexed[p.id];
+  const advantage = !!c.advantage[p.id] || vex;
+  if (c.advantage[p.id]) c.advantage[p.id] = false;
   const mode: 'normal' | 'advantage' | 'disadvantage' =
     advantage === disadvantage ? 'normal' : advantage ? 'advantage' : 'disadvantage';
   if (mode !== 'normal') {
@@ -515,10 +553,10 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
   const attackDice = {
     attackerId: p.id,
     targetId: e.id,
-    attackName: p.weapon,
+    attackName: weapon,
     ...(c.usesDistance ? { distance } : {}),
     ...(cover ? { coverBonus: 2 } : {}),
-    damageType: p.damageType,
+    damageType,
     attack: {
       sides: 20 as const,
       rolls: attackRolls,
@@ -536,7 +574,7 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     return;
   }
   const critical = roll === 20;
-  const [count, sides, damageBonus] = p.damage;
+  const [count, sides, damageBonus] = profile.damage ?? p.damage;
   const damageRolls = Array.from({ length: count * (critical ? 2 : 1) }, () => die(s, sides));
   let raw = Math.max(0, damageBonus + damageRolls.reduce((sum, value) => sum + value, 0));
   if (special) raw += rollDamage(s, [1, power ? 8 : 6, 0], critical);
@@ -548,14 +586,14 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     raw += mark;
     markText = ` Hunter's Mark +${mark}.`;
   }
-  const amount = typedDamage(e, raw, p.damageType);
+  const amount = typedDamage(e, raw, damageType);
   e.hp = Math.max(0, e.hp - amount);
   c.stats[p.id].damage += amount;
   if (critical) c.stats[p.id].crits++;
   emit(
     s,
     'damage',
-    `${p.name} träffar ${e.name} för ${amount} ${p.damageType.toLowerCase()}skada${critical ? ' — kritisk träff' : ''}.`,
+    `${p.name} träffar ${e.name} för ${amount} ${damageType.toLowerCase()}skada${profile.name ? ` med ${profile.name}` : ''}${critical ? ' — kritisk träff' : ''}.`,
     `${detail}${markText}${amount !== raw ? ` ${raw} grundskada; motstånd/sårbarhet tillämpas.` : ''}`,
     special
       ? undefined
@@ -571,10 +609,13 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
         },
   );
   if (!e.hp) emit(s, 'success', `${e.name} faller.`);
-  else if ('mastery' in profile && profile.mastery === 'slow' && amount > 0) {
+  else if (profile.mastery === 'slow' && amount > 0) {
     c.slowed[e.id] = p.id;
     if (c.usesDistance)
       emit(s, 'story', `Slow: ${e.name} rör sig 10 ft kortare till ${p.name}s nästa tur.`);
+  } else if (profile.mastery === 'vex' && amount > 0) {
+    c.vexed[p.id] = e.id;
+    emit(s, 'story', `Vex: ${p.name} får Advantage på nästa anfall mot ${e.name}.`);
   }
 }
 export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
@@ -679,14 +720,25 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
       if (c.used[p.id]) throw new Error('Klassförmågan har redan använts.');
       if (p.className === 'Ranger') {
         const e = c.enemies.find((e) => e.id === cmd.target && e.hp > 0);
-        if (!e || !attackAvailability(s, p, e).ok) throw new Error('Välj ett mål du kan se och nå.');
+        if (!e || !canTarget(s, p, e)) throw new Error('Välj ett mål du kan se.');
+        if (c.usesDistance && distanceBetween(c, p.id, e.id) > 90)
+          throw new Error("Hunter's Mark når 90 ft.");
+        // Moving the mark from a fallen quarry is free; a new cast spends a Favored Enemy use.
+        const quarry = c.enemies.find((q) => q.id === c.marked[p.id]);
+        const moving = !!quarry && quarry.hp <= 0;
+        if (!moving) {
+          if (!p.hunterMarks) throw new Error("Inga Hunter's Mark kvar före nästa Long Rest.");
+          p.hunterMarks--;
+        }
         c.marked[p.id] = e.id;
         c.used[p.id] = true;
         emit(
           s,
           'story',
-          `${p.name} markerar ${e.name} med Hunter's Mark.`,
-          'Bonus Action: dina vapenträffar mot målet gör +1d6 skada. Du kan fortfarande anfalla den här turen.',
+          moving
+            ? `${p.name} flyttar Hunter's Mark till ${e.name}.`
+            : `${p.name} markerar ${e.name} med Hunter's Mark.`,
+          `Bonus Action: träffar mot målet gör +1d6 skada. Du kan fortfarande anfalla den här turen.${moving ? '' : ` ${p.hunterMarks} kvar före nästa Long Rest.`}`,
         );
         return;
       }

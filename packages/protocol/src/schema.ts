@@ -62,6 +62,7 @@ export const characterSchema = z
     rested: z.boolean(),
     speed: z.number().int().min(0).max(500).default(30),
     fightingStyles: z.array(z.enum(['protection'])).max(10).default([]),
+    hunterMarks: z.number().int().min(0).max(10).optional(),
   })
   .strict()
   .refine((p) => p.hp <= p.maxHp, 'Liv överstiger maxliv.');
@@ -145,6 +146,7 @@ const combatSchema = z
     breached: recordBool,
     marked: z.record(id, id).default({}),
     slowed: z.record(id, id).default({}),
+    vexed: z.record(id, id).default({}),
     stats: z.record(
       id,
       z.object({ damage: natural, taken: natural, crits: natural, healing: natural }).strict(),

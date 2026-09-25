@@ -29,27 +29,33 @@ const bandit = (s: GameState, kind: 'melee' | 'ranged') =>
   s.combat!.enemies.find((e) => e.preferredAttack === kind)!;
 
 describe('Ranger', () => {
-  it('is a D&D 2024-style ranger with a longbow and a d10 hit die', () => {
+  it('uses D&D 2024 math: HP, AC, attack and damage come from the ability scores', () => {
+    // Human: DEX 16 (+3), CON 14 (+2), WIS 15. Talent keen: +1 attack.
     const p = ranger();
     expect(p).toMatchObject({
       className: 'Ranger',
       weapon: 'Longbow (d8)',
-      damage: [1, 8, 2],
       damageType: 'Stick',
       armor: 'Studded Leather',
       dex: 16,
+      con: 14,
       wis: 15,
-      maxHp: 14,
-      ac: 14,
-      attackBonus: 6,
+      maxHp: 12, // d10 max 10 + CON 2
+      ac: 15, // Studded Leather 12 + DEX 3
+      attackBonus: 6, // proficiency 2 + DEX 3 + keen 1
+      damage: [1, 8, 3], // 1d8 + DEX
+      hunterMarks: 2, // Favored Enemy
     });
+    // Elf: DEX 17 (+3) gives the same modifier; the elf's own +1 AC trait still applies.
+    const elf = createCharacter({ name: 'E', race: 'elf', class: 'ranger', talent: 'iron' }, 'e');
+    expect(elf).toMatchObject({ maxHp: 15, ac: 16, attackBonus: 5 });
     const s = createGame(campaign, [p], 1, 'lvl');
     gainXp(s, s.players[0], 300);
-    // d10 average 6 + CON 14 (+2).
-    expect(s.players[0]).toMatchObject({ level: 2, maxHp: 22 });
+    // d10 average 6 + CON 2.
+    expect(s.players[0]).toMatchObject({ level: 2, maxHp: 20 });
   });
 
-  it('shoots from the doorway without moving; long range and point blank give Disadvantage', () => {
+  it('shoots from the doorway without moving; long range gives Disadvantage', () => {
     const s = doorFight(seedOf(1));
     const p = s.players[0];
     expect(currentActor(s)?.id).toBe(p.id);
@@ -62,23 +68,79 @@ describe('Ranger', () => {
     expect(attackAvailability(far, p, bandit(far, 'ranged')).reason).toContain('long range');
     bandit(far, 'ranged').distance = 700;
     expect(attackAvailability(far, p, bandit(far, 'ranged')).ok).toBe(false);
-    bandit(far, 'melee').distance = 5;
-    expect(attackAvailability(far, p, bandit(far, 'melee')).reason).toContain('nackdel');
   });
 
-  it("Hunter's Mark is a once-per-fight Bonus Action that keeps the turn", () => {
+  it('draws the Shortsword at 5 ft, and Vex gives Advantage on the next attack', () => {
+    for (let i = 1; i < 300; i++) {
+      let s = doorFight(seedOf(i));
+      const melee = bandit(s, 'melee');
+      Object.assign(
+        s.combat!.enemies.find((e) => e.id === melee.id)!,
+        { hp: 99, distance: 5 },
+      );
+      expect(attackAvailability(s, s.players[0], bandit(s, 'melee')).reason).toBe(
+        '5 ft · Shortsword (d6)',
+      );
+      s = act(s, { type: 'attack', target: melee.id });
+      const hit = s.events.find((e) => e.dice?.attackerId === 'ranger' && e.dice.attack.hit);
+      if (!hit) continue;
+      expect(hit.dice).toMatchObject({
+        attackName: 'Shortsword (d6)',
+        damage: { sides: 6, bonus: 3 },
+      });
+      expect(hit.dice!.attack.mode).toBe('normal');
+      expect(s.events.some((e) => e.text.startsWith('Vex:'))).toBe(true);
+      if (currentActor(s)?.id !== 'ranger' || s.combat!.victory) return;
+      s = act(s, { type: 'attack', target: melee.id });
+      const next = s.events.filter((e) => e.dice?.attackerId === 'ranger').at(-1)!;
+      expect(next.dice!.attack.mode).toBe('advantage');
+      return;
+    }
+    throw new Error('Ingen träff hittades.');
+  });
+
+  it("Hunter's Mark is a Bonus Action that keeps the turn and spends a Favored Enemy use", () => {
     let s = doorFight(seedOf(2));
     const p = s.players[0];
     const target = bandit(s, 'ranged');
     s = act(s, { type: 'ability', target: target.id });
     expect(s.combat!.marked[p.id]).toBe(target.id);
     expect(currentActor(s)?.id).toBe(p.id);
+    expect(s.players[0].hunterMarks).toBe(1);
     expect(dispatch(s, campaign, p.id, { type: 'ability', target: target.id }).ok).toBe(false);
     s = act(s, { type: 'attack', target: target.id });
     // The attack after the mark was accepted in the same turn.
     expect(s.events.some((e) => e.dice?.attackerId === p.id && e.dice.targetId === target.id)).toBe(
       true,
     );
+  });
+
+  it('reaches 90 ft, runs out after two casts and moves for free when the quarry falls', () => {
+    const far = doorFight(seedOf(4));
+    bandit(far, 'ranged').distance = 95;
+    const tooFar = dispatch(far, campaign, 'ranger', {
+      type: 'ability',
+      target: bandit(far, 'ranged').id,
+    });
+    expect(tooFar.ok || tooFar.error).toBe("Hunter's Mark når 90 ft.");
+    const empty = doorFight(seedOf(4));
+    empty.players[0].hunterMarks = 0;
+    expect(
+      dispatch(empty, campaign, 'ranger', { type: 'ability', target: bandit(empty, 'ranged').id })
+        .ok,
+    ).toBe(false);
+
+    let s = doorFight(seedOf(5));
+    const [first, second] = [bandit(s, 'melee'), bandit(s, 'ranged')];
+    s = act(s, { type: 'ability', target: first.id });
+    s.combat!.enemies.find((e) => e.id === first.id)!.hp = 0;
+    s.combat!.enemies.find((e) => e.id === second.id)!.hp = 99;
+    s = act(s, { type: 'defend' });
+    if (s.combat!.victory || currentActor(s)?.id !== 'ranger') throw new Error('Rangern föll.');
+    expect(s.combat!.used.ranger).toBe(false);
+    s = act(s, { type: 'ability', target: second.id });
+    expect(s.combat!.marked.ranger).toBe(second.id);
+    expect(s.players[0].hunterMarks).toBe(1);
   });
 
   it('adds 1d6 to hits on the marked target', () => {
@@ -145,6 +207,7 @@ describe('Ranger', () => {
     const old = makeSave(s, 'Old') as { state: { combat: Record<string, unknown> } };
     delete old.state.combat.marked;
     delete old.state.combat.slowed;
-    expect(parseSave(old).state.combat).toMatchObject({ marked: {}, slowed: {} });
+    delete old.state.combat.vexed;
+    expect(parseSave(old).state.combat).toMatchObject({ marked: {}, slowed: {}, vexed: {} });
   });
 });

@@ -62,6 +62,8 @@ export interface Character extends Attributes {
   rested: boolean;
   speed: number;
   fightingStyles: FightingStyle[];
+  /** Ranger Favored Enemy: Hunter's Mark casts left until the next Long Rest. */
+  hunterMarks?: number;
 }
 export interface World {
   miraTrust: number;
@@ -179,6 +181,8 @@ export interface Combat {
   marked: Record<string, string>;
   /** Weapon Mastery Slow: enemy id → hero whose next turn ends it. */
   slowed: Record<string, string>;
+  /** Weapon Mastery Vex: hero id → enemy the hero has Advantage against on the next attack. */
+  vexed: Record<string, string>;
   stats: Record<string, CombatStats>;
 }
 export interface JournalEntry {
