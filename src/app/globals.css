@@ -2866,6 +2866,87 @@ summary::-webkit-details-marker {
   min-height: 46px;
   justify-content: center;
 }
+.compact-dice-stage {
+  min-height: 126px;
+  margin: 2px 0 14px;
+}
+.d20-svg {
+  width: 132px;
+  height: 138px;
+  display: block;
+  margin: 0 auto;
+  overflow: visible;
+  transform-origin: 50% 60%;
+}
+.d20-svg polygon {
+  transition: fill 0.18s ease, stroke 0.18s ease;
+}
+.d20-svg.roll {
+  animation: d20-svg-tumble 0.48s cubic-bezier(0.2, 0.72, 0.2, 1);
+}
+.d20-svg.land {
+  animation: d20-svg-land 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.d20-burst {
+  opacity: 0;
+  transform-origin: 50px 52px;
+  animation: d20-svg-burst 0.45s ease-out;
+}
+.compact-verdict {
+  margin: 2px 0 18px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 650;
+}
+.compact-verdict strong {
+  font-family: var(--serif);
+  font-size: 19px;
+  font-weight: 500;
+}
+.compact-verdict span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+@keyframes d20-svg-tumble {
+  0% {
+    transform: translateY(12px) rotate(0deg) scale(0.94);
+    filter: brightness(0.9);
+  }
+  42% {
+    transform: translateY(-18px) rotate(215deg) scale(1.04);
+    filter: brightness(1.12);
+  }
+  78% {
+    transform: translateY(3px) rotate(332deg) scale(0.99);
+  }
+  100% {
+    transform: none;
+    filter: brightness(1);
+  }
+}
+@keyframes d20-svg-land {
+  0% { transform: translateY(-4px) scale(1.1); }
+  60% { transform: translateY(2px) scale(0.98); }
+  100% { transform: none; }
+}
+@keyframes d20-svg-burst {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.84);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .d20-svg.roll,
+  .d20-svg.land,
+  .d20-burst {
+    animation: none;
+  }
+}
 .damage-stage {
   flex-wrap: wrap;
   min-height: 120px;
