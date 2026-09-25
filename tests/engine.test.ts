@@ -359,14 +359,14 @@ describe('färdighetsslag', () => {
     throw new Error('Inget frö gav önskat utfall.');
   }
   it('shows the check on the choice and computes the chance from the best attribute', () => {
-    const s = atTower(1, { str: 10, dex: 16, cha: 8 });
+    const s = atTower(1, { str: 16, dex: 8, cha: 8 });
     const choices = availableChoices(s, campaign, 'hero-0');
     const climb = choices.find(([, next]) => next === 'towerSneak')![2]!;
     const bluff = choices.find(([, next]) => next === 'towerBluff')![2]!;
-    expect(climb).toMatchObject({ attributes: ['str', 'dex'], dc: 10, fail: 'towerSneakFail' });
-    // SMI 16 → +3; needs 7+ on T20 → 70 %.
+    expect(climb).toMatchObject({ skill: 'Athletics', attributes: ['str'], dc: 10 });
+    // STR 16 → +3; needs 7+ on d20 → 70 %.
     expect(checkChance(s.players[0], climb)).toBeCloseTo(0.7);
-    // KAR 8 → −1 vs SV 12; needs 13+ → 40 %.
+    // CHA 8 → −1 vs DC 12; needs 13+ → 40 %.
     expect(checkChance(s.players[0], bluff)).toBeCloseTo(0.4);
     expect(checkChance({ ...s.players[0], cha: 40 }, bluff)).toBe(1);
   });
@@ -374,7 +374,7 @@ describe('färdighetsslag', () => {
     const okSeed = seedWhere((s) => s.scene === 'towerBluff', 'towerBluff');
     const ok = choose(atTower(okSeed), 'towerBluff');
     const okEvent = ok.events.find((e) => e.check)!;
-    expect(okEvent.check).toMatchObject({ skill: 'Bluff', attribute: 'cha', dc: 12, success: true });
+    expect(okEvent.check).toMatchObject({ skill: 'Deception', attribute: 'cha', dc: 12, success: true });
     expect(okEvent.check!.total).toBe(okEvent.check!.roll + okEvent.check!.modifier);
     expect(ok.world.xpAwards.towerBluff).toBe(true);
 

@@ -65,9 +65,9 @@ export function CharacterSheet({
         </div>
       </div>
       <div className="attribute-grid">
-        {(['str', 'dex', 'con', 'int', 'wis', 'cha'] as const).map((key, i) => (
+        {(['str', 'dex', 'con', 'int', 'wis', 'cha'] as const).map((key) => (
           <div key={key}>
-            <small>{['STY', 'SMI', 'KON', 'INT', 'VIS', 'KAR'][i]}</small>
+            <small>{attributeLabels[key]}</small>
             <strong>{hero[key]}</strong>
             <small>
               {modifier(hero[key]) >= 0 ? '+' : ''}
@@ -274,10 +274,10 @@ export function GameView({
                   {check && (
                     <span
                       className="choice-check"
-                      title={`${hero.name} slår T20 + ${attributeLabels[checkAttribute(hero, check)]} mot SV ${check.dc}`}
+                      title={`${check.skill} check: ${hero.name} slår d20 + ${attributeLabels[checkAttribute(hero, check)]} mot DC ${check.dc}`}
                     >
                       <Dices size={13} />
-                      {check.skill} · {attributeLabels[checkAttribute(hero, check)]} · SV{' '}
+                      {check.skill} · {attributeLabels[checkAttribute(hero, check)]} · DC{' '}
                       {check.dc} · {Math.round(checkChance(hero, check) * 100)}%
                     </span>
                   )}

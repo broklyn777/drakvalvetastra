@@ -353,13 +353,13 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
           arr.push([
             'Använd repet och ta dig in genom sprickan',
             'towerSneak',
-            { skill: 'Klättring', attributes: ['str', 'dex'], dc: 10, fail: 'towerSneakFail' },
+            { skill: 'Athletics', attributes: ['str'], dc: 10, fail: 'towerSneakFail' },
           ]);
         if (partyHas('sigil'))
           arr.push([
             'Visa sigillet öppet och försök bluffa dig förbi',
             'towerBluff',
-            { skill: 'Bluff', attributes: ['cha'], dc: 12, fail: 'towerBluffFail' },
+            { skill: 'Deception', attributes: ['cha'], dc: 12, fail: 'towerBluffFail' },
           ]);
         return arr;
       },
@@ -413,7 +413,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
           session,
           'damage',
           `${state.name} faller och tar ${before - state.hp} skada.`,
-          'Fallet: 1T4, men aldrig under 1 HP.',
+          'Fall: 1d4 damage, men aldrig under 1 HP.',
         );
       },
       combat: {

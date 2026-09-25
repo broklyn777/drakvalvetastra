@@ -3,20 +3,20 @@ import { die, modifier } from './random';
 import { emit } from './events';
 
 export const attributeLabels: Record<AttributeKey, string> = {
-  str: 'STY',
-  dex: 'SMI',
-  con: 'KON',
+  str: 'STR',
+  dex: 'DEX',
+  con: 'CON',
   int: 'INT',
-  wis: 'VIS',
-  cha: 'KAR',
+  wis: 'WIS',
+  cha: 'CHA',
 };
 
-/** The hero uses the best of the listed attributes, e.g. STY or SMI for a climb. */
+/** The hero uses the best of the listed attributes, e.g. STR or DEX. */
 export function checkAttribute(p: Character, check: SkillCheck) {
   return check.attributes.reduce((best, key) => (p[key] > p[best] ? key : best));
 }
 
-/** Chance of success for T20 + modifier ≥ DC. Ability checks have no automatic 1/20. */
+/** Chance of success for d20 + modifier ≥ DC. Ability checks have no automatic 1/20. */
 export function checkChance(p: Character, check: SkillCheck) {
   const needed = check.dc - modifier(p[checkAttribute(p, check)]);
   return Math.min(1, Math.max(0, (21 - needed) / 20));
@@ -31,8 +31,8 @@ export function rollCheck(s: GameState, p: Character, check: SkillCheck) {
   emit(
     s,
     success ? 'success' : 'warning',
-    `${p.name} ${success ? 'lyckas' : 'misslyckas'} med ${check.skill.toLowerCase()}.`,
-    `T20 ${roll} ${mod >= 0 ? '+' : '−'} ${Math.abs(mod)} (${attributeLabels[attribute]}) = ${total} mot SV ${check.dc}.`,
+    `${p.name} ${success ? 'lyckas' : 'misslyckas'} med ${check.skill} check.`,
+    `d20 ${roll} ${mod >= 0 ? '+' : '−'} ${Math.abs(mod)} (${attributeLabels[attribute]}) = ${total} mot DC ${check.dc}.`,
     undefined,
     {
       actorId: p.id,
