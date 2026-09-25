@@ -9,6 +9,7 @@
 - När ett mål är utanför räckvidd visar huvudknappen i striden om du ska flytta eller använda Dash i stället för att bara blockera Anfall.
 - Vanlig förflyttning kan göras före Anfall under samma tur.
 - Den första närstridsbanditen i öppningsstriden börjar nu inom 5 ft så att Anfall kan användas direkt när det är din tur.
+- Stridsvyn visar nu faktiskt avstånd till valt mål separat från kvarvarande Movement.
 
 ## Tekniskt
 
