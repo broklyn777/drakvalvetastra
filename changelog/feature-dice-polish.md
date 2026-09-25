@@ -5,9 +5,9 @@
 
 ## För spelaren
 
-- Ability Check använder nu en riktig SVG-ritad d20 med tydliga facetter.
+- Ability Check och Attack Roll använder nu samma SVG-ritade d20 med tydliga facetter.
 - Den kompakta layouten visar tärningen centralt och resultatet direkt under.
-- Resultatraden använder **Träff! / Miss!** och visar det riktiga slaget, ability-modifiern och totalen, till exempel `12 + 2 = 14 (Krav: DC 10)`.
+- Resultatraden använder **Träff! / Miss!**. Ability Checks visar riktig ability-modifier och total, till exempel `12 + 2 = 14 (Krav: DC 10)`, och Attack Rolls visar riktig Attack Bonus mot AC.
 - Själva rullanimationen följer nu Gemini-prototypen: tärningen står still medan siffrorna flimrar snabbt, och det riktiga slutvärdet kommer alltid från motorn.
 - Natural 20 får en diskret guldburst utan att ändra reglerna.
 
