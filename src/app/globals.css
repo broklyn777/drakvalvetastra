@@ -1256,6 +1256,58 @@ summary::-webkit-details-marker {
   margin-left: auto;
   color: #aaa57c;
 }
+.choice-check {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 10px;
+  color: #e0c993;
+  border: 1px solid #5a5a3a;
+  border-radius: 3px;
+  padding: 3px 7px;
+  white-space: nowrap;
+}
+.choice-check + svg {
+  margin-left: 0;
+}
+.check-result {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #576345;
+  background: #273620;
+  color: #c1cf9e;
+  font-size: 11px;
+  padding: 14px;
+  margin-top: 20px;
+  border-radius: 5px;
+}
+.check-result.failure {
+  border-color: #6b4a3a;
+  background: #34241e;
+  color: #e0b9a4;
+}
+.check-result span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.check-result strong {
+  font-weight: 400;
+}
+.check-result small {
+  opacity: 0.8;
+}
+@media (max-width: 600px) {
+  .choice {
+    flex-wrap: wrap;
+  }
+  .choice-check {
+    margin-left: 38px;
+  }
+}
 .scene-footer {
   text-align: center;
   font-family: var(--serif);
@@ -2644,10 +2696,26 @@ summary::-webkit-details-marker {
   margin-bottom: 7px;
   color: #e3d3a3;
 }
+.ability-check-panel {
+  background:
+    radial-gradient(circle at 50% 42%, #273328 0, #19231c 34%, #121a15 72%),
+    #162019;
+}
+.ability-check-panel.has-result {
+  border-color: #73664a;
+}
 .dice-context {
   color: var(--muted);
   font-size: 11px;
   margin-bottom: 24px;
+}
+.dice-target {
+  color: #d1d6bc;
+  font-size: 13px;
+  margin: -12px 0 20px;
+}
+.dice-target strong {
+  color: var(--gold);
 }
 .dice-stage {
   min-height: 150px;
@@ -2674,7 +2742,35 @@ summary::-webkit-details-marker {
   user-select: none;
 }
 .die.d20 {
+  position: relative;
+  overflow: hidden;
   clip-path: polygon(50% 0%, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
+  background:
+    linear-gradient(145deg, #313629 0 36%, #262a20 36% 64%, #1e231b 64% 100%);
+}
+.die.d20::before,
+.die.d20::after {
+  content: '';
+  position: absolute;
+  inset: 8%;
+  pointer-events: none;
+  opacity: 0.72;
+}
+.die.d20::before {
+  clip-path: polygon(50% 0, 100% 28%, 73% 53%, 100% 72%, 50% 100%, 0 72%, 27% 53%, 0 28%);
+  background:
+    linear-gradient(30deg, transparent 48%, #7f795c55 49% 51%, transparent 52%),
+    linear-gradient(150deg, transparent 48%, #7f795c44 49% 51%, transparent 52%);
+}
+.die.d20::after {
+  clip-path: polygon(50% 0, 73% 53%, 50% 100%, 27% 53%);
+  border-left: 1px solid #a6986a55;
+  border-right: 1px solid #a6986a55;
+}
+.die.d20 span,
+.die.d20 strong {
+  position: relative;
+  z-index: 1;
 }
 .damage-die {
   border-radius: 18px;
@@ -2695,7 +2791,7 @@ summary::-webkit-details-marker {
 .dice-stage.rolling .die {
   transform-origin: 50% 55%;
   will-change: transform, filter, box-shadow;
-  animation: dice-roll 0.9s cubic-bezier(0.18, 0.72, 0.22, 1) both;
+  animation: dice-roll 0.56s cubic-bezier(0.18, 0.72, 0.22, 1) both;
 }
 .dice-stage.rolling .damage-die {
   animation-name: damage-dice-roll;
@@ -2712,6 +2808,32 @@ summary::-webkit-details-marker {
   opacity: 1;
   border-color: var(--gold);
   transform: scale(1.08);
+}
+.dice-results.result-landed .die.chosen {
+  animation: dice-land 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.dice-results .die.success {
+  border-color: #7fa36d;
+  box-shadow:
+    inset 0 0 30px #182b1877,
+    0 0 0 1px #7fa36d33,
+    0 10px 28px #0006;
+}
+.dice-results .die.failure {
+  border-color: #a86d62;
+  box-shadow:
+    inset 0 0 30px #3a171777,
+    0 0 0 1px #a86d6233,
+    0 10px 28px #0006;
+}
+.dice-results .die.natural-20 {
+  box-shadow:
+    inset 0 0 34px #3b351d99,
+    0 0 24px #c7aa5655,
+    0 10px 30px #0006;
+}
+.dice-results .die.natural-1 {
+  filter: saturate(0.85) brightness(0.9);
 }
 .dice-equation {
   display: flex;
@@ -2743,6 +2865,77 @@ summary::-webkit-details-marker {
   width: 100%;
   min-height: 46px;
   justify-content: center;
+}
+.compact-dice-stage {
+  min-height: 126px;
+  margin: 2px 0 14px;
+}
+.gemini-die {
+  width: 70px;
+  height: 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  border: 2px solid #c5a059;
+  border-radius: 12px;
+  background: #1c2b20;
+  color: #c5a059;
+  font-family: var(--serif);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1;
+  gap: 3px;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+.gemini-die.success {
+  border-color: #4ade80;
+  color: #4ade80;
+}
+.gemini-die.failure {
+  border-color: #f87171;
+  color: #f87171;
+}
+.gemini-die.crit {
+  border-color: #e8c76a;
+  color: #e8c76a;
+}
+.gemini-die.rolling {
+  border-color: #c5a059;
+  color: #c5a059;
+}
+.gemini-die small {
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  opacity: 0.82;
+}
+.gemini-die strong {
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1;
+}
+.compact-verdict {
+  margin: 2px 0 18px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 650;
+}
+.compact-verdict strong {
+  font-family: var(--serif);
+  font-size: 19px;
+  font-weight: 500;
+}
+.compact-verdict span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
 }
 .damage-stage {
   flex-wrap: wrap;
@@ -2791,6 +2984,20 @@ summary::-webkit-details-marker {
       0 12px 35px #0005;
   }
 }
+@keyframes dice-land {
+  0% {
+    transform: translateY(-8px) scale(1.13) rotate(-2deg);
+    filter: brightness(1.15);
+  }
+  55% {
+    transform: translateY(3px) scale(1.04) rotate(1deg);
+  }
+  100% {
+    transform: translateY(0) scale(1.08) rotate(0);
+    filter: brightness(1);
+  }
+}
+
 @keyframes damage-dice-roll {
   0% {
     transform: translate3d(0, 16px, 0) rotateX(0deg) rotateY(0deg) rotateZ(3deg) scale(0.93);

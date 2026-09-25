@@ -225,6 +225,19 @@ export const gameStateSchema = z
               })
               .strict()
               .optional(),
+            check: z
+              .object({
+                actorId: id,
+                skill: z.string().max(100),
+                attribute: z.enum(['str', 'dex', 'con', 'int', 'wis', 'cha']),
+                roll: z.number().int().min(1).max(20),
+                modifier: z.number().int().min(-10).max(50),
+                total: z.number().int().min(-10).max(100),
+                dc: z.number().int().min(1).max(40),
+                success: z.boolean(),
+              })
+              .strict()
+              .optional(),
           })
           .strict(),
       )
