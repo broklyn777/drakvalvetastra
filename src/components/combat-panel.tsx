@@ -15,7 +15,12 @@ import {
   Target,
 } from 'lucide-react';
 import { abilities } from '../../packages/engine/src/characters';
-import { attackAvailability, canTarget, currentActor } from '../../packages/engine/src/combat';
+import {
+  attackAvailability,
+  attackCover,
+  canTarget,
+  currentActor,
+} from '../../packages/engine/src/combat';
 import type { Character, GameCommand, GameState, GameEvent } from '../../packages/engine/src/types';
 import { D20, DiceBox } from './d20';
 export function CombatPanel({
@@ -40,6 +45,7 @@ export function CombatPanel({
   } | null>(null);
   const rollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const c = game.combat!;
+  const currentCover = c.terrain?.find((feature) => feature.id === c.coveredBy?.[hero.id]);
   const active = currentActor(game);
   const yourTurn = !disabled && active?.id === hero.id && !c.victory && game.status === 'active';
   const target =
@@ -102,9 +108,7 @@ export function CombatPanel({
 
   function combatantName(id: string) {
     return (
-      game.players.find((p) => p.id === id)?.name ??
-      c.enemies.find((e) => e.id === id)?.name ??
-      id
+      game.players.find((p) => p.id === id)?.name ?? c.enemies.find((e) => e.id === id)?.name ?? id
     );
   }
 
@@ -193,7 +197,7 @@ export function CombatPanel({
                         {e.hp} / {e.maxHp} liv
                       </span>
                       <span>
-                        <Shield size={13} /> {e.ac}
+                        <Shield size={13} /> AC {e.ac}
                       </span>
                     </div>
                     <div className="meter red">
@@ -209,7 +213,9 @@ export function CombatPanel({
                         {!availability.ok ? ` · ${availability.reason}` : ''}
                       </small>
                     )}
-                    {!c.usesDistance && !reachable && e.hp > 0 && <small>Skyddad av framlinjen</small>}
+                    {!c.usesDistance && !reachable && e.hp > 0 && (
+                      <small>{availability.reason}</small>
+                    )}
                   </div>
                   {e.intent && (
                     <p className="intent">
@@ -220,6 +226,32 @@ export function CombatPanel({
               );
             })}
           </div>
+          {!!c.terrain?.length && (
+            <div className="terrain-panel" aria-label="Skydd och siktlinjer">
+              <strong>Skydd på slagfältet</strong>
+              <small>
+                Förflyttning till skydd kostar rörelse men ingen handling. Totalt skydd skymmer
+                sikten åt båda håll.
+              </small>
+              <div className="terrain-spots">
+                {c.terrain.map((feature) => (
+                  <button
+                    className="button subtle"
+                    key={feature.id}
+                    disabled={
+                      !yourTurn ||
+                      (c.movementRemaining[hero.id] ?? 0) <= 0 ||
+                      c.coveredBy?.[hero.id] === feature.id
+                    }
+                    onClick={() => act({ type: 'move', target: feature.id })}
+                  >
+                    <Shield size={15} /> {feature.name} · {feature.distance} ft ·{' '}
+                    {feature.cover === 'half' ? 'Half Cover +2 AC' : 'Totalt skydd'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="turn-label">
             <span className={`status-dot ${yourTurn ? 'live' : ''}`} />
             {yourTurn
@@ -227,7 +259,7 @@ export function CombatPanel({
               : `${active?.name ?? 'Sällskapet'} har turen.`}
             <small>
               {c.usesDistance
-                ? `Position: ${c.distances[hero.id] ?? 0} ft · Movement: ${c.movementRemaining[hero.id] ?? 0} ft`
+                ? `Position: ${c.distances[hero.id] ?? 0} ft · Rörelse: ${c.movementRemaining[hero.id] ?? 0} ft${currentCover ? ` · Skydd: ${currentCover.name}` : ''}`
                 : `Du står i ${c.positions[hero.id] === 'fram' ? 'framlinjen' : 'baklinjen'}.`}
             </small>
           </div>
@@ -241,6 +273,15 @@ export function CombatPanel({
               <Swords size={17} />
               Anfall
             </button>
+            {c.usesDistance && target && !attackAvailability(game, hero, target).ok && (
+              <button
+                className="button"
+                disabled={!yourTurn || (c.movementRemaining[hero.id] ?? 0) <= 0}
+                onClick={() => act({ type: 'move', target: target.id })}
+              >
+                <MoveHorizontal size={17} /> Flytta närmare
+              </button>
+            )}
             <button
               className="button"
               title={ability.description}
@@ -250,8 +291,9 @@ export function CombatPanel({
                 (hero.className === 'Kleriker'
                   ? game.players.find((p) => p.id === ally)!.hp >=
                     game.players.find((p) => p.id === ally)!.maxHp
-                  : hero.className !== 'Magiker' &&
-                    (!target || !attackAvailability(game, hero, target).ok))
+                  : hero.className === 'Magiker'
+                    ? !c.enemies.some((e) => e.hp > 0 && !attackCover(game, hero.id, e.id).blocked)
+                    : !target || !attackAvailability(game, hero, target).ok)
               }
               onClick={() =>
                 act({ type: 'ability', target: hero.className === 'Kleriker' ? ally : target?.id })
@@ -266,14 +308,15 @@ export function CombatPanel({
             </button>
           </div>
           <p className="ability-description">
-            {ability.description} Varje handling använder din tur.
+            {ability.description} Anfall och förmågor använder din handling; vanlig förflyttning gör
+            det inte.
           </p>
           <details className="tactics">
             <summary>Fler handlingar & föremål</summary>
             <div className="tactics-grid">
               <button
                 className="button subtle"
-                disabled={!yourTurn || (c.usesDistance && (c.movementRemaining[hero.id] ?? 0) <= 0)}
+                disabled={!yourTurn || (c.movementRemaining[hero.id] ?? 0) <= 0}
                 onClick={() => act({ type: 'move', target: target?.id })}
               >
                 <MoveHorizontal size={15} />
@@ -341,7 +384,6 @@ export function CombatPanel({
                     Hjälp
                   </button>
                 )}
-
               </div>
             )}
           </details>
@@ -350,13 +392,21 @@ export function CombatPanel({
       {diceRoll && diceTarget && (
         <div className="dice-overlay" role="dialog" aria-modal="true" aria-label="Tärningsslag">
           <div className="dice-panel">
-            <p className="eyebrow">ATTACK ROLL</p>
-            <h2>{hero.name} mot {diceTarget.name}</h2>
+            <p className="eyebrow">ANFALLSSLAG</p>
+            <h2>
+              {hero.name} mot {diceTarget.name}
+            </h2>
             <p className="dice-context">
-              {hero.weapon} · Attack Bonus +{hero.attackBonus} · AC {diceTarget.ac}
+              {hero.weapon} · Anfallsbonus +{hero.attackBonus} · AC{' '}
+              {diceTarget.ac +
+                (hero.className === 'Magiker'
+                  ? attackCover(game, hero.id, diceTarget.id).bonus
+                  : 0)}
             </p>
 
-            {(diceRoll.phase === 'ready' || diceRoll.phase === 'rolling' || diceRoll.phase === 'waiting') && (
+            {(diceRoll.phase === 'ready' ||
+              diceRoll.phase === 'rolling' ||
+              diceRoll.phase === 'waiting') && (
               <>
                 <div className="dice-stage compact-dice-stage">
                   <D20 rolling={diceRoll.phase === 'rolling' || diceRoll.phase === 'waiting'} />
@@ -366,99 +416,106 @@ export function CombatPanel({
                   disabled={diceRoll.phase !== 'ready'}
                   onClick={rollAttack}
                 >
-                  {diceRoll.phase === 'ready' ? 'Slå D20' : 'Tärningen rullar…'}
+                  {diceRoll.phase === 'ready' ? 'Slå T20' : 'Tärningen rullar…'}
                 </button>
               </>
             )}
 
-            {diceRoll.result && ['attack-result', 'damage-rolling', 'done'].includes(diceRoll.phase) && (
-              <>
-                <div className="dice-stage compact-dice-stage dice-results">
-                  {diceRoll.result.attack.rolls.map((value, index) => {
-                    const chosen = value === diceRoll.result!.attack.chosen;
-                    return (
-                      <D20
-                        key={`${value}-${index}`}
-                        rolling={false}
-                        value={value}
-                        outcome={
-                          chosen
-                            ? diceRoll.result!.attack.critical
-                              ? 'crit'
-                              : diceRoll.result!.attack.hit
-                                ? 'success'
-                                : 'failure'
-                            : undefined
-                        }
-                      />
-                    );
-                  })}
-                </div>
-                <p className={`dice-verdict compact-verdict ${diceRoll.result.attack.hit ? 'hit' : 'miss'}`}>
-                  {diceRoll.result.attack.critical
-                    ? '✨ Critical Hit!'
-                    : diceRoll.result.attack.hit
-                      ? '✨ Träff!'
-                      : '❌ Miss!'}{' '}
-                  <strong>
-                    {diceRoll.result.attack.chosen} + {diceRoll.result.attack.bonus} = {diceRoll.result.attack.total}
-                  </strong>{' '}
-                  <span>(Krav: AC {diceRoll.result.attack.ac})</span>
-                </p>
-
-                {!diceRoll.result.attack.hit && (
-                  <button className="button dice-roll-button" onClick={() => setDiceRoll(null)}>
-                    Stäng
-                  </button>
-                )}
-
-                {diceRoll.result.attack.hit && diceRoll.result.damage && diceRoll.phase === 'attack-result' && (
-                  <button className="button primary dice-roll-button" onClick={revealDamage}>
-                    Slå {diceRoll.result.damage.rolls.length > 1 ? `${diceRoll.result.damage.rolls.length}×D${diceRoll.result.damage.sides}` : `D${diceRoll.result.damage.sides}`} skada
-                  </button>
-                )}
-
-                {diceRoll.phase === 'damage-rolling' && diceRoll.result.damage && (
-                  <div className="dice-stage compact-dice-stage damage-stage">
-                    {diceRoll.result.damage.rolls.map((_, index) => (
-                      <DiceBox
-                        key={index}
-                        rolling
-                        sides={diceRoll.result!.damage!.sides}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {diceRoll.phase === 'done' && diceRoll.result.damage && (
-                  <>
-                    <div className="dice-stage compact-dice-stage dice-results damage-stage">
-                      {diceRoll.result.damage.rolls.map((value, index) => (
-                        <DiceBox
+            {diceRoll.result &&
+              ['attack-result', 'damage-rolling', 'done'].includes(diceRoll.phase) && (
+                <>
+                  <div className="dice-stage compact-dice-stage dice-results">
+                    {diceRoll.result.attack.rolls.map((value, index) => {
+                      const chosen = value === diceRoll.result!.attack.chosen;
+                      return (
+                        <D20
                           key={`${value}-${index}`}
                           rolling={false}
                           value={value}
-                          sides={diceRoll.result!.damage!.sides}
+                          outcome={
+                            chosen
+                              ? diceRoll.result!.attack.critical
+                                ? 'crit'
+                                : diceRoll.result!.attack.hit
+                                  ? 'success'
+                                  : 'failure'
+                              : undefined
+                          }
                         />
+                      );
+                    })}
+                  </div>
+                  <p
+                    className={`dice-verdict compact-verdict ${diceRoll.result.attack.hit ? 'hit' : 'miss'}`}
+                  >
+                    {diceRoll.result.attack.critical
+                      ? '✨ Kritisk träff!'
+                      : diceRoll.result.attack.hit
+                        ? '✨ Träff!'
+                        : '❌ Miss!'}{' '}
+                    <strong>
+                      T20 {diceRoll.result.attack.chosen}{' '}
+                      {diceRoll.result.attack.bonus >= 0 ? '+' : '−'}{' '}
+                      {Math.abs(diceRoll.result.attack.bonus)} = {diceRoll.result.attack.total}
+                    </strong>{' '}
+                    <span>(mot AC {diceRoll.result.attack.ac})</span>
+                  </p>
+
+                  {!diceRoll.result.attack.hit && (
+                    <button className="button dice-roll-button" onClick={() => setDiceRoll(null)}>
+                      Stäng
+                    </button>
+                  )}
+
+                  {diceRoll.result.attack.hit &&
+                    diceRoll.result.damage &&
+                    diceRoll.phase === 'attack-result' && (
+                      <button className="button primary dice-roll-button" onClick={revealDamage}>
+                        Slå{' '}
+                        {diceRoll.result.damage.rolls.length > 1
+                          ? `${diceRoll.result.damage.rolls.length}×T${diceRoll.result.damage.sides}`
+                          : `T${diceRoll.result.damage.sides}`}{' '}
+                        skada
+                      </button>
+                    )}
+
+                  {diceRoll.phase === 'damage-rolling' && diceRoll.result.damage && (
+                    <div className="dice-stage compact-dice-stage damage-stage">
+                      {diceRoll.result.damage.rolls.map((_, index) => (
+                        <DiceBox key={index} rolling sides={diceRoll.result!.damage!.sides} />
                       ))}
                     </div>
-                    <div className="dice-equation">
-                      <strong>
-                        {diceRoll.result.damage.rolls.join(' + ')}
-                        {diceRoll.result.damage.bonus
-                          ? ` + ${diceRoll.result.damage.bonus}`
-                          : ''}{' '}
-                        = {diceRoll.result.damage.total}
-                      </strong>
-                      <span>{hero.damageType}skada</span>
-                    </div>
-                    <button className="button dice-roll-button" onClick={() => setDiceRoll(null)}>
-                      Fortsätt
-                    </button>
-                  </>
-                )}
-              </>
-            )}
+                  )}
+
+                  {diceRoll.phase === 'done' && diceRoll.result.damage && (
+                    <>
+                      <div className="dice-stage compact-dice-stage dice-results damage-stage">
+                        {diceRoll.result.damage.rolls.map((value, index) => (
+                          <DiceBox
+                            key={`${value}-${index}`}
+                            rolling={false}
+                            value={value}
+                            sides={diceRoll.result!.damage!.sides}
+                          />
+                        ))}
+                      </div>
+                      <div className="dice-equation">
+                        <strong>
+                          {diceRoll.result.damage.rolls.join(' + ')}
+                          {diceRoll.result.damage.bonus
+                            ? ` + ${diceRoll.result.damage.bonus}`
+                            : ''}{' '}
+                          = {diceRoll.result.damage.total}
+                        </strong>
+                        <span>{hero.damageType}skada</span>
+                      </div>
+                      <button className="button dice-roll-button" onClick={() => setDiceRoll(null)}>
+                        Fortsätt
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
           </div>
         </div>
       )}
@@ -483,17 +540,18 @@ export function CombatPanel({
             const dice = event.dice;
             const attack = dice.attack;
             const incoming = game.players.some((p) => p.id === dice.targetId);
-            const outcome = attack.critical ? 'CRITICAL HIT' : attack.hit ? 'TRÄFF' : 'MISS';
+            const outcome = attack.critical ? 'KRITISK TRÄFF' : attack.hit ? 'TRÄFF' : 'MISS';
             const modeLabel =
               attack.mode === 'advantage'
-                ? 'Advantage'
+                ? 'Fördel'
                 : attack.mode === 'disadvantage'
-                  ? 'Disadvantage'
+                  ? 'Nackdel'
                   : null;
             const baseAc = attack.ac - (dice.coverBonus ?? 0);
             const damageNotation = dice.damage
-              ? `${dice.damage.rolls.length}d${dice.damage.sides}${dice.damage.bonus >= 0 ? ' + ' : ' - '}${Math.abs(dice.damage.bonus)}`
+              ? `${dice.damage.rolls.length}T${dice.damage.sides} (${dice.damage.rolls.join(' + ')})${dice.damage.bonus ? ` ${dice.damage.bonus >= 0 ? '+' : '−'} ${Math.abs(dice.damage.bonus)}` : ''}`
               : null;
+            const totalRolled = (dice.damage?.total ?? 0) + (dice.bonusDamage?.total ?? 0);
 
             return (
               <div
@@ -508,26 +566,37 @@ export function CombatPanel({
 
                 {!!dice.coverBonus && (
                   <span className="combat-roll-cover">
-                    Half Cover: AC {baseAc} → {attack.ac}
+                    Half Cover ({dice.coverSource ?? 'varelse'}): AC {baseAc} → {attack.ac}
                   </span>
                 )}
 
                 {attack.rolls.length > 1 && modeLabel && (
                   <span className="combat-roll-mode">
-                    D20: {attack.rolls.join(' / ')} → använder {attack.chosen} · {modeLabel}
+                    T20: {attack.rolls.join(' / ')} → använder {attack.chosen} · {modeLabel}
                   </span>
                 )}
 
                 <span className="combat-roll-attack">
-                  {attack.rolls.length === 1 ? `D20 ${attack.chosen}` : attack.chosen} + {attack.bonus} ={' '}
+                  T20 {attack.chosen} {attack.bonus >= 0 ? '+' : '−'} {Math.abs(attack.bonus)} ={' '}
                   {attack.total} vs AC {attack.ac} → <b>{outcome}</b>
                 </span>
 
                 {dice.damage && damageNotation && (
                   <span className="combat-roll-damage">
-                    {damageNotation} = <b>{dice.damage.total} skada</b>
+                    {damageNotation}
+                    {dice.bonusDamage &&
+                      ` + ${dice.bonusDamage.rolls.length}T${dice.bonusDamage.sides} (${dice.bonusDamage.rolls.join(' + ')})`}
+                    {' = '}
+                    <b>{totalRolled} skada</b>
                   </span>
                 )}
+                {dice.damage &&
+                  dice.appliedDamage !== undefined &&
+                  dice.appliedDamage !== totalRolled && (
+                    <span className="combat-roll-damage">
+                      Efter sårbarhet eller motstånd: <b>{dice.appliedDamage} skada</b>
+                    </span>
+                  )}
               </div>
             );
           })}

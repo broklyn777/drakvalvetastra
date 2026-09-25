@@ -15,6 +15,14 @@ const dice = z.tuple([
 ]);
 const damage = z.enum(['Hugg', 'Stick', 'Kross', 'Eld', 'Riv']);
 const position = z.enum(['fram', 'bak']);
+const terrainFeatureSchema = z
+  .object({
+    id,
+    name: z.string().min(1).max(100),
+    distance: z.number().int().min(-10000).max(10000),
+    cover: z.enum(['half', 'total']),
+  })
+  .strict();
 export const selectionSchema = z
   .object({
     name: z.string().trim().min(1).max(24),
@@ -61,7 +69,10 @@ export const characterSchema = z
     bossWeakened: z.boolean(),
     rested: z.boolean(),
     speed: z.number().int().min(0).max(500).default(30),
-    fightingStyles: z.array(z.enum(['protection'])).max(10).default([]),
+    fightingStyles: z
+      .array(z.enum(['protection']))
+      .max(10)
+      .default([]),
   })
   .strict()
   .refine((p) => p.hp <= p.maxHp, 'Liv överstiger maxliv.');
@@ -111,6 +122,8 @@ const recordBool = z.record(id, z.boolean());
 const combatSchema = z
   .object({
     enemies: z.array(enemySchema).min(1).max(30),
+    terrain: z.array(terrainFeatureSchema).max(20).default([]),
+    coveredBy: z.record(id, id).default({}),
     usesDistance: z.boolean().default(false),
     initiative: z
       .array(
@@ -198,6 +211,7 @@ export const gameStateSchema = z
                 attackName: z.string().max(100).optional(),
                 distance: z.number().int().min(0).max(10000).optional(),
                 coverBonus: z.number().int().min(0).max(10).optional(),
+                coverSource: z.string().max(100).optional(),
                 damageType: damage.optional(),
                 attack: z
                   .object({
@@ -222,6 +236,15 @@ export const gameStateSchema = z
                   })
                   .strict()
                   .optional(),
+                bonusDamage: z
+                  .object({
+                    sides: z.number().int().min(2).max(100),
+                    rolls: z.array(z.number().int().min(1).max(40)).min(1).max(40),
+                    total: natural,
+                  })
+                  .strict()
+                  .optional(),
+                appliedDamage: natural.optional(),
               })
               .strict()
               .optional(),
@@ -266,6 +289,11 @@ export const gameStateSchema = z
     for (const e of c.enemies)
       if (e.hp > e.maxHp || (e.intent && !s.players.some((p) => p.id === e.intent)))
         fail('Ogiltig fiende.');
+    if (new Set(c.terrain.map((feature) => feature.id)).size !== c.terrain.length)
+      fail('Duplicerad terräng.');
+    for (const [actorId, terrainId] of Object.entries(c.coveredBy))
+      if (!ids.includes(actorId) || !c.terrain.some((feature) => feature.id === terrainId))
+        fail('Ogiltigt skydd.');
     if (c.victory && c.enemies.some((e) => e.hp > 0)) fail('Striden är inte vunnen.');
   });
 export const commandSchema = z.discriminatedUnion('type', [

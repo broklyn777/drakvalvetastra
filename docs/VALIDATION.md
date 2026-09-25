@@ -2,14 +2,14 @@
 
 Verifierat i denna workspace med Node.js 24.19.0.
 
-| Kontroll | Resultat |
-| --- | --- |
-| `npm run typecheck` | Godkänd, strikt TypeScript |
-| `npm test` | 24 av 24 tester godkända |
-| `npm run build` | Next.js production build och kompilerad spelserver godkända |
-| `npm run test:e2e` | 4 av 4 Chromium-tester godkända mot production build |
-| `npm run dev` | Båda tjänster startade, healthcheck och spelvyn svarade korrekt |
-| Visuell granskning | Datorvy och mobilvy granskade; ingen horisontell överströmning vid 390 px |
+| Kontroll            | Resultat                                                                  |
+| ------------------- | ------------------------------------------------------------------------- |
+| `npm run typecheck` | Godkänd, strikt TypeScript                                                |
+| `npm test`          | 42 av 42 tester godkända                                                  |
+| `npm run build`     | Next.js production build och kompilerad spelserver godkända               |
+| `npm run test:e2e`  | 4 av 4 Chromium-tester godkända mot production build                      |
+| `npm run dev`       | Båda tjänster startade, healthcheck och spelvyn svarade korrekt           |
+| Visuell granskning  | Datorvy och mobilvy granskade; ingen horisontell överströmning vid 390 px |
 
 Webbläsartesterna verifierar:
 
@@ -18,7 +18,7 @@ Webbläsartesterna verifierar:
 3. Två separata spelarsessioner: lobby, skapande, delade scenval, turbehörighet, synkroniserad stridslogg, återanslutning efter omladdning och avvisning av obehörig tredje användare.
 4. Kontoregistrering, inloggning från en annan webbläsarkontext och återställning av kontosparning.
 
-Enhetstesterna täcker bland annat alla 42 sceners länkar, 48 karaktärskombinationer, deterministiska strider, målbegränsningar, motstånd/sårbarhet, klassförmågor, bossfas, gruppskalning, nivågränser, sparvalidering, idempotenta kommandon, revisionskonflikter och lösenordshashning.
+Enhetstesterna täcker bland annat alla 44 sceners länkar, 48 karaktärskombinationer, deterministiska strider, avstånd, skydd, siktlinjer, officiella monsterprofiler, motstånd/sårbarhet, klassförmågor, gruppskalning, nivågränser, sparvalidering, idempotenta kommandon, revisionskonflikter och lösenordshashning.
 
 Skärmbilder från testerna finns i `artifacts/home-desktop.png`, `artifacts/combat-desktop.png` och `artifacts/game-mobile.png`.
 

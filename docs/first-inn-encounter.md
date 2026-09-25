@@ -1,17 +1,19 @@
 # Första striden vid Tre Lyktor
 
-Alla avstånd mäts från spelarnas startposition (0 ft). Detta är en ändring av första encountert; stridsmotorns regler är oförändrade.
+Alla avstånd mäts från spelarnas startposition (0 ft). Stridsmotorns avståndsregler gäller för detta encounter.
 
 Båda fienderna använder [Bandit (2014 Legacy) från D&D Beyond](https://www.dndbeyond.com/monsters/16798-bandit): AC 12, 11 HP, speed 30 ft och DEX 12. De har Scimitar (+3, 1T6+1 hugg, reach 5 ft) och Light Crossbow (+3, 1T8+1 stick, range 80/320 ft). Två banditer ger totalt 50 XP som encounterts grundbelöning. Namntillägget ”armborstskytt” visar vilken av de två som inleder med avståndsvapen; det är samma fiendetyp.
 
-| Väg in                             | Svärdsbandit | Armborstskytt | Effekt                                                                                                 |
-| ---------------------------------- | -----------: | ------------: | ------------------------------------------------------------------------------------------------------ |
-| Direkt till dörren                 |         5 ft |         50 ft | Banditen hotar i närstrid; skytten kan skjuta från gården.                                             |
-| Via gamle mannen och dörren        |         5 ft |         50 ft | Samma formation; sigillet är berättelsens belöning.                                                    |
-| Via fönstret, varna vid dörren     |         5 ft |         50 ft | Samma formation; varningen är en berättelseflagga och ger ingen separat stridsbonus.                   |
-| Via fönstret, flankera genom köket |         5 ft |          5 ft | Båda kan angripas direkt. Skytten står i framlinjen och tar fram kortsvärdet om spelaren är inom 5 ft. |
+| Väg in                             | Svärdsbandit | Armborstskytt | Effekt                                                                                        |
+| ---------------------------------- | -----------: | ------------: | --------------------------------------------------------------------------------------------- |
+| Direkt till dörren                 |         5 ft |         50 ft | Banditen hotar i närstrid; skytten kan skjuta från gården.                                    |
+| Via gamle mannen och dörren        |         5 ft |         50 ft | Samma formation; sigillet är berättelsens belöning.                                           |
+| Via fönstret, varna vid dörren     |         5 ft |         50 ft | Samma formation; varningen är en berättelseflagga och ger ingen separat stridsbonus.          |
+| Via fönstret, flankera genom köket |         5 ft |          5 ft | Båda kan angripas direkt. Skytten står i framlinjen och drar sabeln om spelaren är inom 5 ft. |
 
-Texten beskriver nu armborst, vilket fienden faktiskt bär. Skytten har kvar `preferredAttack: 'ranged'` i båda varianterna och kan skjuta om avståndet åter öppnas; stridsmotorn väljer dess `Scimitar` vid högst 5 ft. `surprise: 'enemies'` behålls vid flankeringen. Här betyder surprise nackdel på fiendernas initiativslag, inte att de automatiskt förlorar sin första tur. De har oförändrade HP, AC, attackvärden, vapenprofiler och XP; nära startläge begränsar skyttens första anfall till det svagare kortsvärdet.
+Texten beskriver nu armborst och sabel, vilka fienderna faktiskt bär. Skytten har kvar `preferredAttack: 'ranged'` i båda varianterna och kan skjuta om avståndet åter öppnas; stridsmotorn väljer dess `Scimitar` vid högst 5 ft. `surprise: 'enemies'` behålls vid flankeringen. Här betyder surprise nackdel på fiendernas initiativslag, inte att de automatiskt förlorar sin första tur. De har oförändrade HP, AC, attackvärden, vapenprofiler och XP; nära startläge begränsar skyttens första anfall till den svagare sabeln.
+
+Gården har nu två valbara skyddsplatser: **Eken vid 15 ft** ger Half Cover (+2 AC mot avståndsanfall), och **Vedboden vid 30 ft** ger totalt skydd som bryter siktlinjen åt båda håll på längre avstånd. Att förflytta sig till ett skydd använder hastighet men ingen handling. Att röra sig därifrån tar bort skyddet. En levande varelse mellan skytt och mål kan också ge Half Cover; skydd räknas inte ihop. Bågskytten försöker närma sig om vedboden bryter sikten. Se [taktiska stridsregler](tactical-combat.md) för begränsningar i avståndsmodellen.
 
 Verifiering: `tests/engine.test.ts` går igenom samtliga fyra vägar, testar vilka mål som går att anfalla i första rundan och kontrollerar skyttens faktiska vapen och avstånd vid första anfallet. Kör `npm test` och `npm run typecheck`.
 

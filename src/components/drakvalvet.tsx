@@ -397,13 +397,15 @@ export default function Drakvalvet({
             <h3>Strid</h3>
             <p>
               Initiativ avgör turordningen. Välj en fiende och anfall, försvara dig eller använd din
-              klassförmåga. Varje handling kostar en tur. Klassförmågor återställs inför nästa
-              strid.
+              klassförmåga. Anfall och förmågor använder din handling; förflyttning inom din
+              hastighet kan göras före den. Klassförmågor återställs inför nästa strid.
             </p>
             <p>
-              Framlinjen skyddar baklinjen mot närstrid. Magikerns attacker når hela fältet. Bryt
-              igenom med STY/SMI mot svårighet 12. Försvara ger fiendens anfall nackdel; Hjälp ger
-              en kamrats nästa attack fördel.
+              Utan mätta avstånd skyddar framlinjen baklinjen mot närstrid. I strider med avstånd
+              avgör räckvidd och fri sikt vad som kan anfallas. Varelser mellan skytt och mål kan ge
+              Half Cover (+2 AC); du kan också flytta till terrängskydd. Totalt skydd blockerar
+              avståndsanfall åt båda håll. Försvara ger fiendens anfall nackdel; Hjälp ger en
+              kamrats nästa attack fördel.
             </p>
             <h3>Sällskap</h3>
             <p>

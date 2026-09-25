@@ -15,6 +15,11 @@ async function createHero(page: Page, name = 'Astrid') {
 }
 async function choose(page: Page, label: string) {
   await page.getByRole('button', { name: label, exact: false }).click();
+  const check = page.getByRole('dialog', { name: 'Ability Check' });
+  if (await check.isVisible()) {
+    await check.getByRole('button', { name: 'Slå d20' }).click();
+    await check.getByRole('button', { name: 'Fortsätt', exact: true }).click();
+  }
 }
 async function winCombat(page: Page) {
   for (let i = 0; i < 100; i++) {
@@ -27,7 +32,7 @@ async function winCombat(page: Page) {
     const [current, max] = hp.split('/').map(Number);
     if (current < max * 0.6) {
       const details = page.locator('details.tactics');
-      if (!(await details.getAttribute('open'))) await details.locator('summary').click();
+      if ((await details.getAttribute('open')) === null) await details.locator('summary').click();
       const potion = page.getByRole('button', { name: /Läkebrygd \(/ });
       if (await potion.isEnabled()) {
         await potion.click();
@@ -40,6 +45,17 @@ async function winCombat(page: Page) {
         ? special
         : page.getByRole('button', { name: 'Anfall', exact: true })
     ).click();
+    const dice = page.getByRole('dialog', { name: 'Tärningsslag' });
+    if (await dice.isVisible()) {
+      await dice.getByRole('button', { name: 'Slå T20' }).click();
+      const damage = dice.getByRole('button', { name: /^Slå .* skada$/ });
+      const close = dice.getByRole('button', { name: 'Stäng' });
+      await expect(damage.or(close)).toBeVisible();
+      if (await damage.isVisible()) {
+        await damage.click();
+        await dice.getByRole('button', { name: 'Fortsätt', exact: true }).click();
+      } else await close.click();
+    }
   }
   throw new Error('Combat exceeded 100 player turns.');
 }

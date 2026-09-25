@@ -7,27 +7,50 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
   const state = session.players.find((p) => p.id === actor) ?? session.players[0];
   const world = session.world;
   const partyHas = (prop: keyof Character) => session.players.some((p) => Boolean(p[prop]));
+  // D&D Beyond Basic Rules (2014): Guard (CR 1/8) and Cultist (CR 1/8).
   const towerGuards = (): EnemyDefinition[] => [
     {
-      name: 'Tornvakt',
-      hp: 10,
-      maxHp: 10,
-      ac: 12,
-      attack: 2,
-      dmg: [1, 4, 0],
-      weapon: 'Kortsvärd',
-      damageType: 'Hugg',
+      name: 'Guard',
+      hp: 11,
+      maxHp: 11,
+      ac: 16,
+      attack: 3,
+      dmg: [1, 6, 1],
+      weapon: 'Spear',
+      damageType: 'Stick',
+      dex: 12,
+      speed: 30,
     },
     {
-      name: 'Spjutvakt',
-      hp: 8,
-      maxHp: 8,
-      ac: 10,
+      name: 'Cultist',
+      hp: 9,
+      maxHp: 9,
+      ac: 12,
       attack: 3,
-      dmg: [1, 4, 1],
-      weapon: 'Spjut',
-      damageType: 'Stick',
+      dmg: [1, 6, 1],
+      weapon: 'Scimitar',
+      damageType: 'Hugg',
+      dex: 12,
+      speed: 30,
     },
+  ];
+  // D&D Beyond Basic Rules (2014): Skeleton (CR 1/4).
+  const cryptSkeleton = (): EnemyDefinition => ({
+    name: 'Skeleton',
+    hp: 13,
+    maxHp: 13,
+    ac: 13,
+    attack: 4,
+    dmg: [1, 6, 2],
+    weapon: 'Shortsword',
+    damageType: 'Stick',
+    weaknesses: ['Kross'],
+    dex: 14,
+    speed: 30,
+  });
+  const innTerrain = [
+    { id: 'oak', name: 'Eken', distance: 15, cover: 'half' as const },
+    { id: 'woodshed', name: 'Vedboden', distance: 30, cover: 'total' as const },
   ];
   const scenes: Record<string, Scene> = {
     roadIntro: {
@@ -119,10 +142,11 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
       title: 'Blod på tröskeln',
       text: [
         'Dörren slås upp. En ung ryttare faller in över tröskeln med ena handen pressad mot sidan.',
-        'Bakom honom kommer två vägrövare ur regnet. Den främste höjer ett kortsvärd vid dörren. Armborstskytten stannar längre bort på gården och siktar.',
+        'Bakom honom kommer två vägrövare ur regnet. Den främste höjer sin sabel vid dörren. Armborstskytten stannar längre bort på gården och siktar. Eken och vedboden kan ge skydd om du hinner dit.',
         'Det finns ingen tid kvar för ord.',
       ],
       combat: {
+        terrain: innTerrain,
         enemies: [
           {
             name: 'Bandit',
@@ -203,12 +227,13 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
       title: 'Bakom vedboden',
       text: [
         'Du glider ut genom köksdörren. Regnet döljer dina steg. När rånarna når gårdsplanen är du redan bakom dem.',
-        'Armborstskytten hinner inte få upp armborstet innan du rusar fram. Han griper efter kortsvärdet.',
+        'Armborstskytten hinner inte få upp armborstet innan du rusar fram. Han griper efter sabeln. Eken och vedboden finns kvar som skydd om striden drar ut på tiden.',
       ],
       effect: () => {
         state.warned = true;
       },
       combat: {
+        terrain: innTerrain,
         enemies: [
           {
             name: 'Bandit',
@@ -342,7 +367,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
       title: 'Jägarnas läger',
       text: [
         'Ryggsäcken tillhör en av de saknade jägarna. Du hittar ett rep, torra fnösken och några medicinska örter.',
-        'Under en filt ligger också ett sönderbrutet armborst. Något stort har trampat rakt genom lägret.',
+        'Under en filt ligger också ett sönderbrutet armborst. Någon har gått rakt genom lägret och slagit sönder det.',
       ],
       effect: () => {
         state.rope = true;
@@ -368,7 +393,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
       title: 'Det fallna vakttornet',
       text: [
         'Tornet står på en bergsrygg som ett avbrutet finger mot himlen. Murarna är täckta av mossa och den övre våningen har rasat in.',
-        'Två vakter håller till vid huvudingången. På baksidan syns en spricka i muren, högt över marken.',
+        'En vakt och en kultist håller till vid huvudingången. På baksidan syns en spricka i muren, högt över marken.',
         'Någonstans under dina fötter hörs ett dovt, regelbundet slag.',
       ],
       choices: () => {
@@ -391,19 +416,19 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
     towerFight: {
       title: 'Vakten vid tornet',
       text: [
-        'Vakterna ser dig och drar sina vapen. Den ene bär ringbrynja; den andre håller ett tungt spjut.',
+        'Vid porten drar en vakt i ringbrynjeskjorta fram sitt spjut. Bredvid honom höjer en kultist sin sabel.',
       ],
       combat: {
         enemies: towerGuards(),
         onWin: 'towerHall',
-        xp: 35,
+        xp: 50,
       },
     },
     towerSneak: {
       title: 'Genom muren',
       text: [
         'Repet håller. Du tar dig upp längs den våta stenen och pressar dig genom sprickan.',
-        'Du landar på ett mörkt loft ovanför vakterna och undviker striden helt. Där hittar du en kista som rövarna ännu inte brutit upp.',
+        'Du landar på ett mörkt loft ovanför vakten och kultisten och undviker striden helt. Där hittar du en kista som rövarna ännu inte brutit upp.',
         'I den ligger ett välbalanserat gammalt svärd.',
       ],
       effect: () => {
@@ -416,7 +441,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
     towerBluff: {
       title: 'Drakens tecken',
       text: [
-        'När vakterna ser sigillet förändras deras ansikten. Den ene gör genast en gest mot bröstet.',
+        'När vakten och kultisten ser sigillet förändras deras ansikten. Kultisten gör genast en gest mot bröstet.',
         '“Vi trodde att budbäraren redan var nere.”',
         'Du säger ingenting. Efter några spänt tysta sekunder kliver de åt sidan.',
         'Bluffen håller — åtminstone tills någon ställer en fråga.',
@@ -428,7 +453,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
       text: () => [
         'Halvvägs upp lossnar en sten under din fot. Repet bränner i handflatorna när du glider ner längs muren och slår i marken.',
         `Du har ${state.hp}/${state.maxHp} HP.`,
-        'Ljudet ekar mot tornets väggar. Innan du hunnit resa dig står båda vakterna över dig med dragna vapen.',
+        'Ljudet ekar mot tornets väggar. Innan du hunnit resa dig står vakten och kultisten över dig med dragna vapen.',
       ],
       effect: () => {
         const before = state.hp;
@@ -443,21 +468,21 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
       combat: {
         enemies: towerGuards(),
         onWin: 'towerHall',
-        xp: 35,
+        xp: 50,
         surprise: 'players',
       },
     },
     towerBluffFail: {
       title: 'Fel svar',
       text: [
-        'Vakterna ser sigillet och tvekar. Sedan lutar sig den ene fram.',
+        'Vakten och kultisten ser sigillet och tvekar. Sedan lutar sig kultisten fram.',
         '“Vad är lösenordet för i kväll?”',
         'Du svarar för snabbt. Hans blick hårdnar, och spjutet sänks mot ditt bröst.',
       ],
       combat: {
         enemies: towerGuards(),
         onWin: 'towerHall',
-        xp: 35,
+        xp: 50,
       },
     },
     towerHall: {
@@ -473,62 +498,38 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
       ],
     },
     cryptBeast: {
-      title: 'Den blinda väktaren',
+      title: 'Skelettet i kryptan',
       text: [
         'Du går långsamt och håller andan. Då rör sig något mellan pelarna.',
-        'Varelsen är blek, nästan utan ögon, med långa armar som släpar mot stenen. Den vrider huvudet mot minsta ljud.',
+        'Ett skelett i rostiga rustningsrester griper ett kortsvärd. Det vrider skallen mot minsta ljud.',
         partyHas('bossWeakened')
-          ? 'Jägarens varning räddar dig: du sparkar undan en lös sten åt motsatt håll. Varelsen kastar sig efter ljudet och blottar sidan.'
-          : 'Den hör din stövel skrapa mot stenen och rusar mot dig.',
+          ? 'Jägarens varning räddar dig: du sparkar undan en lös sten åt motsatt håll. Skelettet vänder sig efter ljudet och du får ett ögonblicks försprång.'
+          : 'Det hör din stövel skrapa mot stenen och kommer mot dig.',
       ],
       combat: {
-        enemies: [
-          {
-            name: 'Blind kryptväktare',
-            hp: partyHas('bossWeakened') ? 12 : 16,
-            maxHp: partyHas('bossWeakened') ? 12 : 16,
-            ac: 11,
-            attack: 3,
-            dmg: [1, 4, 1],
-            weapon: 'Klor',
-            damageType: 'Riv',
-            resistances: ['Stick'],
-            weaknesses: ['Eld'],
-          },
-        ],
+        enemies: [cryptSkeleton()],
         onWin: 'sealedDoor',
-        xp: 70,
+        xp: 50,
+        surprise: partyHas('bossWeakened') ? 'enemies' : undefined,
       },
     },
     cryptBeastLoud: {
       title: 'Ett misstag i mörkret',
       text: [
         'Ditt rop ekar genom korridoren.',
-        'Svaret är ett våldsamt skrapande från mörkret. Något stort kommer springande mot dig.',
+        'Svaret är ett skrapande från mörkret. Ett skelett med draget kortsvärd hittar dig bland pelarna.',
       ],
       combat: {
-        enemies: [
-          {
-            name: 'Blind kryptväktare',
-            hp: 18,
-            maxHp: 18,
-            ac: 11,
-            attack: 3,
-            dmg: [1, 4, 1],
-            weapon: 'Klor',
-            damageType: 'Riv',
-            resistances: ['Stick'],
-            weaknesses: ['Eld'],
-          },
-        ],
+        enemies: [cryptSkeleton()],
         onWin: 'sealedDoor',
-        xp: 70,
+        xp: 50,
+        surprise: 'players',
       },
     },
     sealedDoor: {
       title: 'Stendörren',
       text: [
-        'Bakom varelsens näste står stendörren som jägaren beskrev. Draksymbolen finns inhuggen mitt på dörren.',
+        'Bakom kryptans sista pelare står stendörren som jägaren beskrev. Draksymbolen finns inhuggen mitt på dörren.',
         state.sigil
           ? 'När du håller bronssigillet mot stenen hörs ett djupt klick. Dörren öppnas några centimeter av sig själv.'
           : 'Mitt i symbolen finns en rund fördjupning. Någon har försökt bryta upp den med järnverktyg.',

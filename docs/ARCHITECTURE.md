@@ -33,9 +33,9 @@ Första implementationen har två kampanj-ID:n med olika startpunkt i samma inne
 
 Lägg till en variant i `GameCommand`, motsvarande Zod-schema och en handler i spelmotorn. UI skickar endast avsikten. Nätverksklienten får aldrig själv bestämma skada, XP, motståndarens liv eller en annan aktörs identitet.
 
-Initiativ använder T20 + SMI-modifierare, och överraskning ger nackdel på initiativ. Naturlig 20 dubblar skadetärningarna, inte fasta bonusar. Naturlig 1 missar. Försvar ger nackdel till hjältens nästa tur. Skydda ger +2 försvar tills krigarens nästa tur och delar resurs med Kraftslag. Förstärkt skada appliceras innan motstånd/sårbarhet. Tjuvens specialattack följer samma målregler som vanliga attacker.
+Initiativ använder T20 + SMI-modifierare, och överraskning ger nackdel på initiativ. Naturlig 20 dubblar skadetärningarna, inte fasta bonusar. Naturlig 1 missar. Försvara ger nackdel till hjältens nästa tur. En sköldbärare med stridsstilen Protection kan använda sin reaktion för att ge anfall mot en närstående kamrat nackdel. Förstärkt skada appliceras innan motstånd/sårbarhet. Tjuvens specialattack följer samma målregler som vanliga attacker. Avstånd, terrängskydd och siktlinjer beskrivs i [tactical-combat.md](tactical-combat.md).
 
-Fiendeturer körs i en iterativ scheduler med skyddsgräns. Bossen annonserar mål före sitt utfall, och byter fas under halva maxlivet. Det finns inga rekursiva UI-timeouts som riskerar att köras igen vid rendering eller återanslutning.
+Fiendeturer körs i en iterativ scheduler med skyddsgräns. Stödet för bossroller kan annonsera mål före ett utfall och byta fas under halva maxlivet; den nuvarande kryptan använder ett officiellt Skeleton utan bossrollen. Det finns inga rekursiva UI-timeouts som riskerar att köras igen vid rendering eller återanslutning.
 
 ## Sparformat
 

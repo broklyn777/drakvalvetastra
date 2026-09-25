@@ -15,6 +15,7 @@ export function canTarget(s: GameState, p: Character, e: Enemy) {
   if (s.combat?.usesDistance) return e.hp > 0;
   return (
     e.hp > 0 &&
+    (p.className === 'Magiker' || s.combat?.positions[p.id] === 'fram') &&
     (p.className === 'Magiker' ||
       s.combat?.breached[p.id] ||
       e.position === 'fram' ||
@@ -31,18 +32,38 @@ function distanceBetween(c: Combat, a: string, b: string) {
   return Math.abs(actorDistance(c, a) - actorDistance(c, b));
 }
 
-function hasCreatureCover(s: GameState, attackerId: string, targetId: string) {
+function creatureCover(s: GameState, attackerId: string, targetId: string) {
   const c = s.combat!;
-  if (!c.usesDistance) return false;
+  if (!c.usesDistance) return undefined;
   const from = actorDistance(c, attackerId);
   const to = actorDistance(c, targetId);
   const low = Math.min(from, to);
   const high = Math.max(from, to);
   const occupied = [
-    ...s.players.filter((p) => p.hp > 0).map((p) => ({ id: p.id, at: actorDistance(c, p.id) })),
-    ...c.enemies.filter((e) => e.hp > 0).map((e) => ({ id: e.id, at: e.distance })),
+    ...s.players
+      .filter((p) => p.hp > 0)
+      .map((p) => ({ id: p.id, name: p.name, at: actorDistance(c, p.id) })),
+    ...c.enemies.filter((e) => e.hp > 0).map((e) => ({ id: e.id, name: e.name, at: e.distance })),
   ];
-  return occupied.some((x) => x.id !== attackerId && x.id !== targetId && x.at > low && x.at < high);
+  return occupied.find((x) => x.id !== attackerId && x.id !== targetId && x.at > low && x.at < high)
+    ?.name;
+}
+
+/** A cover spot shelters its occupant. Total cover also blocks that occupant's outgoing sightline. */
+export function attackCover(s: GameState, attackerId: string, targetId: string) {
+  const c = s.combat!;
+  if (!c.usesDistance) return { blocked: false, bonus: 0, source: '' };
+  const distance = distanceBetween(c, attackerId, targetId);
+  if (distance > 5) {
+    for (const id of [attackerId, targetId]) {
+      const feature = c.terrain?.find((item) => item.id === c.coveredBy?.[id]);
+      if (feature?.cover === 'total') return { blocked: true, bonus: 0, source: feature.name };
+    }
+    const feature = c.terrain?.find((item) => item.id === c.coveredBy?.[targetId]);
+    if (feature?.cover === 'half') return { blocked: false, bonus: 2, source: feature.name };
+  }
+  const creature = creatureCover(s, attackerId, targetId);
+  return { blocked: false, bonus: creature ? 2 : 0, source: creature ?? '' };
 }
 
 function protectionDefender(s: GameState, target: Character) {
@@ -65,7 +86,14 @@ function heroAttackProfile(p: Character) {
 }
 
 export function attackAvailability(s: GameState, p: Character, e: Enemy) {
-  if (!canTarget(s, p, e)) return { ok: false, reason: 'Målet kan inte nås.' };
+  if (!canTarget(s, p, e))
+    return {
+      ok: false,
+      reason:
+        s.combat?.positions[p.id] === 'bak' && p.className !== 'Magiker'
+          ? 'Flytta till framlinjen för närstrid.'
+          : 'Målet kan inte nås.',
+    };
   const c = s.combat;
   if (!c?.usesDistance) return { ok: true, reason: '' };
   const profile = heroAttackProfile(p);
@@ -80,6 +108,11 @@ export function attackAvailability(s: GameState, p: Character, e: Enemy) {
       ok: false,
       reason: `${distance} ft bort · max range ${profile.longRange} ft`,
     };
+  if (profile.kind === 'ranged') {
+    const cover = attackCover(s, p.id, e.id);
+    if (cover.blocked)
+      return { ok: false, reason: `Ingen fri sikt: ${cover.source} ger totalt skydd.` };
+  }
   if (profile.kind === 'ranged' && distance > profile.normalRange)
     return { ok: true, reason: `${distance} ft · long range, nackdel` };
   if (profile.kind === 'ranged' && distance <= 5)
@@ -146,6 +179,8 @@ export function startCombat(s: GameState, def: Encounter) {
     .sort((a, b) => b.total - a.total || b.tie - a.tie);
   const c: Combat = {
     enemies,
+    terrain: structuredClone(def.terrain ?? []),
+    coveredBy: {},
     usesDistance: !!def.usesDistance,
     initiative,
     turn: 0,
@@ -269,13 +304,21 @@ function enemyTurn(s: GameState, e: Enemy) {
   const target = [...living].sort(
     (a, b) => distanceBetween(c, e.id, a.id) - distanceBetween(c, e.id, b.id),
   )[0];
-  let attack =
-    e.attacks.find((a) => a.kind === e.preferredAttack) ??
-    e.attacks[0];
+  let attack = e.attacks.find((a) => a.kind === e.preferredAttack) ?? e.attacks[0];
   let distance = distanceBetween(c, e.id, target.id);
 
   if (attack.kind === 'ranged' && distance <= 5) {
     attack = e.attacks.find((a) => a.kind === 'melee') ?? attack;
+  }
+
+  if (attack.kind === 'ranged' && attackCover(s, e.id, target.id).blocked) {
+    const blockedBy = attackCover(s, e.id, target.id).source;
+    const move = Math.min(e.speed ?? 30, Math.max(0, distance - 5));
+    e.distance += actorDistance(c, target.id) < e.distance ? -move : move;
+    distance = distanceBetween(c, e.id, target.id);
+    emit(s, 'story', `${e.name} söker fri sikt runt ${blockedBy}.`, `${move} ft förflyttning.`);
+    if (distance <= 5) attack = e.attacks.find((a) => a.kind === 'melee') ?? attack;
+    else if (attackCover(s, e.id, target.id).blocked) return;
   }
 
   if (attack.kind === 'melee') {
@@ -312,10 +355,7 @@ function enemyTurn(s: GameState, e: Enemy) {
     ([protectedId, defenderId]) =>
       protectedId === target.id &&
       s.players.some(
-        (p) =>
-          p.id === defenderId &&
-          p.hp > 0 &&
-          distanceBetween(c, p.id, target.id) <= 5,
+        (p) => p.id === defenderId && p.hp > 0 && distanceBetween(c, p.id, target.id) <= 5,
       ),
   );
   if (activeProtection) disadvantage = true;
@@ -334,8 +374,9 @@ function enemyTurn(s: GameState, e: Enemy) {
     }
   }
 
-  const cover = attack.kind === 'ranged' && hasCreatureCover(s, e.id, target.id);
-  const ac = target.ac + (cover ? 2 : 0);
+  const cover =
+    attack.kind === 'ranged' ? attackCover(s, e.id, target.id) : { bonus: 0, source: '' };
+  const ac = target.ac + cover.bonus;
   const attackRolls = [die(s, 20)];
   let roll = attackRolls[0];
   let detail = `${attack.name} · ${distance} ft · T20: ${roll}`;
@@ -346,7 +387,7 @@ function enemyTurn(s: GameState, e: Enemy) {
     detail += `/${second} (nackdel)`;
     roll = Math.min(roll, second);
   }
-  if (cover) detail += ' · Half Cover +2 AC';
+  if (cover.bonus) detail += ` · Half Cover: ${cover.source}, +2 AC`;
   detail += ` + ${attack.attack} = ${roll + attack.attack} vs AC ${ac}.`;
   const hit = attackHits(roll, attack.attack, ac);
   const enemyDiceBase = {
@@ -354,7 +395,7 @@ function enemyTurn(s: GameState, e: Enemy) {
     targetId: target.id,
     attackName: attack.name,
     distance,
-    ...(cover ? { coverBonus: 2 } : {}),
+    ...(cover.bonus ? { coverBonus: cover.bonus, coverSource: cover.source } : {}),
     damageType: attack.damageType,
     attack: {
       sides: 20 as const,
@@ -394,13 +435,7 @@ function enemyTurn(s: GameState, e: Enemy) {
     );
     if (!target.hp) emit(s, 'warning', `${target.name} faller.`);
   } else {
-    emit(
-      s,
-      'roll',
-      `${e.name} missar ${target.name} med ${attack.name}.`,
-      detail,
-      enemyDiceBase,
-    );
+    emit(s, 'roll', `${e.name} missar ${target.name} med ${attack.name}.`, detail, enemyDiceBase);
   }
 }
 /** Iterative turn scheduler, no recursive enemy loops or UI timers. */
@@ -455,7 +490,7 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
   const profile = heroAttackProfile(p);
   const distance = c.usesDistance ? distanceBetween(c, p.id, e.id) : 0;
   let disadvantage = false;
-  let cover = false;
+  let cover = { bonus: 0, source: '' };
   if (c.usesDistance) {
     if (profile.kind === 'melee' && distance > profile.reach)
       throw new Error(
@@ -467,7 +502,9 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
           `${e.name} är ${distance} ft bort. Vapnets maximala räckvidd är ${profile.longRange} ft.`,
         );
       disadvantage = distance <= 5 || distance > profile.normalRange;
-      cover = hasCreatureCover(s, p.id, e.id);
+      const assessed = attackCover(s, p.id, e.id);
+      if (assessed.blocked) throw new Error(`Ingen fri sikt: ${assessed.source} ger totalt skydd.`);
+      cover = assessed;
     }
   }
 
@@ -486,17 +523,17 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     rollText += `/${second} (${mode === 'advantage' ? 'fördel' : 'nackdel'})`;
     roll = mode === 'advantage' ? Math.max(roll, second) : Math.min(roll, second);
   }
-  const ac = e.ac + (cover ? 2 : 0);
+  const ac = e.ac + cover.bonus;
   const rangeText = c.usesDistance ? ` · ${distance} ft` : '';
-  const coverText = cover ? ' · Half Cover +2 AC' : '';
-  const detail = `D20 ${rollText} + ${bonus} = ${roll + bonus} vs AC ${ac}${rangeText}${coverText}.`;
+  const coverText = cover.bonus ? ` · Half Cover: ${cover.source}, +2 AC` : '';
+  const detail = `T20 ${rollText} + ${bonus} = ${roll + bonus} vs AC ${ac}${rangeText}${coverText}.`;
   const hit = attackHits(roll, bonus, ac);
   const attackDice = {
     attackerId: p.id,
     targetId: e.id,
     attackName: p.weapon,
     ...(c.usesDistance ? { distance } : {}),
-    ...(cover ? { coverBonus: 2 } : {}),
+    ...(cover.bonus ? { coverBonus: cover.bonus, coverSource: cover.source } : {}),
     damageType: p.damageType,
     attack: {
       sides: 20 as const,
@@ -511,14 +548,19 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     },
   };
   if (!hit) {
-    emit(s, 'roll', `${p.name} missar ${e.name}.`, detail, special ? undefined : attackDice);
+    emit(s, 'roll', `${p.name} missar ${e.name}.`, detail, attackDice);
     return;
   }
   const critical = roll === 20;
   const [count, sides, damageBonus] = p.damage;
   const damageRolls = Array.from({ length: count * (critical ? 2 : 1) }, () => die(s, sides));
-  let raw = Math.max(0, damageBonus + damageRolls.reduce((sum, value) => sum + value, 0));
-  if (special) raw += rollDamage(s, [1, power ? 8 : 6, 0], critical);
+  const baseDamage = Math.max(0, damageBonus + damageRolls.reduce((sum, value) => sum + value, 0));
+  const extraSides = power ? 8 : 6;
+  const extraRolls = special
+    ? Array.from({ length: critical ? 2 : 1 }, () => die(s, extraSides))
+    : [];
+  const extraDamage = extraRolls.reduce((sum, value) => sum + value, 0);
+  const raw = baseDamage + extraDamage;
   const amount = typedDamage(e, raw, p.damageType);
   e.hp = Math.max(0, e.hp - amount);
   c.stats[p.id].damage += amount;
@@ -528,18 +570,20 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     'damage',
     `${p.name} träffar ${e.name} för ${amount} ${p.damageType.toLowerCase()}skada${critical ? ' — kritisk träff' : ''}.`,
     `${detail}${amount !== raw ? ` ${raw} grundskada; motstånd/sårbarhet tillämpas.` : ''}`,
-    special
-      ? undefined
-      : {
-          ...attackDice,
-          damage: {
-            sides,
-            rolls: damageRolls,
-            bonus: damageBonus,
-            total: raw,
-            critical,
-          },
-        },
+    {
+      ...attackDice,
+      damage: {
+        sides,
+        rolls: damageRolls,
+        bonus: damageBonus,
+        total: baseDamage,
+        critical,
+      },
+      ...(special
+        ? { bonusDamage: { sides: extraSides, rolls: extraRolls, total: extraDamage } }
+        : {}),
+      appliedDamage: amount,
+    },
   );
   if (!e.hp) emit(s, 'success', `${e.name} faller.`);
 }
@@ -562,56 +606,76 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
       break;
     case 'move': {
       if (c.usesDistance) {
+        const feature = c.terrain?.find((item) => item.id === cmd.target);
         const target =
           c.enemies.find((e) => e.id === cmd.target && e.hp > 0) ??
           [...c.enemies]
             .filter((e) => e.hp > 0)
             .sort((a, b) => distanceBetween(c, p.id, a.id) - distanceBetween(c, p.id, b.id))[0];
-        if (!target) throw new Error('Det finns inget mål att röra sig mot.');
+        if (!target && !feature) throw new Error('Det finns inget mål att röra sig mot.');
         const remaining = c.movementRemaining[p.id] ?? p.speed;
         if (remaining <= 0) throw new Error('Du har ingen förflyttning kvar den här turen.');
         const from = c.distances[p.id] ?? 0;
-        const desired = target.distance > from ? target.distance - 5 : target.distance + 5;
+        const desired =
+          feature?.distance ??
+          (target!.distance > from ? target!.distance - 5 : target!.distance + 5);
         const delta = desired - from;
+        if (delta === 0 && (!feature || c.coveredBy[p.id] === feature.id))
+          throw new Error('Du står redan vid målet.');
         const move = Math.sign(delta) * Math.min(Math.abs(delta), remaining);
         c.distances[p.id] = from + move;
         c.movementRemaining[p.id] = remaining - Math.abs(move);
+        if (feature && c.distances[p.id] === feature.distance) c.coveredBy[p.id] = feature.id;
+        else delete c.coveredBy[p.id];
         emit(
           s,
           'story',
-          `${p.name} rör sig ${Math.abs(move)} ft mot ${target.name}.`,
-          `${distanceBetween(c, p.id, target.id)} ft återstår · ${c.movementRemaining[p.id]} ft movement kvar.`,
+          feature && c.coveredBy[p.id]
+            ? `${p.name} tar skydd vid ${feature.name}.`
+            : `${p.name} rör sig ${Math.abs(move)} ft mot ${feature?.name ?? target!.name}.`,
+          `${feature && c.coveredBy[p.id] ? (feature.cover === 'total' ? 'Totalt skydd · fri sikt saknas åt båda håll' : 'Half Cover: +2 AC mot avståndsanfall') : `${feature ? Math.abs(feature.distance - c.distances[p.id]) : distanceBetween(c, p.id, target!.id)} ft återstår`} · ${c.movementRemaining[p.id]} ft förflyttning kvar.`,
         );
         return;
       }
+      if ((c.movementRemaining[p.id] ?? 0) <= 0)
+        throw new Error('Du har ingen förflyttning kvar den här turen.');
       c.positions[p.id] = c.positions[p.id] === 'fram' ? 'bak' : 'fram';
+      c.movementRemaining[p.id] = 0;
       emit(
         s,
         'story',
         `${p.name} flyttar till ${c.positions[p.id] === 'fram' ? 'framlinjen' : 'baklinjen'}.`,
+        'Positionsbytet använder din förflyttning, inte din handling.',
       );
-      break;
+      return;
     }
     case 'dash': {
       if (!c.usesDistance) throw new Error('Dash används bara i strider med avstånd.');
+      const feature = c.terrain?.find((item) => item.id === cmd.target);
       const target =
         c.enemies.find((e) => e.id === cmd.target && e.hp > 0) ??
         [...c.enemies]
           .filter((e) => e.hp > 0)
           .sort((a, b) => distanceBetween(c, p.id, a.id) - distanceBetween(c, p.id, b.id))[0];
-      if (!target) throw new Error('Det finns inget mål att röra sig mot.');
+      if (!target && !feature) throw new Error('Det finns inget mål att röra sig mot.');
       const from = c.distances[p.id] ?? 0;
       const available = (c.movementRemaining[p.id] ?? 0) + p.speed;
-      const desired = target.distance > from ? target.distance - 5 : target.distance + 5;
+      const desired =
+        feature?.distance ??
+        (target!.distance > from ? target!.distance - 5 : target!.distance + 5);
       const delta = desired - from;
+      if (delta === 0 && (!feature || c.coveredBy[p.id] === feature.id))
+        throw new Error('Du står redan vid målet.');
       const move = Math.sign(delta) * Math.min(Math.abs(delta), available);
       c.distances[p.id] = from + move;
       c.movementRemaining[p.id] = 0;
+      if (feature && c.distances[p.id] === feature.distance) c.coveredBy[p.id] = feature.id;
+      else delete c.coveredBy[p.id];
       emit(
         s,
         'story',
-        `${p.name} använder Dash och rör sig ${Math.abs(move)} ft mot ${target.name}.`,
-        `${distanceBetween(c, p.id, target.id)} ft återstår. Action används.`,
+        `${p.name} använder Dash och rör sig ${Math.abs(move)} ft mot ${feature?.name ?? target!.name}.`,
+        `${feature && c.coveredBy[p.id] ? `Skydd vid ${feature.name} (${feature.cover === 'half' ? '+2 AC' : 'totalt skydd'})` : `${feature ? Math.abs(feature.distance - c.distances[p.id]) : distanceBetween(c, p.id, target!.id)} ft återstår`} · handlingen används.`,
       );
       break;
     }
@@ -644,8 +708,10 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
     case 'ability': {
       if (c.used[p.id]) throw new Error('Klassförmågan har redan använts.');
       if (p.className === 'Magiker') {
+        const visible = c.enemies.filter((e) => e.hp > 0 && !attackCover(s, p.id, e.id).blocked);
+        if (!visible.length) throw new Error('Ingen fiende inom fri sikt.');
         const raw = die(s, 6) + Math.max(0, modifier(p.int));
-        for (const e of c.enemies.filter((e) => e.hp > 0)) {
+        for (const e of visible) {
           const damage = typedDamage(e, raw, 'Eld');
           e.hp = Math.max(0, e.hp - damage);
           c.stats[p.id].damage += damage;

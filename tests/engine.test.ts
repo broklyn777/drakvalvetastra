@@ -4,6 +4,7 @@ import { createCharacter, createLevel1PaladinPreset } from '../packages/engine/s
 import { availableChoices, createGame, dispatch, sceneFor } from '../packages/engine/src/engine';
 import {
   attackAvailability,
+  attackCover,
   attackHits,
   canTarget,
   currentActor,
@@ -122,13 +123,15 @@ describe('kampanj och karaktärer', () => {
     choose(s, 'inn');
     expect(JSON.stringify(s)).toBe(before);
   });
-  it('evaluates warnings and sigils at scene entry instead of initial script load', () => {
+  it('uses the hunter warning for initiative while keeping the official Skeleton stats', () => {
     const s = game();
     s.scene = 'towerHall';
     s.players[0].bossWeakened = true;
-    expect(campaign.scenes(s, 'hero-0').cryptBeast.combat!.enemies[0].hp).toBe(12);
+    expect(campaign.scenes(s, 'hero-0').cryptBeast.combat!.enemies[0].hp).toBe(13);
+    expect(campaign.scenes(s, 'hero-0').cryptBeast.combat!.surprise).toBe('enemies');
     s.players[0].bossWeakened = false;
-    expect(campaign.scenes(s, 'hero-0').cryptBeast.combat!.enemies[0].hp).toBe(16);
+    expect(campaign.scenes(s, 'hero-0').cryptBeast.combat!.enemies[0].hp).toBe(13);
+    expect(campaign.scenes(s, 'hero-0').cryptBeast.combat!.surprise).toBeUndefined();
   });
   it('unlocks shared equipment routes and relationship consequences', () => {
     const s = game(1, 2);
@@ -281,6 +284,74 @@ describe('taktisk strid', () => {
       expect(shot.distance).toBe(scene === 'ambush' ? 5 : 50);
     }
   });
+  it('lets a hero claim Half Cover and lose it when moving toward the archer', () => {
+    let s = game(42);
+    s.players[0] = createCharacter({ ...selection, class: 'mage' }, 'hero-0');
+    startCombat(s, campaign.scenes(s, 'hero-0').door.combat!);
+    s.combat!.initiative.sort((a, b) => (a.id === 'hero-0' ? -1 : b.id === 'hero-0' ? 1 : 0));
+    s.combat!.turn = 0;
+    s.combat!.enemies[0].hp = 0; // Isolate terrain cover from the bandit's creature cover.
+    expect(attackCover(s, 'enemy-1', 'hero-0').bonus).toBe(0);
+
+    s = action(s, { type: 'move', target: 'oak' });
+    expect(s.combat!.distances['hero-0']).toBe(15);
+    expect(s.combat!.coveredBy['hero-0']).toBe('oak');
+    expect(s.combat!.movementRemaining['hero-0']).toBe(15);
+    expect(parseSave(makeSave(s, 'Skydd')).state).toEqual(s);
+    expect(attackCover(s, 'enemy-1', 'hero-0')).toMatchObject({ bonus: 2, source: 'Eken' });
+    s.combat!.enemies[0].hp = 11;
+    s.combat!.enemies[0].distance = 25;
+    expect(attackCover(s, 'enemy-1', 'hero-0').bonus).toBe(2); // Terrain and creatures do not stack.
+    s.combat!.enemies[0].hp = 0;
+
+    s = action(s, { type: 'defend' });
+    const shot = s.events.findLast((entry) => entry.dice?.attackerId === 'enemy-1')!.dice!;
+    expect(shot.attackName).toBe('Light Crossbow');
+    expect(shot.coverBonus).toBe(2);
+    expect(shot.coverSource).toBe('Eken');
+    expect(shot.attack.ac).toBe(s.players[0].ac + 2);
+
+    s = action(s, { type: 'move', target: 'enemy-1' });
+    expect(s.combat!.coveredBy['hero-0']).toBeUndefined();
+    expect(attackCover(s, 'enemy-1', 'hero-0').bonus).toBe(0);
+  });
+  it('blocks ranged attacks from total cover and makes the archer close in', () => {
+    let s = game(42);
+    s.players[0] = createCharacter({ ...selection, class: 'mage' }, 'hero-0');
+    startCombat(s, campaign.scenes(s, 'hero-0').door.combat!);
+    s.combat!.initiative.sort((a, b) => (a.id === 'hero-0' ? -1 : b.id === 'hero-0' ? 1 : 0));
+    s.combat!.turn = 0;
+    s.combat!.enemies[0].hp = 0;
+    s = action(s, { type: 'move', target: 'woodshed' });
+    expect(s.combat!.coveredBy['hero-0']).toBe('woodshed');
+    expect(attackAvailability(s, s.players[0], s.combat!.enemies[1])).toMatchObject({ ok: false });
+    expect(attackCover(s, 'hero-0', 'enemy-1').blocked).toBe(true);
+    const before = JSON.stringify(s);
+    expect(dispatch(s, campaign, 'hero-0', { type: 'attack', target: 'enemy-1' }).ok).toBe(false);
+    expect(dispatch(s, campaign, 'hero-0', { type: 'ability' }).ok).toBe(false);
+    expect(JSON.stringify(s)).toBe(before);
+
+    s = action(s, { type: 'defend' });
+    expect(s.events.some((entry) => entry.text.includes('söker fri sikt runt Vedboden'))).toBe(
+      true,
+    );
+    expect(
+      s.events.findLast((entry) => entry.dice?.attackerId === 'enemy-1')?.dice?.attackName,
+    ).toBe('Scimitar');
+  });
+  it('lets a melee hero change from backline to frontline before attacking', () => {
+    const s = game(42);
+    startCombat(s, campaign.scenes(s, 'hero-0').towerFight.combat!);
+    s.combat!.initiative.sort((a, b) => (a.id === 'hero-0' ? -1 : b.id === 'hero-0' ? 1 : 0));
+    s.combat!.turn = 0;
+    s.combat!.positions['hero-0'] = 'bak';
+    expect(attackAvailability(s, s.players[0], s.combat!.enemies[0]).ok).toBe(false);
+    const moved = action(s, { type: 'move' });
+    expect(moved.combat!.positions['hero-0']).toBe('fram');
+    expect(currentActor(moved)?.id).toBe('hero-0');
+    expect(attackAvailability(moved, moved.players[0], moved.combat!.enemies[0]).ok).toBe(true);
+    expect(dispatch(moved, campaign, 'hero-0', { type: 'move' }).ok).toBe(false);
+  });
   it('records the exact attack and damage dice used by the combat engine', () => {
     const s = game(42);
     startCombat(s, campaign.scenes(s, 'hero-0').door.combat!);
@@ -301,15 +372,16 @@ describe('taktisk strid', () => {
     }
   });
 
-  it('handles resistance, weakness and critical-dice damage separately', () => {
+  it('uses Skeleton vulnerability to bludgeoning without invented weaknesses', () => {
     const s = game();
     s.scene = 'towerHall';
     const e = campaign.scenes(s, 'hero-0').cryptBeast.combat!;
     startCombat(s, e);
     const enemy = s.combat!.enemies[0];
-    expect(typedDamage(enemy, 7, 'Stick')).toBe(3);
-    expect(typedDamage(enemy, 7, 'Eld')).toBe(14);
+    expect(typedDamage(enemy, 7, 'Stick')).toBe(7);
+    expect(typedDamage(enemy, 7, 'Eld')).toBe(7);
     expect(typedDamage(enemy, 7, 'Hugg')).toBe(7);
+    expect(typedDamage(enemy, 7, 'Kross')).toBe(14);
   });
   it('limits class abilities and does not consume items at full HP', () => {
     const s = game();
@@ -321,13 +393,13 @@ describe('taktisk strid', () => {
     expect(b.combat!.used['hero-0']).toBe(true);
     expect(dispatch(b, campaign, 'hero-0', { type: 'ability', target: target.id }).ok).toBe(false);
   });
-  it('scales encounters to 4 players and boss health to the party', () => {
+  it('keeps official monster HP intact with four players', () => {
     const s = game(2, 4);
     startCombat(s, campaign.scenes(s, 'hero-0').door.combat!);
     expect(s.combat!.enemies).toHaveLength(2);
-    const boss = game(2, 4);
-    startCombat(boss, campaign.scenes(boss, 'hero-0').cryptBeast.combat!);
-    expect(boss.combat!.enemies[0].maxHp).toBe(40);
+    const crypt = game(2, 4);
+    startCombat(crypt, campaign.scenes(crypt, 'hero-0').cryptBeast.combat!);
+    expect(crypt.combat!.enemies[0].maxHp).toBe(13);
   });
   it('cleric can revive a fallen ally', () => {
     const s = game(42, 2);
@@ -341,14 +413,19 @@ describe('taktisk strid', () => {
     const result = action(s, { type: 'ability', target: 'hero-1' }, 'hero-0');
     expect(result.players[1].hp).toBeGreaterThan(0);
   });
-  it('boss announces an attack and becomes enraged below half health', () => {
+  it('uses Guard, Cultist and Skeleton from the official low-CR roster', () => {
     const s = game(56);
-    startCombat(s, campaign.scenes(s, 'hero-0').cryptBeast.combat!);
-    const enemy = s.combat!.enemies[0];
-    enemy.hp = Math.floor(enemy.maxHp / 2);
-    const result = action(s, { type: 'defend' });
-    expect(result.combat!.enemies[0].phase).toBe(2);
-    expect(result.events.some((e) => e.text.includes('förbereder ett utfall'))).toBe(true);
+    const scenes = campaign.scenes(s, 'hero-0');
+    expect(scenes.towerFight.combat!.enemies).toMatchObject([
+      { name: 'Guard', hp: 11, ac: 16, attack: 3, dmg: [1, 6, 1], weapon: 'Spear' },
+      { name: 'Cultist', hp: 9, ac: 12, attack: 3, dmg: [1, 6, 1], weapon: 'Scimitar' },
+    ]);
+    expect(scenes.towerFight.combat!.xp).toBe(50);
+    expect(scenes.cryptBeast.combat!.enemies).toMatchObject([
+      { name: 'Skeleton', hp: 13, ac: 13, attack: 4, dmg: [1, 6, 2], weapon: 'Shortsword' },
+    ]);
+    expect(scenes.cryptBeast.combat!.xp).toBe(50);
+    expect(scenes.cryptBeastLoud.combat!.surprise).toBe('players');
   });
 });
 describe('sparningar och hela berättelsen', () => {

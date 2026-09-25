@@ -14,6 +14,12 @@ export type Dice = [number, number, number];
 export type DamageType = 'Hugg' | 'Stick' | 'Kross' | 'Eld' | 'Riv';
 export type Position = 'fram' | 'bak';
 export type FightingStyle = 'protection';
+export interface TerrainFeature {
+  id: string;
+  name: string;
+  distance: number;
+  cover: 'half' | 'total';
+}
 export interface AttackProfile {
   name: string;
   kind: 'melee' | 'ranged';
@@ -109,6 +115,7 @@ export interface Enemy extends EnemyDefinition {
 }
 export interface Encounter {
   enemies: EnemyDefinition[];
+  terrain?: TerrainFeature[];
   onWin: string;
   xp: number;
   surprise?: 'players' | 'enemies';
@@ -158,6 +165,8 @@ export interface CombatStats {
 }
 export interface Combat {
   enemies: Enemy[];
+  terrain: TerrainFeature[];
+  coveredBy: Record<string, string>;
   usesDistance: boolean;
   initiative: Initiative[];
   turn: number;
@@ -188,6 +197,7 @@ export interface DiceRollEvent {
   attackName?: string;
   distance?: number;
   coverBonus?: number;
+  coverSource?: string;
   damageType?: DamageType;
   attack: {
     sides: 20;
@@ -207,6 +217,12 @@ export interface DiceRollEvent {
     total: number;
     critical: boolean;
   };
+  bonusDamage?: {
+    sides: number;
+    rolls: number[];
+    total: number;
+  };
+  appliedDamage?: number;
 }
 export interface GameEvent {
   id: number;
@@ -247,7 +263,7 @@ export type GameCommand =
   | { type: 'choose'; next: string }
   | { type: 'attack'; target: string }
   | { type: 'ability'; target?: string }
-    | { type: 'help'; target: string }
+  | { type: 'help'; target: string }
   | { type: 'move' | 'dash'; target?: string }
   | { type: 'defend' | 'breakthrough' | 'potion' | 'herbs' | 'continue' };
 export interface CommandEnvelope {
