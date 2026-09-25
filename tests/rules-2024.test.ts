@@ -130,15 +130,80 @@ describe('D&D 2024: species och Origin Feats', () => {
     throw new Error('Ingen träff hittades.');
   });
 
-  it('Healer turns herbs into a Healer’s Kit: Hit Die + 2 with 1s rerolled, and one extra herb', () => {
+  it('Healer: Battle Medic spends a Healer’s Kit use and the target’s Hit Point Die', () => {
     expect(hero({ talent: 'supply' }).herbs).toBe(hero({ talent: 'keen' }).herbs + 1);
-    const s: GameState = game({ talent: 'supply' });
-    s.players[0].hp = 1;
-    const result = dispatch(s, campaign, 'h', { type: 'herbs' });
-    const healed = result.state.players[0].hp - 1;
-    expect(healed).toBeGreaterThanOrEqual(1 + 2);
-    expect(healed).toBeLessThanOrEqual(10 + 2);
-    expect(result.state.events.at(-1)!.detail).toBe('Healer: 1d10 + 2, 1:or slås om.');
+    const s = createGame(
+      campaign,
+      [hero({ talent: 'supply' }, 'medic'), hero({ class: 'mage', talent: 'iron' }, 'wiz')],
+      7,
+      'g',
+    );
+    const [medic, wiz] = s.players;
+    wiz.hp = 0; // fallen allies can be tended
+    const herbs = medic.herbs;
+    const r = dispatch(s, campaign, 'medic', { type: 'herbs', target: 'wiz' });
+    expect(r.ok).toBe(true);
+    const healed = r.state.players[1];
+    // Wizard Hit Die d6 (1s rerolled once) + Proficiency 2.
+    expect(healed.hp).toBeGreaterThanOrEqual(1 + 2);
+    expect(healed.hp).toBeLessThanOrEqual(6 + 2);
+    expect(healed.hitDiceUsed).toBe(1);
+    expect(r.state.players[0].herbs).toBe(herbs - 1);
+    expect(r.state.events.at(-1)!.text).toContain('Battle Medic på H');
+    // Level 1: the only Hit Point Die is spent.
+    healed.hp = 1;
+    r.state.players[0].herbs = 2;
+    const again = dispatch(r.state, campaign, 'medic', { type: 'herbs', target: 'wiz' });
+    expect(again.ok || again.error).toBe('H har inga Hit Point Dice kvar.');
+    expect(parseSave(makeSave(r.state, 'Medic')).state.players[1].hitDiceUsed).toBe(1);
+  });
+
+  it('Healer: Battle Medic reaches only 5 ft in fights with distances', () => {
+    let s = createGame(
+      campaign,
+      [hero({ talent: 'supply' }, 'medic'), hero({ talent: 'iron' }, 'w')],
+      seedOf(3),
+      'g',
+    );
+    s = dispatch(s, campaign, 'medic', { type: 'choose', next: 'inn' }).state;
+    s = dispatch(s, campaign, 'medic', { type: 'choose', next: 'door' }).state;
+    s.players[1].hp = 1;
+    s.combat!.distances.w = 20;
+    const actor = currentActor(s)!.id;
+    if (actor !== 'medic') return;
+    const far = dispatch(s, campaign, 'medic', { type: 'herbs', target: 'w' });
+    expect(far.ok || far.error).toContain('5 ft');
+  });
+
+  it('Alert: Initiative Swap is offered first and swaps places with a willing ally', () => {
+    let s = createGame(
+      campaign,
+      [hero({ talent: 'keen' }, 'alert'), hero({ class: 'mage', talent: 'iron' }, 'wiz')],
+      seedOf(9),
+      'g',
+    );
+    s = dispatch(s, campaign, 'alert', { type: 'choose', next: 'inn' }).state;
+    s = dispatch(s, campaign, 'alert', { type: 'choose', next: 'door' }).state;
+    expect(s.combat!.swapPending).toBe('alert');
+    expect(currentActor(s)?.id).toBe('alert');
+    expect(dispatch(s, campaign, 'alert', { type: 'defend' }).ok).toBe(false);
+    expect(dispatch(s, campaign, 'wiz', { type: 'swapInitiative', target: 'alert' }).ok).toBe(
+      false,
+    );
+    const before = Object.fromEntries(s.combat!.initiative.map((e) => [e.id, e.total]));
+    s = dispatch(s, campaign, 'alert', { type: 'swapInitiative', target: 'wiz' }).state;
+    const after = Object.fromEntries(s.combat!.initiative.map((e) => [e.id, e.total]));
+    expect(after.alert).toBe(before.wiz);
+    expect(after.wiz).toBe(before.alert);
+    expect(s.combat!.swapPending).toBeNull();
+    expect(dispatch(s, campaign, currentActor(s)!.id, { type: 'swapInitiative' }).ok).toBe(false);
+  });
+
+  it('Alert in a solo game has no one to swap with, so the fight starts normally', () => {
+    let s = game({ talent: 'keen' });
+    s = dispatch(s, campaign, 'h', { type: 'choose', next: 'inn' }).state;
+    s = dispatch(s, campaign, 'h', { type: 'choose', next: 'door' }).state;
+    expect(s.combat!.swapPending ?? null).toBeNull();
   });
 
   it('loads saves made before the change (old talent ids still valid)', () => {

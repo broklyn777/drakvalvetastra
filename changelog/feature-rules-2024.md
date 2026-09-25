@@ -13,8 +13,8 @@
 
 **Origin Feats** ersätter talangerna:
 - **Tough** (förut Stålsinne) – +2 HP per nivå.
-- **Alert** (förut Skarp blick) – +2 på Initiative.
-- **Healer** (förut Packråtta) – örter fungerar som Healer's Kit: Hit Die + 2, 1:or slås om. +1 ört.
+- **Alert** (förut Skarp blick) – +2 på Initiative, och **Initiative Swap**: när striden börjar kan Alert-hjälten byta initiativ med en kamrat (bara i gruppspel).
+- **Healer** (förut Packråtta) – **Battle Medic**: örterna är ditt Healer's Kit. Använd en på dig själv eller en kamrat inom 5 ft (även en fallen); kamraten spenderar en Hit Point Die och får tärningen + 2 i HP. **Healing Rerolls**: 1:or slås om på Battle Medic och klerikerns Helande ord. +1 ört.
 - **Savage Attacker** (ny) – vapenskadan slås två gånger, den högsta används.
 
 **Attribut:** klassens Standard Array + en bakgrunds +2/+1 (huvudattribut +2, CON +1). Samma för alla species.
@@ -26,15 +26,16 @@ Karaktärsskaparen visar "Species" och "Origin Feat", och attributen som STR/DEX
 - `raceData`/`talentData` omskrivna; interna id:n (`human`, `iron`, `keen`, `supply`) behållna så gamla sparningar och testlänkar fungerar. Nytt id `savage`.
 - `classData.*.base` = Standard Array, nya fält `asi` och `hitDie`.
 - Nytt: `packages/engine/src/traits.ts` (`heroD20`, `hpPerLevelBonus`, `initiativeBonus`, `skillBonus`, `hitDie`).
-- `Character.inspiration` (valfritt fält). Klassernas HP/AC/attack är fortfarande spelets gamla fasta värden – det är steg 2.
-- Tester: `tests/rules-2024.test.ts` (11 st).
+- `Character.inspiration` och `Character.hitDiceUsed` (valfria fält), `Combat.swapPending`, kommandot `swapInitiative` och `herbs` med valfritt `target`.
+- Initiative Swap-valet visas i `game-view.tsx` i stället för stridspanelen; `combat-panel.tsx` fick bara en ny Battle Medic-knapp. Klassernas HP/AC/attack är fortfarande spelets gamla fasta värden – det är steg 2.
+- Tester: `tests/rules-2024.test.ts` (14 st).
 
 ## Avvikelser från reglerna
 
 - Human: Skillful och Versatile (ett extra Origin Feat) saknas. Heroic Inspiration används automatiskt, spelaren väljer inte när.
 - Darkvision, Fey Ancestry, Trance, Brave, Dwarven Resilience och Stonecunning har ingen effekt ännu.
 - Keen Senses märks först när berättelsen har Perception/Insight/Survival-slag (inga ännu).
-- Alert saknar Initiative Swap. Healer saknar "Battle Medic" på andra.
+- Hit Point Dice fylls inte på, eftersom spelet saknar Long Rest.
 - Standard Array-värdena är från mitt minne av 2024 års Player's Handbook, inte kontrollerade mot källan.
 
 ## Balans
@@ -43,5 +44,6 @@ Första striden, 1000 frön, Human + Tough, samma enkla taktik: Krigare 69,9 %, 
 
 ## Verifierat
 
-- `npm test` 46/46, `npm run typecheck` och `npm run build` lokalt.
+- `npm test` 49/49, `npm run typecheck` och `npm run build` lokalt.
+- Lokal webbläsare med ett importerat sällskap (Human Rogue med Alert + Dwarf Cleric med Healer): Initiative Swap-rutan visade turordningen, bytet gav "Läkaren agerar nu på 12, Vaken på 17"; Läkarens tur visade knappen "Battle Medic på Läkaren".
 - Lokal webbläsare: karaktärsskaparen visar Species (4), Klass (4), Origin Feat (4) med nya texter; Human Krigare: 18 HP, AC 14, STR 17 DEX 14 CON 14 INT 8 WIS 10 CHA 12.

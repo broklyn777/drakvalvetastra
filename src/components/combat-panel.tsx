@@ -309,13 +309,28 @@ export function CombatPanel({
                 <HeartPulse size={15} />
                 Läkebrygd ({hero.potions})
               </button>
-              <button
-                className="button subtle"
-                disabled={!yourTurn || hero.herbs < 1 || hero.hp >= hero.maxHp}
-                onClick={() => act({ type: 'herbs' })}
-              >
-                Örter ({hero.herbs})
-              </button>
+              {hero.selection.talent === 'supply' ? (
+                // Healer's Battle Medic: tend the ally chosen below (or yourself).
+                <button
+                  className="button subtle"
+                  disabled={(() => {
+                    const patient = game.players.find((p) => p.id === ally) ?? hero;
+                    return !yourTurn || hero.herbs < 1 || patient.hp >= patient.maxHp;
+                  })()}
+                  onClick={() => act({ type: 'herbs', target: ally })}
+                >
+                  Battle Medic på {(game.players.find((p) => p.id === ally) ?? hero).name} (
+                  {hero.herbs})
+                </button>
+              ) : (
+                <button
+                  className="button subtle"
+                  disabled={!yourTurn || hero.herbs < 1 || hero.hp >= hero.maxHp}
+                  onClick={() => act({ type: 'herbs' })}
+                >
+                  Örter ({hero.herbs})
+                </button>
+              )}
             </div>
             {(game.players.length > 1 ||
               hero.className === 'Kleriker' ||

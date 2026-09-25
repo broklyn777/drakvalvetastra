@@ -63,6 +63,7 @@ export const characterSchema = z
     speed: z.number().int().min(0).max(500).default(30),
     fightingStyles: z.array(z.enum(['protection'])).max(10).default([]),
     inspiration: z.boolean().optional(),
+    hitDiceUsed: z.number().int().min(0).max(20).optional(),
   })
   .strict()
   .refine((p) => p.hp <= p.maxHp, 'Liv överstiger maxliv.');
@@ -144,6 +145,7 @@ const combatSchema = z
     distances: z.record(id, z.number().int().min(-10000).max(10000)).default({}),
     movementRemaining: z.record(id, z.number().int().min(0).max(1000)).default({}),
     breached: recordBool,
+    swapPending: id.nullable().optional(),
     stats: z.record(
       id,
       z.object({ damage: natural, taken: natural, crits: natural, healing: natural }).strict(),
@@ -276,7 +278,9 @@ export const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('help'), target: id }).strict(),
   z.object({ type: z.literal('move'), target: id.optional() }).strict(),
   z.object({ type: z.literal('dash'), target: id.optional() }).strict(),
-  ...(['defend', 'breakthrough', 'potion', 'herbs', 'continue'] as const).map((type) =>
+  z.object({ type: z.literal('herbs'), target: id.optional() }).strict(),
+  z.object({ type: z.literal('swapInitiative'), target: id.optional() }).strict(),
+  ...(['defend', 'breakthrough', 'potion', 'continue'] as const).map((type) =>
     z.object({ type: z.literal(type) }).strict(),
   ),
 ]);

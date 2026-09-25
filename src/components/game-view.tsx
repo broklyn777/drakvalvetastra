@@ -48,6 +48,62 @@ export function StoryText({ text }: { text: string }) {
     </>
   );
 }
+/** Alert's Initiative Swap, offered right after Initiative is rolled. */
+function InitiativeSwap({
+  game,
+  hero,
+  act,
+  disabled,
+}: {
+  game: GameState;
+  hero: Character;
+  act: (cmd: GameCommand) => void;
+  disabled: boolean;
+}) {
+  const c = game.combat!;
+  const alert = game.players.find((p) => p.id === c.swapPending)!;
+  const mine = hero.id === alert.id && !disabled;
+  const total = (id: string) => c.initiative.find((e) => e.id === id)?.total;
+  return (
+    <div className="initiative-swap panel">
+      <p className="eyebrow">ALERT · INITIATIVE SWAP</p>
+      <h2>
+        {alert.name} har initiativ {total(alert.id)}
+      </h2>
+      <p>
+        {mine
+          ? 'Du kan byta initiativ med en kamrat innan någon agerar.'
+          : `Väntar på att ${alert.name} väljer om initiativet ska bytas.`}
+      </p>
+      <ol className="initiative-order">
+        {c.initiative.map((e) => (
+          <li key={e.id} className={e.kind}>
+            <strong>{e.total}</strong> {e.name}
+          </li>
+        ))}
+      </ol>
+      {mine && (
+        <div className="initiative-actions">
+          {game.players
+            .filter((p) => p.id !== alert.id && p.hp > 0)
+            .map((p) => (
+              <button
+                key={p.id}
+                className="button"
+                onClick={() => act({ type: 'swapInitiative', target: p.id })}
+              >
+                Byt med {p.name} ({total(p.id)})
+              </button>
+            ))}
+          <button className="button primary" onClick={() => act({ type: 'swapInitiative' })}>
+            Behåll min plats
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** The ability check that led into the current scene, if any. */
 function sceneCheck(game: GameState, title: string) {
   const entry = game.events.findLastIndex((e) => e.kind === 'story' && e.text === title);
@@ -285,6 +341,8 @@ export function GameView({
                 Till lägerelden
               </button>
             </div>
+          ) : game.combat?.swapPending ? (
+            <InitiativeSwap game={game} hero={hero} act={act} disabled={disabled} />
           ) : game.combat ? (
             <CombatPanel
               key={`${game.scene}-${hero.id}`}

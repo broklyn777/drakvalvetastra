@@ -4,7 +4,10 @@ import { emit, gainXp } from './events';
 import { hasFeat, heroD20, hitDie, initiativeBonus, PROFICIENCY } from './traits';
 
 export function currentActor(s: GameState) {
-  return s.combat?.initiative[s.combat.turn];
+  const c = s.combat;
+  // Alert's Initiative Swap is decided before anyone acts.
+  if (c?.swapPending) return c.initiative.find((e) => e.id === c.swapPending);
+  return c?.initiative[c.turn];
 }
 
 export function attackHits(roll: number, bonus: number, ac: number) {
@@ -184,6 +187,30 @@ export function startCombat(s: GameState, def: Encounter) {
       .map((e) => `${e.name}: ${e.die}${e.modifier >= 0 ? '+' : ''}${e.modifier} = ${e.total}`)
       .join(' · '),
   );
+  // Alert: Initiative Swap right after rolling, if the hero has a living ally to swap with.
+  const alert = s.players.find((p) => p.hp > 0 && hasFeat(p, 'keen'));
+  if (alert && s.players.some((p) => p.id !== alert.id && p.hp > 0)) {
+    c.swapPending = alert.id;
+    emit(s, 'story', `Alert: ${alert.name} kan byta initiativ med en kamrat.`);
+    return;
+  }
+  prepareTurn(s);
+}
+
+function swapInitiative(s: GameState, p: Character, targetId?: string) {
+  const c = s.combat!;
+  if (c.swapPending !== p.id) throw new Error('Initiative Swap går bara att välja när striden börjar.');
+  c.swapPending = null;
+  if (targetId) {
+    const ally = s.players.find((q) => q.id === targetId && q.id !== p.id && q.hp > 0);
+    if (!ally) throw new Error('Välj en levande kamrat.');
+    const a = c.initiative.findIndex((e) => e.id === p.id);
+    const b = c.initiative.findIndex((e) => e.id === ally.id);
+    const [ea, eb] = [c.initiative[a], c.initiative[b]];
+    c.initiative[a] = { ...eb, die: ea.die, modifier: ea.modifier, total: ea.total, tie: ea.tie };
+    c.initiative[b] = { ...ea, die: eb.die, modifier: eb.modifier, total: eb.total, tie: eb.tie };
+    emit(s, 'story', `${p.name} byter initiativ med ${ally.name}.`, `${ally.name} agerar nu på ${ea.total}, ${p.name} på ${eb.total}.`);
+  } else emit(s, 'story', `${p.name} behåller sitt initiativ.`);
   prepareTurn(s);
 }
 function next(c: Combat) {
@@ -432,30 +459,60 @@ function prepareTurn(s: GameState) {
   }
   throw new Error('Turordningen kunde inte lösas.');
 }
-export function healItem(s: GameState, p: Character, type: 'potion' | 'herbs') {
+/** Healing Rerolls (Healer): a 1 on a healing die is rerolled once. */
+function healingDie(s: GameState, healer: Character, sides: number) {
+  const roll = die(s, sides);
+  return roll === 1 && hasFeat(healer, 'supply') ? die(s, sides) : roll;
+}
+
+export function healItem(
+  s: GameState,
+  p: Character,
+  type: 'potion' | 'herbs',
+  targetId?: string,
+) {
+  if (type === 'herbs' && hasFeat(p, 'supply')) return battleMedic(s, p, targetId ?? p.id);
   const key = type === 'potion' ? 'potions' : 'herbs';
   if (p[key] <= 0 || p.hp >= p.maxHp || p.hp <= 0)
     throw new Error('Du kan inte använda detta föremål nu.');
   p[key]--;
-  // Healer (Battle Medic): herbs work as a Healer's Kit — one Hit Die + Proficiency, 1s rerolled.
-  const healer = type === 'herbs' && hasFeat(p, 'supply');
-  const healerDie = () => {
-    const roll = die(s, hitDie(p));
-    return roll === 1 ? die(s, hitDie(p)) : roll;
-  };
-  const rolled = type === 'potion' ? die(s, 8) + 6 : healer ? healerDie() + PROFICIENCY : die(s, 4) + 3;
-  const amount = Math.min(p.maxHp - p.hp, rolled);
+  const amount = Math.min(p.maxHp - p.hp, type === 'potion' ? die(s, 8) + 6 : die(s, 4) + 3);
   p.hp += amount;
   if (s.combat) s.combat.stats[p.id].healing += amount;
   emit(
     s,
     'heal',
     `${p.name} återfår ${amount} liv.`,
-    type === 'potion'
-      ? 'Läkebrygd: 1T8 + 6.'
-      : healer
-        ? `Healer: 1d${hitDie(p)} + ${PROFICIENCY}, 1:or slås om.`
-        : 'Läkande örter: 1T4 + 3.',
+    type === 'potion' ? 'Läkebrygd: 1T8 + 6.' : 'Läkande örter: 1T4 + 3.',
+  );
+}
+
+/**
+ * Healer's Battle Medic: spend a use of the Healer's Kit (herbs) on a creature within 5 ft.
+ * That creature spends one of its Hit Point Dice; it regains the roll + the healer's Proficiency.
+ */
+function battleMedic(s: GameState, p: Character, targetId: string) {
+  const target = s.players.find((q) => q.id === targetId);
+  if (!target) throw new Error('Välj en kamrat.');
+  if (p.herbs <= 0) throw new Error("Ditt Healer's Kit är slut.");
+  if (target.hp >= target.maxHp) throw new Error(`${target.name} behöver ingen läkning.`);
+  const c = s.combat;
+  if (c?.usesDistance && distanceBetween(c, p.id, target.id) > 5)
+    throw new Error(`${target.name} är för långt bort. Battle Medic når 5 ft.`);
+  const used = target.hitDiceUsed ?? 0;
+  if (used >= target.level) throw new Error(`${target.name} har inga Hit Point Dice kvar.`);
+  p.herbs--;
+  target.hitDiceUsed = used + 1;
+  const sides = hitDie(target);
+  const roll = healingDie(s, p, sides);
+  const amount = Math.min(target.maxHp - target.hp, roll + PROFICIENCY);
+  target.hp += amount;
+  if (c) c.stats[p.id].healing += amount;
+  emit(
+    s,
+    'heal',
+    `${p.name} använder Battle Medic på ${target.id === p.id ? 'sig själv' : target.name}: +${amount} liv.`,
+    `Hit Point Die 1d${sides} (${roll}) + Proficiency ${PROFICIENCY}. Healing Rerolls slår om 1:or. ${target.level - target.hitDiceUsed} Hit Point Dice kvar.`,
   );
 }
 function weaponAttack(s: GameState, p: Character, target: string | undefined, special: boolean) {
@@ -575,6 +632,8 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
   const c = s.combat!;
   if (c.victory || currentActor(s)?.id !== p.id || p.hp <= 0)
     throw new Error('Det är inte din tur.');
+  if (cmd.type === 'swapInitiative') return swapInitiative(s, p, cmd.target);
+  if (c.swapPending) throw new Error('Välj först om du vill byta initiativ.');
   switch (cmd.type) {
     case 'attack':
       weaponAttack(s, p, cmd.target, false);
@@ -659,8 +718,10 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
       break;
     }
     case 'potion':
-    case 'herbs':
       healItem(s, p, cmd.type);
+      break;
+    case 'herbs':
+      healItem(s, p, cmd.type, cmd.target);
       break;
     case 'help': {
       const ally = s.players.find((q) => q.id === cmd.target && q.id !== p.id && q.hp > 0);
@@ -682,7 +743,10 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
       } else if (p.className === 'Kleriker') {
         const ally = s.players.find((q) => q.id === (cmd.target ?? p.id));
         if (!ally || ally.hp >= ally.maxHp) throw new Error('Välj någon som behöver läkning.');
-        const amount = Math.min(ally.maxHp - ally.hp, die(s, 6) + Math.max(0, modifier(p.wis)));
+        const amount = Math.min(
+          ally.maxHp - ally.hp,
+          healingDie(s, p, 6) + Math.max(0, modifier(p.wis)),
+        );
         ally.hp += amount;
         c.stats[p.id].healing += amount;
         emit(s, 'heal', `${p.name} läker ${ally.name} med Helande ord: +${amount} liv.`);

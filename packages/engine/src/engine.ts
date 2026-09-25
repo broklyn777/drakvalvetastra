@@ -128,7 +128,8 @@ export function dispatch(
       if (!s.combat?.victory) throw new Error('Striden är inte över.');
       enter(s, campaign, s.combat.onWin, actor);
     } else if (s.combat) combatAction(s, p, command);
-    else if (command.type === 'potion' || command.type === 'herbs') healItem(s, p, command.type);
+    else if (command.type === 'potion') healItem(s, p, command.type);
+    else if (command.type === 'herbs') healItem(s, p, command.type, command.target);
     else throw new Error('Du är inte i strid.');
     s.revision++;
     return { ok: true, state: s };

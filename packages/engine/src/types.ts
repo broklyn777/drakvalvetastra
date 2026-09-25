@@ -64,6 +64,8 @@ export interface Character extends Attributes {
   fightingStyles: FightingStyle[];
   /** Human Resourceful: Heroic Inspiration, spent on a reroll until the next Long Rest. */
   inspiration?: boolean;
+  /** Hit Point Dice spent (e.g. on a Healer's Battle Medic) since the last Long Rest. */
+  hitDiceUsed?: number;
 }
 export interface World {
   miraTrust: number;
@@ -177,6 +179,8 @@ export interface Combat {
   distances: Record<string, number>;
   movementRemaining: Record<string, number>;
   breached: Record<string, boolean>;
+  /** Alert: hero who may still use Initiative Swap before the first turn. */
+  swapPending?: string | null;
   stats: Record<string, CombatStats>;
 }
 export interface JournalEntry {
@@ -251,7 +255,8 @@ export type GameCommand =
   | { type: 'ability'; target?: string }
     | { type: 'help'; target: string }
   | { type: 'move' | 'dash'; target?: string }
-  | { type: 'defend' | 'breakthrough' | 'potion' | 'herbs' | 'continue' };
+  | { type: 'herbs' | 'swapInitiative'; target?: string }
+  | { type: 'defend' | 'breakthrough' | 'potion' | 'continue' };
 export interface CommandEnvelope {
   id: string;
   revision: number;

@@ -3251,3 +3251,33 @@ summary::-webkit-details-marker {
   margin: 0 18px 18px;
   font-size: 11px;
 }
+/* Alert: Initiative Swap prompt. */
+.initiative-swap {
+  margin-top: 24px;
+  padding: 20px;
+}
+.initiative-swap h2 {
+  margin: 6px 0;
+}
+.initiative-order {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+}
+.initiative-order li {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+.initiative-order li.hero {
+  border-color: var(--gold);
+}
+.initiative-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
