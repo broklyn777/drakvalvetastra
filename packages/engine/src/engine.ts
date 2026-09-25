@@ -38,7 +38,7 @@ export function availableChoices(s: GameState, campaign: Campaign, actor?: strin
   const def = sceneFor(s, campaign, actor).choices;
   return (typeof def === 'function' ? def() : (def ?? [])).filter(([, next]) => next !== 'restart');
 }
-function enter(s: GameState, campaign: Campaign, id: string, actor: string) {
+export function enter(s: GameState, campaign: Campaign, id: string, actor: string) {
   s.scene = id;
   s.combat = null;
   s.world.xpNotice = null;

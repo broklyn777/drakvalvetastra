@@ -4,6 +4,7 @@ import { campaigns, getCampaign } from '../../packages/content/src';
 import { createCharacter } from '../../packages/engine/src/characters';
 import { currentActor } from '../../packages/engine/src/combat';
 import { createGame, dispatch } from '../../packages/engine/src/engine';
+import { createTestGame, type TestStart } from '../../packages/engine/src/testing';
 import type {
   Character,
   CharacterSelection,
@@ -159,6 +160,17 @@ export function useGame() {
     setScreen('game');
     setError('');
   };
+  /** Preview/local test mode: start directly in a chosen scene. */
+  const startTest = (test: TestStart) => {
+    setRoom(null);
+    setCampaignId(test.campaignId);
+    setGame(
+      createTestGame(getCampaign(test.campaignId), test, crypto.randomUUID(), crypto.randomUUID()),
+    );
+    setScreen('game');
+    setError('');
+    setNotice(`Testläge: startar i ${test.scene} med seed ${test.seed}.`);
+  };
   const load = (state: GameState) => {
     setRoom(null);
     setGame(state);
@@ -265,6 +277,7 @@ export function useGame() {
     pending,
     report,
     start,
+    startTest,
     load,
     act,
     createRoom,
