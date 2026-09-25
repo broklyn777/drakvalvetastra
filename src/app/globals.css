@@ -2882,7 +2882,9 @@ summary::-webkit-details-marker {
   transition: fill 0.18s ease, stroke 0.18s ease;
 }
 .d20-svg.roll {
-  animation: d20-svg-tumble 0.48s cubic-bezier(0.2, 0.72, 0.2, 1);
+  transform: scale(1.05);
+  filter: brightness(1.05);
+  transition: transform 0.16s ease, filter 0.16s ease;
 }
 .d20-svg.land {
   animation: d20-svg-land 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -2907,23 +2909,6 @@ summary::-webkit-details-marker {
   font-size: 13px;
   font-weight: 500;
   color: var(--muted);
-}
-@keyframes d20-svg-tumble {
-  0% {
-    transform: translateY(12px) rotate(0deg) scale(0.94);
-    filter: brightness(0.9);
-  }
-  42% {
-    transform: translateY(-18px) rotate(215deg) scale(1.04);
-    filter: brightness(1.12);
-  }
-  78% {
-    transform: translateY(3px) rotate(332deg) scale(0.99);
-  }
-  100% {
-    transform: none;
-    filter: brightness(1);
-  }
 }
 @keyframes d20-svg-land {
   0% { transform: translateY(-4px) scale(1.1); }
