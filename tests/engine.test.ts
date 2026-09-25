@@ -191,6 +191,63 @@ describe('taktisk strid', () => {
     expect(a).toEqual(b);
     expect(battle(a)).toEqual(battle(JSON.parse(JSON.stringify(b))));
   });
+  it('completes the full combat loop from encounter start to XP and story continuation', () => {
+    let s = choose(choose(game(42), 'inn'), 'door');
+    const xpBefore = s.players[0].xp;
+
+    expect(s.combat).not.toBeNull();
+    expect(s.combat!.victory).toBe(false);
+
+    // This test verifies combat state transitions, not encounter balance or RNG.
+    // Make the fixture deliberately one-sided so future dice/balance changes cannot make it flaky.
+    s.players[0].maxHp = 999;
+    s.players[0].hp = 999;
+    for (const enemy of s.combat!.enemies) {
+      enemy.maxHp = 1;
+      enemy.hp = 1;
+    }
+
+    s = battle(s);
+
+    expect(s.status).toBe('active');
+    expect(s.combat!.victory).toBe(true);
+    expect(s.combat!.enemies.every((enemy) => enemy.hp === 0)).toBe(true);
+    expect(s.players[0].xp).toBeGreaterThan(xpBefore);
+    expect(s.events.some((event) => event.text === 'Striden är vunnen.')).toBe(true);
+
+    s = action(s, { type: 'continue' });
+
+    expect(s.scene).toBe('afterBandits');
+    expect(s.combat).toBeNull();
+  });
+
+  it('allows free movement before an attack on the same turn', () => {
+    const s = game(42);
+    startCombat(s, campaign.scenes(s, 'hero-0').door.combat!);
+    s.combat!.initiative.sort((a, b) => (a.id === 'hero-0' ? -1 : b.id === 'hero-0' ? 1 : 0));
+    s.combat!.turn = 0;
+
+    const target = s.combat!.enemies.find((enemy) => enemy.preferredAttack === 'melee')!;
+    s.combat!.distances['hero-0'] = 0;
+    target.distance = 10;
+
+    expect(attackAvailability(s, s.players[0], target).ok).toBe(false);
+
+    const moved = action(s, { type: 'move', target: target.id }, 'hero-0');
+
+    expect(currentActor(moved)?.id).toBe('hero-0');
+    expect(moved.combat!.movementRemaining['hero-0']).toBeLessThan(s.players[0].speed);
+    expect(attackAvailability(moved, moved.players[0], target).ok).toBe(true);
+  });
+
+  it('lets a melee hero attack immediately on the first turn of the opening fight', () => {
+    let s = choose(choose(game(42), 'inn'), 'door');
+    const meleeBandit = s.combat!.enemies.find((enemy) => enemy.preferredAttack === 'melee')!;
+
+    expect(meleeBandit.distance).toBe(5);
+    expect(attackAvailability(s, s.players[0], meleeBandit).ok).toBe(true);
+  });
+
   it('uses real distance for the first fight and rejects out-of-turn actions', () => {
     let s = choose(choose(game(42), 'inn'), 'door');
     const rangedBandit = s.combat!.enemies.find((e) => e.preferredAttack === 'ranged')!;

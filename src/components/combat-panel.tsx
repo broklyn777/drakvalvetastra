@@ -44,6 +44,20 @@ export function CombatPanel({
   const target =
     c.enemies.find((e) => e.id === selected && canTarget(game, hero, e)) ??
     c.enemies.find((e) => canTarget(game, hero, e));
+  const targetAvailability = target ? attackAvailability(game, hero, target) : null;
+  const movementRemaining = c.movementRemaining[hero.id] ?? 0;
+  const shouldMoveTowardTarget =
+    yourTurn &&
+    !!target &&
+    c.usesDistance &&
+    !targetAvailability?.ok &&
+    movementRemaining > 0;
+  const shouldDashTowardTarget =
+    yourTurn &&
+    !!target &&
+    c.usesDistance &&
+    !targetAvailability?.ok &&
+    movementRemaining <= 0;
   const ability = abilities[hero.selection.class];
 
   useEffect(() => {
@@ -135,15 +149,20 @@ export function CombatPanel({
       {c.victory ? (
         <div className="victory">
           <Trophy size={38} />
-          <h2>En seger att minnas.</h2>
-          <p>+{Math.floor(c.reward / game.players.length)} erfarenhet per hjälte</p>
+          <h2>Striden är vunnen.</h2>
+          <p>
+            Runda {c.round} · {c.enemies.length} fiender besegrade · +
+            {Math.floor(c.reward / game.players.length)} XP per hjälte
+          </p>
           <div className="battle-stats">
             {game.players.map((p) => (
               <p key={p.id}>
-                <strong>{p.name}</strong>
+                <strong>
+                  {p.name} · {p.hp}/{p.maxHp} liv
+                </strong>
                 <span>
                   {c.stats[p.id].damage} skada · {c.stats[p.id].taken} mottagen ·{' '}
-                  {c.stats[p.id].healing} läkt
+                  {c.stats[p.id].healing} läkt · {c.stats[p.id].crits} kritiska
                 </span>
               </p>
             ))}
@@ -233,12 +252,37 @@ export function CombatPanel({
           <div className="combat-actions">
             <button
               className="button primary"
-              disabled={!yourTurn || !target || !attackAvailability(game, hero, target).ok}
-              title={target ? attackAvailability(game, hero, target).reason : undefined}
-              onClick={() => openAttackRoll(target!.id)}
+              disabled={!yourTurn || !target}
+              title={targetAvailability?.reason || 'Målet är inom räckvidd.'}
+              onClick={() => {
+                if (!target) return;
+                if (targetAvailability?.ok) {
+                  openAttackRoll(target.id);
+                  return;
+                }
+                if (shouldMoveTowardTarget) {
+                  act({ type: 'move', target: target.id });
+                  return;
+                }
+                if (shouldDashTowardTarget) act({ type: 'dash', target: target.id });
+              }}
             >
-              <Swords size={17} />
-              Anfall
+              {targetAvailability?.ok ? (
+                <>
+                  <Swords size={17} />
+                  Anfall
+                </>
+              ) : shouldMoveTowardTarget ? (
+                <>
+                  <MoveHorizontal size={17} />
+                  Flytta mot mål
+                </>
+              ) : (
+                <>
+                  <ChevronsRight size={17} />
+                  Dash mot mål
+                </>
+              )}
             </button>
             <button
               className="button"
@@ -265,7 +309,9 @@ export function CombatPanel({
             </button>
           </div>
           <p className="ability-description">
-            {ability.description} Varje handling använder din tur.
+            {targetAvailability && !targetAvailability.ok && c.usesDistance
+              ? `Målet är utanför räckvidd: ${targetAvailability.reason}. Förflyttning använder inte din handling, så flytta först och anfall under samma tur om du når fram.`
+              : `${ability.description} Varje handling använder din tur.`}
           </p>
           <details className="tactics">
             <summary>Fler handlingar & föremål</summary>
