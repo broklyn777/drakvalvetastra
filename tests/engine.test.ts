@@ -4,6 +4,7 @@ import { createCharacter, createLevel1PaladinPreset } from '../packages/engine/s
 import { availableChoices, createGame, dispatch, sceneFor } from '../packages/engine/src/engine';
 import { attackAvailability, attackHits, canTarget, currentActor, startCombat, typedDamage } from '../packages/engine/src/combat';
 import { gainXp } from '../packages/engine/src/events';
+import { checkChance, checkTarget } from '../packages/engine/src/checks';
 import { parseSave } from '../packages/persistence/src/saves';
 import { makeSave } from '../packages/protocol/src/schema';
 import type { CharacterSelection, GameCommand, GameState } from '../packages/engine/src/types';
@@ -53,7 +54,7 @@ function battle(s: GameState) {
   return s;
 }
 describe('kampanj och karaktärer', () => {
-  it('preserves all 42 scenes and validates every destination in both campaigns', () => {
+  it('preserves the 42 original scenes plus check outcomes and validates every destination', () => {
     for (const campaign of Object.values(campaigns)) {
       const s = createGame(campaign, [createCharacter(selection, 'hero')], 10, 'game');
       // Unlock every conditional branch to verify all edges as well as initial edges.
@@ -71,12 +72,14 @@ describe('kampanj och karaktärer', () => {
           leftSealed: flags,
         });
         const scenes = campaign.scenes(s, 'hero');
-        expect(Object.keys(scenes)).toHaveLength(42);
+        expect(Object.keys(scenes)).toHaveLength(44);
         for (const scene of Object.values(scenes)) {
           const choices =
             typeof scene.choices === 'function' ? scene.choices() : (scene.choices ?? []);
-          for (const [, next] of choices)
+          for (const [, next, check] of choices) {
             if (next !== 'restart') expect(scenes[next], next).toBeDefined();
+            if (check) expect(scenes[check.fail], check.fail).toBeDefined();
+          }
           if (scene.combat) expect(scenes[scene.combat.onWin]).toBeDefined();
         }
       }
@@ -302,10 +305,12 @@ describe('sparningar och hela berättelsen', () => {
       'camp',
       'towerExterior',
       'towerSneak',
-      'towerHall',
-      'cryptBeast',
     ])
       s = choose(s, id);
+    // The climb is an ability check; both outcomes must lead on to the hall.
+    if (s.scene === 'towerSneakFail') s = action(battle(s), { type: 'continue' });
+    else s = choose(s, 'towerHall');
+    s = choose(s, 'cryptBeast');
     s = battle(s);
     expect(s.combat!.victory).toBe(true);
     s = action(s, { type: 'continue' });
@@ -336,5 +341,70 @@ describe('sparningar och hela berättelsen', () => {
     const s = createGame(getCampaign('skogsby'), [createCharacter(selection, 'hero')], 4, 'second');
     expect(s.scene).toBe('skogsbyReturn');
     expect(availableChoices(s, getCampaign('skogsby'))).toHaveLength(1);
+  });
+});
+describe('färdighetsslag', () => {
+  function atTower(seed: number, patch: Partial<GameState['players'][number]> = {}) {
+    const s = game(seed);
+    Object.assign(s.players[0], { rope: true, sigil: true, ...patch });
+    s.scene = 'towerExterior';
+    return s;
+  }
+  function seedWhere(pred: (s: GameState) => boolean, next: string, patch = {}) {
+    // Spread seeds: xorshift's first roll from a tiny seed is always low.
+    for (let i = 1; i < 500; i++) {
+      const seed = Math.imul(i, 2654435761) >>> 0;
+      if (pred(choose(atTower(seed, patch), next))) return seed;
+    }
+    throw new Error('Inget frö gav önskat utfall.');
+  }
+  it('shows the check on the choice and computes the chance from the best attribute', () => {
+    const s = atTower(1, { str: 16, dex: 8, cha: 8 });
+    const choices = availableChoices(s, campaign, 'hero-0');
+    const climb = choices.find(([, next]) => next === 'towerSneak')![2]!;
+    const bluff = choices.find(([, next]) => next === 'towerBluff')![2]!;
+    expect(climb).toMatchObject({ skill: 'Athletics', attributes: ['str'], dc: 10 });
+    // STR 16 → +3; needs 7+ on d20 → 70 %.
+    expect(checkChance(s.players[0], climb)).toBeCloseTo(0.7);
+    expect(checkTarget(s.players[0], climb)).toBe(7);
+    // CHA 8 → −1 vs DC 12; needs 13+ → 40 %.
+    expect(checkChance(s.players[0], bluff)).toBeCloseTo(0.4);
+    expect(checkChance({ ...s.players[0], cha: 40 }, bluff)).toBe(1);
+  });
+  it('routes success and failure, logs the roll and awards story XP only on success', () => {
+    const okSeed = seedWhere((s) => s.scene === 'towerBluff', 'towerBluff');
+    const ok = choose(atTower(okSeed), 'towerBluff');
+    const okEvent = ok.events.find((e) => e.check)!;
+    expect(okEvent.check).toMatchObject({ skill: 'Deception', attribute: 'cha', dc: 12, success: true });
+    expect(okEvent.check!.total).toBe(okEvent.check!.roll + okEvent.check!.modifier);
+    expect(ok.world.xpAwards.towerBluff).toBe(true);
+
+    const badSeed = seedWhere((s) => s.scene === 'towerBluffFail', 'towerBluff');
+    const bad = choose(atTower(badSeed), 'towerBluff');
+    expect(bad.combat?.onWin).toBe('towerHall');
+    expect(bad.events.find((e) => e.check)!.check!.success).toBe(false);
+    expect(bad.world.xpAwards.towerBluff).toBeUndefined();
+  });
+  it('a failed climb costs HP but never knocks the hero out, then starts a surprised fight', () => {
+    const fall = atTower(3, { hp: 2 });
+    campaign.scenes(fall, 'hero-0').towerSneakFail.effect!();
+    expect(fall.players[0].hp).toBe(1);
+    expect(fall.events.at(-1)!.kind).toBe('damage');
+
+    const weak = { str: 8, dex: 8 };
+    const seed = seedWhere((s) => s.scene === 'towerSneakFail', 'towerSneak', weak);
+    const s = choose(atTower(seed, weak), 'towerSneak');
+    expect(s.combat?.onWin).toBe('towerHall');
+    expect(s.events.some((e) => e.text.includes('faller och tar'))).toBe(true);
+    expect(s.players[0].weapon).not.toContain('Vaktsvärd');
+  });
+  it('is deterministic, survives a save round-trip and rejected choices roll nothing', () => {
+    const a = choose(atTower(7), 'towerBluff');
+    expect(a).toEqual(choose(atTower(7), 'towerBluff'));
+    expect(parseSave(makeSave(a, 'Check')).state).toEqual(a);
+    const before = atTower(7, { sigil: false });
+    const result = dispatch(before, campaign, 'hero-0', { type: 'choose', next: 'towerBluff' });
+    expect(result.ok).toBe(false);
+    expect(result.state.seed).toBe(before.seed);
   });
 });

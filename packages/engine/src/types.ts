@@ -115,7 +115,15 @@ export interface Encounter {
   fixedEnemies?: boolean;
   usesDistance?: boolean;
 }
-export type Choice = [label: string, next: string];
+export type AttributeKey = keyof Attributes;
+/** Optional ability check on a story choice: success enters `next`, failure enters `fail`. */
+export interface SkillCheck {
+  skill: string;
+  attributes: AttributeKey[];
+  dc: number;
+  fail: string;
+}
+export type Choice = [label: string, next: string, check?: SkillCheck];
 export interface Scene {
   title: string;
   text: string[] | (() => string[]);
@@ -206,6 +214,17 @@ export interface GameEvent {
   text: string;
   detail?: string;
   dice?: DiceRollEvent;
+  check?: SkillCheckEvent;
+}
+export interface SkillCheckEvent {
+  actorId: string;
+  skill: string;
+  attribute: AttributeKey;
+  roll: number;
+  modifier: number;
+  total: number;
+  dc: number;
+  success: boolean;
 }
 export interface GameState {
   schemaVersion: 1;
