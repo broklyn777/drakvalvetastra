@@ -1,20 +1,22 @@
 # feature/dice-polish
 
-**Ägare:** ChatGPT · **Status:** redo för preview-test
+**Ägare:** ChatGPT · **Status:** redo för preview-test efter SVG-uppdatering
 **Förhandsvisning:** https://drakvalvetastra-git-feature-dice-polish-broklyn777s-projects.vercel.app
 
 ## För spelaren
 
-- Ability Check-tärningen har fått tydligare d20-form och facetter.
-- Själva rullanimationen är kortare och snabbare så återkommande slag inte känns sega.
-- Resultatet landar med en kort bounce och får diskret visuell skillnad mellan lyckat och misslyckat slag.
-- Natural 20 och Natural 1 får lite extra visuell karaktär utan att ändra reglerna.
+- Ability Check använder nu en riktig SVG-ritad d20 med tydliga facetter.
+- Den kompakta layouten visar tärningen centralt och resultatet direkt under.
+- Resultatraden använder **Träff! / Miss!** och visar det riktiga slaget, ability-modifiern och totalen, till exempel `12 + 2 = 14 (Krav: DC 10)`.
+- Själva rullanimationen är kort och kosmetisk; slutvärdet kommer alltid från motorn.
+- Natural 20 får en diskret guldburst utan att ändra reglerna.
 
 ## Tekniskt
 
 - Ingen ändring av RNG, DC, modifiers eller success/failure-logik.
-- Ability Check-animationen har kortats från 0,9 s till 0,56 s.
-- Resultatpresentationen använder endast CSS-klasser från det redan serverbestämda check-resultatet.
+- Ability Check-animationen är cirka 0,48 s med cirka 0,18 s landning.
+- Slumpade siffror under animationen är endast kosmetiska. Engine-eventets `roll`, `modifier`, `total` och `dc` används i slutresultatet.
+- STR/DEX/CON/INT/WIS/CHA-bonus hämtas alltså från samma riktiga Ability Check-data som tidigare.
 
 ## Verifierat
 
