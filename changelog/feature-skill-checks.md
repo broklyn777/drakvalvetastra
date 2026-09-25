@@ -23,4 +23,4 @@
 ## Verifierat
 
 - `npm test` 31/31, `npm run typecheck` och `npm run build` lokalt.
-- Inte provspelat hela vägen till tornet i webbläsaren.
+- Provspelat av Björn i Vercel-förhandsvisningen med testsparningar vid tornet: både lyckade och misslyckade slag.
