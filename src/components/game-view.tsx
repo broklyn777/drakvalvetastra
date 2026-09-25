@@ -199,7 +199,7 @@ export function GameView({
         () => setCheckRoll((current) => (current?.phase === 'waiting' ? null : current)),
         5000,
       );
-    }, 480);
+    }, 630);
   }
   const chapter = game.visited.includes('skogsbyReturn')
     ? 'Kapitel I · Skogsby'
