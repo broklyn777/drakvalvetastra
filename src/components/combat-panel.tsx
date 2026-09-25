@@ -135,15 +135,20 @@ export function CombatPanel({
       {c.victory ? (
         <div className="victory">
           <Trophy size={38} />
-          <h2>En seger att minnas.</h2>
-          <p>+{Math.floor(c.reward / game.players.length)} erfarenhet per hjälte</p>
+          <h2>Striden är vunnen.</h2>
+          <p>
+            Runda {c.round} · {c.enemies.length} fiender besegrade · +
+            {Math.floor(c.reward / game.players.length)} XP per hjälte
+          </p>
           <div className="battle-stats">
             {game.players.map((p) => (
               <p key={p.id}>
-                <strong>{p.name}</strong>
+                <strong>
+                  {p.name} · {p.hp}/{p.maxHp} liv
+                </strong>
                 <span>
                   {c.stats[p.id].damage} skada · {c.stats[p.id].taken} mottagen ·{' '}
-                  {c.stats[p.id].healing} läkt
+                  {c.stats[p.id].healing} läkt · {c.stats[p.id].crits} kritiska
                 </span>
               </p>
             ))}
