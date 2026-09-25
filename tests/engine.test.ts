@@ -191,6 +191,27 @@ describe('taktisk strid', () => {
     expect(a).toEqual(b);
     expect(battle(a)).toEqual(battle(JSON.parse(JSON.stringify(b))));
   });
+  it('completes the full combat loop from encounter start to XP and story continuation', () => {
+    let s = choose(choose(game(42), 'inn'), 'door');
+    const xpBefore = s.players[0].xp;
+
+    expect(s.combat).not.toBeNull();
+    expect(s.combat!.victory).toBe(false);
+
+    s = battle(s);
+
+    expect(s.status).toBe('active');
+    expect(s.combat!.victory).toBe(true);
+    expect(s.combat!.enemies.every((enemy) => enemy.hp === 0)).toBe(true);
+    expect(s.players[0].xp).toBeGreaterThan(xpBefore);
+    expect(s.events.some((event) => event.text === 'Striden är vunnen.')).toBe(true);
+
+    s = action(s, { type: 'continue' });
+
+    expect(s.scene).toBe('afterBandits');
+    expect(s.combat).toBeNull();
+  });
+
   it('uses real distance for the first fight and rejects out-of-turn actions', () => {
     let s = choose(choose(game(42), 'inn'), 'door');
     const rangedBandit = s.combat!.enemies.find((e) => e.preferredAttack === 'ranged')!;
