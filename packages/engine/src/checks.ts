@@ -16,9 +16,14 @@ export function checkAttribute(p: Character, check: SkillCheck) {
   return check.attributes.reduce((best, key) => (p[key] > p[best] ? key : best));
 }
 
+/** Lowest natural d20 roll that succeeds; ≤ 1 always succeeds, > 20 never does. */
+export function checkTarget(p: Character, check: SkillCheck) {
+  return check.dc - modifier(p[checkAttribute(p, check)]);
+}
+
 /** Chance of success for d20 + modifier ≥ DC. Ability checks have no automatic 1/20. */
 export function checkChance(p: Character, check: SkillCheck) {
-  const needed = check.dc - modifier(p[checkAttribute(p, check)]);
+  const needed = checkTarget(p, check);
   return Math.min(1, Math.max(0, (21 - needed) / 20));
 }
 

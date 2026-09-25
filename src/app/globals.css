@@ -2701,6 +2701,14 @@ summary::-webkit-details-marker {
   font-size: 11px;
   margin-bottom: 24px;
 }
+.dice-target {
+  color: #d1d6bc;
+  font-size: 13px;
+  margin: -12px 0 20px;
+}
+.dice-target strong {
+  color: var(--gold);
+}
 .dice-stage {
   min-height: 150px;
   display: flex;

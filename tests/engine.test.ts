@@ -4,7 +4,7 @@ import { createCharacter, createLevel1PaladinPreset } from '../packages/engine/s
 import { availableChoices, createGame, dispatch, sceneFor } from '../packages/engine/src/engine';
 import { attackAvailability, attackHits, canTarget, currentActor, startCombat, typedDamage } from '../packages/engine/src/combat';
 import { gainXp } from '../packages/engine/src/events';
-import { checkChance } from '../packages/engine/src/checks';
+import { checkChance, checkTarget } from '../packages/engine/src/checks';
 import { parseSave } from '../packages/persistence/src/saves';
 import { makeSave } from '../packages/protocol/src/schema';
 import type { CharacterSelection, GameCommand, GameState } from '../packages/engine/src/types';
@@ -366,6 +366,7 @@ describe('färdighetsslag', () => {
     expect(climb).toMatchObject({ skill: 'Athletics', attributes: ['str'], dc: 10 });
     // STR 16 → +3; needs 7+ on d20 → 70 %.
     expect(checkChance(s.players[0], climb)).toBeCloseTo(0.7);
+    expect(checkTarget(s.players[0], climb)).toBe(7);
     // CHA 8 → −1 vs DC 12; needs 13+ → 40 %.
     expect(checkChance(s.players[0], bluff)).toBeCloseTo(0.4);
     expect(checkChance({ ...s.players[0], cha: 40 }, bluff)).toBe(1);

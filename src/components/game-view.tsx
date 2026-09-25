@@ -29,7 +29,12 @@ import type {
 import { WorldArt } from './world-art';
 import { CombatPanel } from './combat-panel';
 import { modifier } from '../../packages/engine/src/random';
-import { attributeLabels, checkAttribute, checkChance } from '../../packages/engine/src/checks';
+import {
+  attributeLabels,
+  checkAttribute,
+  checkChance,
+  checkTarget,
+} from '../../packages/engine/src/checks';
 export function StoryText({ text }: { text: string }) {
   return (
     <>
@@ -349,6 +354,21 @@ export function GameView({
                 {modifier(hero[checkAttribute(hero, checkRoll.check)]) >= 0 ? '+' : ''}
                 {modifier(hero[checkAttribute(hero, checkRoll.check)])}) · DC {checkRoll.check.dc}
               </p>
+              {checkRoll.phase !== 'result' && (
+                <p className="dice-target">
+                  {checkTarget(hero, checkRoll.check) <= 1 ? (
+                    'Du lyckas vad tärningen än visar'
+                  ) : checkTarget(hero, checkRoll.check) > 20 ? (
+                    'Du kan inte lyckas med det här slaget'
+                  ) : (
+                    <>
+                      Du behöver slå <strong>{checkTarget(hero, checkRoll.check)} eller mer</strong>{' '}
+                      på d20
+                    </>
+                  )}{' '}
+                  · {Math.round(checkChance(hero, checkRoll.check) * 100)}% chans
+                </p>
+              )}
               {checkRoll.phase !== 'result' || !checkRoll.result ? (
                 <>
                   <div className={`dice-stage ${checkRoll.phase !== 'ready' ? 'rolling' : ''}`}>
