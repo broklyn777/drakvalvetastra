@@ -5,9 +5,9 @@
 
 ## För spelaren
 
-- Ability Check och Attack Roll använder nu Geminis enkla tärningsruta: stillastående ruta, snabbt sifferflimmer och därefter motorns riktiga resultat.
+- Ability Check, Attack Roll och damage-rolls använder nu samma Gemini-stil: stillastående tärningsruta, snabbt sifferflimmer och därefter motorns riktiga resultat.
 - Den kompakta layouten visar tärningen centralt och resultatet direkt under.
-- Resultatraden använder **Träff! / Miss!**. Ability Checks visar riktig ability-modifier och total, till exempel `12 + 2 = 14 (Krav: DC 10)`, och Attack Rolls visar riktig Attack Bonus mot AC.
+- Resultatraden använder **Träff! / Miss!**. Ability Checks visar riktig ability-modifier och total, Attack Rolls visar riktig Attack Bonus mot AC, och skadetärningar visar riktiga damage-rolls och bonusar från motorn.
 - Ingen rotation, tumble, bounce eller SVG-effekt används längre. Siffrorna flimrar cirka 0,63 s och slutvärdet kommer alltid från motorn.
 - Natural 20 får en diskret guldburst utan att ändra reglerna.
 
