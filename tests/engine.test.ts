@@ -198,6 +198,15 @@ describe('taktisk strid', () => {
     expect(s.combat).not.toBeNull();
     expect(s.combat!.victory).toBe(false);
 
+    // This test verifies combat state transitions, not encounter balance or RNG.
+    // Make the fixture deliberately one-sided so future dice/balance changes cannot make it flaky.
+    s.players[0].maxHp = 999;
+    s.players[0].hp = 999;
+    for (const enemy of s.combat!.enemies) {
+      enemy.maxHp = 1;
+      enemy.hp = 1;
+    }
+
     s = battle(s);
 
     expect(s.status).toBe('active');
