@@ -3281,3 +3281,17 @@ summary::-webkit-details-marker {
   flex-wrap: wrap;
   gap: 10px;
 }
+/* Ready-made heroes in the character creator. */
+.pregen-grid {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+.pregen-grid .option-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pregen-hint {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 10px 0 0;
+}

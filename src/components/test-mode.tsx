@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlaskConical, Link2, Play, Shuffle } from 'lucide-react';
-import { campaigns, classData, raceData, talentData } from '../../packages/content/src';
+import { campaigns, classData, pregenData, raceData, talentData } from '../../packages/content/src';
 import {
   defaultTestSelection,
   parseTestParams,
@@ -12,7 +12,7 @@ import {
   type TestItem,
   type TestStart,
 } from '../../packages/engine/src/testing';
-import type { CharacterSelection } from '../../packages/engine/src/types';
+import type { CharacterSelection, PregenId } from '../../packages/engine/src/types';
 
 /** Starts a game from `?scen=…` once on load; the query is then removed so reloads don't repeat it. */
 export function useTestLink(enabled: boolean, onStart: (test: TestStart) => void) {
@@ -51,7 +51,19 @@ export function TestMode({ onStart }: { onStart: (test: TestStart) => void }) {
     items,
   };
   const set = (key: keyof CharacterSelection) => (e: React.ChangeEvent<HTMLSelectElement>) =>
-    setSelection({ ...selection, [key]: e.target.value });
+    setSelection({ ...selection, [key]: e.target.value, pregen: undefined });
+  const pickPregen = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value as PregenId | '';
+    if (!id) return setSelection({ ...selection, pregen: undefined });
+    const hero = pregenData[id];
+    setSelection({
+      name: hero.name,
+      race: hero.race,
+      class: hero.class,
+      talent: hero.talent,
+      pregen: id,
+    });
+  };
 
   async function copyLink() {
     const url = `${window.location.origin}${window.location.pathname}?${testParams(test)}`;
@@ -89,6 +101,17 @@ export function TestMode({ onStart }: { onStart: (test: TestStart) => void }) {
             {scenes.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.title} · {s.id}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="wide">
+          Färdig hjälte
+          <select value={selection.pregen ?? ''} onChange={pickPregen}>
+            <option value="">Egen: välj nedan</option>
+            {Object.entries(pregenData).map(([id, hero]) => (
+              <option key={id} value={id}>
+                {hero.name} · {classData[hero.class].label}
               </option>
             ))}
           </select>

@@ -11,6 +11,9 @@ import type {
 import { die, modifier, rollDamage } from './random';
 import { emit, gainXp } from './events';
 import { hasFeat, heroD20, hitDie, initiativeBonus, PROFICIENCY } from './traits';
+import { weaponStats } from './characters';
+import { classData } from '../../content/src/characters';
+import { weaponData, type WeaponId } from '../../content/src/equipment';
 
 export function currentActor(s: GameState) {
   const c = s.combat;
@@ -76,33 +79,69 @@ interface HeroAttack {
   normalRange: number;
   longRange: number;
   reach: number;
-  mastery?: 'slow' | 'vex';
+  mastery?: 'slow' | 'vex' | 'sap';
+  /** Finesse or ranged weapons qualify for Sneak Attack. */
+  finesse?: boolean;
   /** Overrides for a second weapon; otherwise the character's own weapon is used. */
   name?: string;
+  attackBonus?: number;
   damage?: Dice;
   damageType?: DamageType;
 }
 
-/** `distance` is only known in fights with real distances; a ranger then draws a sword up close. */
+function weaponProfile(id: WeaponId, masteries: readonly string[]): HeroAttack {
+  const w = weaponData[id];
+  const ranged = w.kind === 'ranged';
+  return {
+    kind: w.kind,
+    normalRange: 'normalRange' in w ? w.normalRange : 0,
+    longRange: 'longRange' in w ? w.longRange : 0,
+    reach: ranged ? 0 : 5,
+    ...('mastery' in w && masteries.includes(id) ? { mastery: w.mastery } : {}),
+    finesse: 'finesse' in w || (ranged && !('spell' in w)),
+  };
+}
+
+/** The weapon currently carried as the hero's main weapon (it can be swapped by story loot). */
+function primaryWeapon(p: Character): WeaponId | undefined {
+  return (Object.keys(weaponData) as WeaponId[]).find((id) =>
+    p.weapon.startsWith(weaponData[id].label),
+  );
+}
+
+/**
+ * Picks the hero's weapon for an attack. `distance` is only known in fights with real distances:
+ * within 5 ft a melee weapon is drawn, farther away a ranged weapon that reaches.
+ */
 function heroAttackProfile(p: Character, distance = Infinity): HeroAttack {
-  if (p.className === 'Magiker') return { kind: 'ranged', normalRange: 120, longRange: 120, reach: 0 };
-  // D&D 2024 Longbow: 150/600 ft, Weapon Mastery Slow. Follows the weapon, not the class.
-  if (p.weapon.startsWith('Longbow')) {
-    // Ranger starting gear also has a Shortsword (1d6 Piercing, Weapon Mastery Vex).
-    if (p.className === 'Ranger' && distance <= 5)
+  const cls = classData[p.selection.class];
+  const rules = 'rules' in cls ? cls.rules : undefined;
+  const masteries: readonly string[] = rules?.masteries ?? [];
+  const mainId = primaryWeapon(p);
+  const main: HeroAttack = mainId
+    ? weaponProfile(mainId, masteries)
+    : p.weapon.startsWith('Eldpil')
+      ? { kind: 'ranged', normalRange: 120, longRange: 120, reach: 0 }
+      : // The original game's dagger is a finesse weapon.
+        { kind: 'melee', normalRange: 0, longRange: 0, reach: 5, finesse: p.weapon.startsWith('Dolk') };
+  if (!rules || distance === Infinity) return main;
+  const casting = 'casting' in rules ? rules.casting : undefined;
+  const others = (rules.weapons as readonly WeaponId[])
+    .filter((id) => id !== mainId)
+    .map((id) => {
+      const w = weaponData[id];
+      const { attackBonus, damage } = weaponStats(id, p, casting);
       return {
-        kind: 'melee',
-        normalRange: 0,
-        longRange: 0,
-        reach: 5,
-        mastery: 'vex',
-        name: 'Shortsword (d6)',
-        damage: [1, 6, modifier(p.dex)],
-        damageType: 'Stick',
+        ...weaponProfile(id, masteries),
+        name: `${w.label} (d${w.dice[1]})`,
+        attackBonus,
+        damage,
+        damageType: w.damageType,
       };
-    return { kind: 'ranged', normalRange: 150, longRange: 600, reach: 0, mastery: 'slow' };
-  }
-  return { kind: 'melee', normalRange: 0, longRange: 0, reach: 5 };
+    });
+  const all = [main, ...others];
+  if (distance <= 5) return all.find((w) => w.kind === 'melee') ?? main;
+  return all.find((w) => w.kind === 'ranged' && distance <= w.longRange) ?? main;
 }
 
 export function isRangedHero(p: Character) {
@@ -129,11 +168,12 @@ export function attackAvailability(s: GameState, p: Character, e: Enemy) {
       ok: false,
       reason: `${distance} ft bort · max range ${profile.longRange} ft`,
     };
+  const weapon = profile.name ? ` · ${profile.name}` : '';
   if (profile.kind === 'ranged' && distance > profile.normalRange)
-    return { ok: true, reason: `${distance} ft · long range, nackdel` };
+    return { ok: true, reason: `${distance} ft${weapon} · long range, nackdel` };
   if (profile.kind === 'ranged' && distance <= 5)
-    return { ok: true, reason: `${distance} ft · fiende nära, nackdel` };
-  if (profile.name) return { ok: true, reason: `${distance} ft · ${profile.name}` };
+    return { ok: true, reason: `${distance} ft${weapon} · fiende nära, nackdel` };
+  if (profile.name) return { ok: true, reason: `${distance} ft${weapon}` };
   return { ok: true, reason: `${distance} ft bort` };
 }
 export function typedDamage(e: Enemy, amount: number, type: Character['damageType']) {
@@ -218,6 +258,8 @@ export function startCombat(s: GameState, def: Encounter) {
     marked: {},
     slowed: {},
     vexed: {},
+    sapped: {},
+    bonusUsed: {},
     stats: {},
   };
   for (const p of s.players) {
@@ -226,7 +268,11 @@ export function startCombat(s: GameState, def: Encounter) {
     c.movementRemaining[p.id] = p.speed;
     c.reactionUsed[p.id] = false;
     c.stats[p.id] = { damage: 0, taken: 0, crits: 0, healing: 0 };
-    if (p.className === 'Ranger' && !p.hunterMarks) c.used[p.id] = true;
+    // Heroes saved before these rules get their level-1 resources.
+    if ((p.selection.class === 'mage' || p.selection.class === 'cleric') && p.spellSlots === undefined)
+      p.spellSlots = 2;
+    if (p.selection.class === 'paladin' && p.layOnHands === undefined) p.layOnHands = 5;
+    refreshAbility(c, p);
   }
   s.combat = c;
   emit(
@@ -325,7 +371,9 @@ function enemyTurn(s: GameState, e: Enemy) {
     e.intent = null;
     let roll = die(s, 20);
     let detail = `T20: ${roll}`;
-    if (c.dodging[target.id]) {
+    const sapped = !!c.sapped[e.id];
+    delete c.sapped[e.id];
+    if (c.dodging[target.id] || sapped) {
       const second = die(s, 20);
       detail += `/${second} (nackdel)`;
       roll = Math.min(roll, second);
@@ -383,7 +431,10 @@ function enemyTurn(s: GameState, e: Enemy) {
     }
   }
 
+  const sapped = !!c.sapped[e.id];
+  delete c.sapped[e.id];
   let disadvantage =
+    sapped ||
     c.dodging[target.id] ||
     (attack.kind === 'ranged' &&
       (distance <= 5 || distance > (attack.normalRange ?? attack.longRange ?? 0)));
@@ -497,9 +548,10 @@ function prepareTurn(s: GameState) {
         c.movementRemaining[p.id] = p.speed;
         for (const [enemy, slower] of Object.entries(c.slowed))
           if (slower === p.id) delete c.slowed[enemy];
-        // A fallen quarry frees the Bonus Action to move Hunter's Mark.
-        const quarry = c.enemies.find((e) => e.id === c.marked[p.id]);
-        if (quarry && quarry.hp <= 0) c.used[p.id] = false;
+        for (const [enemy, sapper] of Object.entries(c.sapped))
+          if (sapper === p.id) delete c.sapped[enemy];
+        c.bonusUsed[p.id] = false;
+        refreshAbility(c, p);
         for (const [target, protector] of Object.entries(c.protectedBy))
           if (protector === p.id) delete c.protectedBy[target];
         for (const [target, defender] of Object.entries(c.protectionActive))
@@ -599,8 +651,8 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     }
   }
 
-  const power = special && p.className === 'Krigare';
-  const bonus = p.attackBonus - (power ? 3 : 0);
+  const power = special && p.selection.class === 'warrior';
+  const bonus = (profile.attackBonus ?? p.attackBonus) - (power ? 3 : 0);
   const first = heroD20(s, p);
   const attackRolls = [first.roll];
   let luck = first.lucky;
@@ -671,6 +723,11 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     raw += mark;
     markText = ` Hunter's Mark +${mark}.`;
   }
+  if (sneakAttackApplies(s, p, e, profile, mode)) {
+    const sneak = rollDamage(s, [1, 6, 0], critical);
+    raw += sneak;
+    markText += ` Sneak Attack +${sneak}.`;
+  }
   const amount = typedDamage(e, raw, damageType);
   e.hp = Math.max(0, e.hp - amount);
   c.stats[p.id].damage += amount;
@@ -701,8 +758,177 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
   } else if (profile.mastery === 'vex' && amount > 0) {
     c.vexed[p.id] = e.id;
     emit(s, 'story', `Vex: ${p.name} får Advantage på nästa anfall mot ${e.name}.`);
+  } else if (profile.mastery === 'sap') {
+    c.sapped[e.id] = p.id;
+    emit(s, 'story', `Sap: ${e.name} får Disadvantage på sitt nästa anfall.`);
   }
 }
+
+/**
+ * Rogue Sneak Attack (1d6 at level 1), once per turn: a Finesse or Ranged weapon, no
+ * Disadvantage, and either Advantage or another hero within 5 ft of the target.
+ */
+function sneakAttackApplies(
+  s: GameState,
+  p: Character,
+  e: Enemy,
+  profile: HeroAttack,
+  mode: 'normal' | 'advantage' | 'disadvantage',
+) {
+  if (p.selection.class !== 'thief' || !profile.finesse || mode === 'disadvantage') return false;
+  if (mode === 'advantage') return true;
+  const c = s.combat!;
+  return s.players.some(
+    (q) =>
+      q.id !== p.id &&
+      q.hp > 0 &&
+      (c.usesDistance
+        ? distanceBetween(c, q.id, e.id) <= 5
+        : c.positions[q.id] === 'fram' && e.position === 'fram'),
+  );
+}
+/** Spell Save DC = 8 + Proficiency Bonus + spellcasting ability modifier. */
+function spellSaveDc(p: Character, ability: 'int' | 'wis' | 'cha') {
+  return 8 + PROFICIENCY + modifier(p[ability]);
+}
+
+function spendSlot(p: Character) {
+  if (!p.spellSlots) throw new Error('Inga Spell Slots kvar före nästa Long Rest.');
+  p.spellSlots--;
+}
+
+/** Runs a Bonus Action: the turn continues, and no other Bonus Action this turn. */
+function bonusAction(s: GameState, p: Character, run: () => void) {
+  const c = s.combat!;
+  if (c.bonusUsed[p.id]) throw new Error('Du har redan använt din Bonus Action den här turen.');
+  run();
+  c.bonusUsed[p.id] = true;
+  refreshAbility(c, p);
+}
+
+/** Whether the ability button can be used right now (stored in `used` for the UI). */
+function refreshAbility(c: Combat, p: Character) {
+  const bonusFree = !c.bonusUsed[p.id];
+  switch (p.selection.class) {
+    case 'warrior':
+      return; // Kraftslag: once per fight.
+    case 'thief':
+      c.used[p.id] = true; // Sneak Attack is passive.
+      return;
+    case 'ranger': {
+      const quarry = c.enemies.find((e) => e.id === c.marked[p.id]);
+      const canMove = !!quarry && quarry.hp <= 0;
+      c.used[p.id] = !bonusFree || !(canMove || (p.hunterMarks ?? 0) > 0);
+      return;
+    }
+    case 'cleric':
+      c.used[p.id] = !bonusFree || !p.spellSlots;
+      return;
+    case 'paladin':
+      c.used[p.id] = !bonusFree || !p.layOnHands;
+      return;
+    case 'mage':
+      c.used[p.id] = !p.spellSlots;
+  }
+}
+
+function huntersMark(s: GameState, p: Character, targetId?: string) {
+  const c = s.combat!;
+  const e = c.enemies.find((e) => e.id === targetId && e.hp > 0);
+  if (!e || !canTarget(s, p, e)) throw new Error('Välj ett mål du kan se.');
+  if (c.usesDistance && distanceBetween(c, p.id, e.id) > 90)
+    throw new Error("Hunter's Mark når 90 ft.");
+  // Moving the mark from a fallen quarry is free; a new cast spends a Favored Enemy use.
+  const quarry = c.enemies.find((q) => q.id === c.marked[p.id]);
+  const moving = !!quarry && quarry.hp <= 0;
+  if (!moving) {
+    if (!p.hunterMarks) throw new Error("Inga Hunter's Mark kvar före nästa Long Rest.");
+    p.hunterMarks--;
+  }
+  c.marked[p.id] = e.id;
+  emit(
+    s,
+    'story',
+    moving
+      ? `${p.name} flyttar Hunter's Mark till ${e.name}.`
+      : `${p.name} markerar ${e.name} med Hunter's Mark.`,
+    `Bonus Action: träffar mot målet gör +1d6 skada. Du kan fortfarande anfalla den här turen.${moving ? '' : ` ${p.hunterMarks} kvar före nästa Long Rest.`}`,
+  );
+}
+
+/** Healing Word (level 1): 60 ft, 2d4 + WIS, can bring a fallen ally back. */
+function healingWord(s: GameState, p: Character, targetId: string) {
+  const c = s.combat!;
+  const ally = s.players.find((q) => q.id === targetId);
+  if (!ally || ally.hp >= ally.maxHp) throw new Error('Välj någon som behöver läkning.');
+  if (c.usesDistance && distanceBetween(c, p.id, ally.id) > 60)
+    throw new Error('Healing Word når 60 ft.');
+  spendSlot(p);
+  const rolls = [healingDie(s, p, 4), healingDie(s, p, 4)];
+  const wis = modifier(p.wis);
+  const amount = Math.min(ally.maxHp - ally.hp, Math.max(0, rolls[0] + rolls[1] + wis));
+  ally.hp += amount;
+  c.stats[p.id].healing += amount;
+  emit(
+    s,
+    'heal',
+    `${p.name} läker ${ally.id === p.id ? 'sig själv' : ally.name} med Healing Word: +${amount} liv.`,
+    `2d4 (${rolls.join(' + ')}) + WIS ${wis}. Bonus Action. ${p.spellSlots} Spell Slots kvar.`,
+  );
+}
+
+/** Lay On Hands: Bonus Action, touch (5 ft), heal from a pool of 5 HP per Paladin level. */
+function layOnHands(s: GameState, p: Character, targetId: string) {
+  const c = s.combat!;
+  const ally = s.players.find((q) => q.id === targetId);
+  if (!ally || ally.hp >= ally.maxHp) throw new Error('Välj någon som behöver läkning.');
+  if (c.usesDistance && distanceBetween(c, p.id, ally.id) > 5)
+    throw new Error('Lay On Hands kräver beröring (5 ft).');
+  if (!p.layOnHands) throw new Error('Lay On Hands-potten är tom före nästa Long Rest.');
+  const amount = Math.min(p.layOnHands, ally.maxHp - ally.hp);
+  p.layOnHands -= amount;
+  ally.hp += amount;
+  c.stats[p.id].healing += amount;
+  emit(
+    s,
+    'heal',
+    `${p.name} använder Lay On Hands på ${ally.id === p.id ? 'sig själv' : ally.name}: +${amount} liv.`,
+    `Bonus Action. ${p.layOnHands} HP kvar i potten.`,
+  );
+}
+
+/** Burning Hands (level 1): 15 ft cone, 3d6 Fire, DEX save for half. */
+function burningHands(s: GameState, p: Character) {
+  const c = s.combat!;
+  const targets = c.enemies.filter(
+    (e) =>
+      e.hp > 0 &&
+      (c.usesDistance
+        ? distanceBetween(c, p.id, e.id) <= 15
+        : e.position === 'fram' || !c.enemies.some((x) => x.hp > 0 && x.position === 'fram')),
+  );
+  if (!targets.length) throw new Error('Ingen fiende står inom 15 ft.');
+  spendSlot(p);
+  const dc = spellSaveDc(p, 'int');
+  const rolls = [die(s, 6), die(s, 6), die(s, 6)];
+  const full = rolls[0] + rolls[1] + rolls[2];
+  emit(s, 'story', `${p.name} kastar Burning Hands.`, `3d6 (${rolls.join(' + ')}) = ${full} eld · DEX Save DC ${dc} halverar. ${p.spellSlots} Spell Slots kvar.`);
+  for (const e of targets) {
+    const save = die(s, 20) + modifier(e.dex ?? 10);
+    const saved = save >= dc;
+    const damage = typedDamage(e, saved ? Math.floor(full / 2) : full, 'Eld');
+    e.hp = Math.max(0, e.hp - damage);
+    c.stats[p.id].damage += damage;
+    emit(
+      s,
+      'damage',
+      `Burning Hands träffar ${e.name} för ${damage} eldskada${saved ? ' (halverad)' : ''}.`,
+      `DEX Save ${save} mot DC ${dc}: ${saved ? 'lyckas' : 'misslyckas'}.`,
+    );
+    if (!e.hp) emit(s, 'success', `${e.name} faller.`);
+  }
+}
+
 export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
   const c = s.combat!;
   if (c.victory || currentActor(s)?.id !== p.id || p.hp <= 0)
@@ -806,51 +1032,23 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
       break;
     }
     case 'ability': {
-      if (c.used[p.id]) throw new Error('Klassförmågan har redan använts.');
-      if (p.className === 'Ranger') {
-        const e = c.enemies.find((e) => e.id === cmd.target && e.hp > 0);
-        if (!e || !canTarget(s, p, e)) throw new Error('Välj ett mål du kan se.');
-        if (c.usesDistance && distanceBetween(c, p.id, e.id) > 90)
-          throw new Error("Hunter's Mark når 90 ft.");
-        // Moving the mark from a fallen quarry is free; a new cast spends a Favored Enemy use.
-        const quarry = c.enemies.find((q) => q.id === c.marked[p.id]);
-        const moving = !!quarry && quarry.hp <= 0;
-        if (!moving) {
-          if (!p.hunterMarks) throw new Error("Inga Hunter's Mark kvar före nästa Long Rest.");
-          p.hunterMarks--;
-        }
-        c.marked[p.id] = e.id;
-        c.used[p.id] = true;
-        emit(
-          s,
-          'story',
-          moving
-            ? `${p.name} flyttar Hunter's Mark till ${e.name}.`
-            : `${p.name} markerar ${e.name} med Hunter's Mark.`,
-          `Bonus Action: träffar mot målet gör +1d6 skada. Du kan fortfarande anfalla den här turen.${moving ? '' : ` ${p.hunterMarks} kvar före nästa Long Rest.`}`,
-        );
-        return;
+      if (c.used[p.id]) throw new Error('Klassförmågan kan inte användas nu.');
+      switch (p.selection.class) {
+        case 'ranger':
+          return bonusAction(s, p, () => huntersMark(s, p, cmd.target));
+        case 'cleric':
+          return bonusAction(s, p, () => healingWord(s, p, cmd.target ?? p.id));
+        case 'paladin':
+          return bonusAction(s, p, () => layOnHands(s, p, cmd.target ?? p.id));
+        case 'mage':
+          burningHands(s, p);
+          break;
+        case 'thief':
+          throw new Error('Sneak Attack sker automatiskt när du anfaller.');
+        default:
+          weaponAttack(s, p, cmd.target, true);
+          c.used[p.id] = true;
       }
-      if (p.className === 'Magiker') {
-        const raw = die(s, 6) + Math.max(0, modifier(p.int));
-        for (const e of c.enemies.filter((e) => e.hp > 0)) {
-          const damage = typedDamage(e, raw, 'Eld');
-          e.hp = Math.max(0, e.hp - damage);
-          c.stats[p.id].damage += damage;
-          emit(s, 'damage', `Brinnande händer träffar ${e.name} för ${damage} eldskada.`);
-        }
-      } else if (p.className === 'Kleriker') {
-        const ally = s.players.find((q) => q.id === (cmd.target ?? p.id));
-        if (!ally || ally.hp >= ally.maxHp) throw new Error('Välj någon som behöver läkning.');
-        const amount = Math.min(
-          ally.maxHp - ally.hp,
-          healingDie(s, p, 6) + Math.max(0, modifier(p.wis)),
-        );
-        ally.hp += amount;
-        c.stats[p.id].healing += amount;
-        emit(s, 'heal', `${p.name} läker ${ally.name} med Helande ord: +${amount} liv.`);
-      } else weaponAttack(s, p, cmd.target, true);
-      c.used[p.id] = true;
       break;
     }
     default:

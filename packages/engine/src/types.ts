@@ -8,7 +8,8 @@ export type Attributes = {
   cha: number;
 };
 export type RaceId = 'human' | 'elf' | 'dwarf' | 'halfling';
-export type ClassId = 'warrior' | 'mage' | 'thief' | 'cleric' | 'ranger';
+export type ClassId = 'warrior' | 'mage' | 'thief' | 'cleric' | 'ranger' | 'paladin';
+export type PregenId = 'sigrun' | 'brodd' | 'pip' | 'liria' | 'alma';
 export type TalentId = 'iron' | 'keen' | 'supply' | 'savage';
 export type Dice = [number, number, number];
 export type DamageType = 'Hugg' | 'Stick' | 'Kross' | 'Eld' | 'Riv';
@@ -29,6 +30,8 @@ export interface CharacterSelection {
   race: RaceId;
   class: ClassId;
   talent: TalentId;
+  /** A ready-made hero; its ability scores replace the class defaults. */
+  pregen?: PregenId;
 }
 export interface Character extends Attributes {
   id: string;
@@ -68,6 +71,10 @@ export interface Character extends Attributes {
   hitDiceUsed?: number;
   /** Ranger Favored Enemy: Hunter's Mark casts left until the next Long Rest. */
   hunterMarks?: number;
+  /** Level-1 Spell Slots left until the next Long Rest (Cleric, Wizard). */
+  spellSlots?: number;
+  /** Paladin Lay On Hands pool left until the next Long Rest. */
+  layOnHands?: number;
 }
 export interface World {
   miraTrust: number;
@@ -189,6 +196,10 @@ export interface Combat {
   slowed: Record<string, string>;
   /** Weapon Mastery Vex: hero id → enemy the hero has Advantage against on the next attack. */
   vexed: Record<string, string>;
+  /** Weapon Mastery Sap: enemy id → hero whose next turn ends the Disadvantage. */
+  sapped: Record<string, string>;
+  /** Heroes who have taken their Bonus Action this turn. */
+  bonusUsed: Record<string, boolean>;
   stats: Record<string, CombatStats>;
 }
 export interface JournalEntry {
