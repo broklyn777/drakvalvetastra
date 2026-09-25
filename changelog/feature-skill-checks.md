@@ -7,7 +7,8 @@
 
 - Vissa val i berättelsen kräver nu ett Ability Check: d20 + ability modifier mot en Difficulty Class (DC).
 - Valknappen visar slaget och din chans, till exempel "Deception · CHA · DC 12 · 45%".
-- Efter valet visar scenen hur slaget gick.
+- När du väljer ett val med slag öppnas ett tärningsfönster: du klickar på **Slå d20**, tärningen rullar och du ser resultatet (till exempel "13 + 0 = 13 mot DC 10 · Lyckat!") innan berättelsen fortsätter. Du kan också ångra dig och välja något annat.
+- Scenen visar sedan hur slaget gick.
 - Vid vakttornet:
   - **Klättra med repet**: Athletics (STR), DC 10. Misslyckas du faller du (1d4 damage, aldrig under 1 HP) och vakterna överraskar dig.
   - **Bluffa med sigillet**: Deception (CHA), DC 12. Misslyckas du frågar vakten efter lösenordet och det blir strid.
@@ -29,4 +30,5 @@
 
 - `npm test` 31/31, `npm run typecheck` och `npm run build` lokalt.
 - `npm test` 31/31 och `npm run typecheck` igen efter bytet till engelska D&D-termer.
+- Tärningsfönstret testat i lokal webbläsare med testsparningarna: Athletics lyckas (13 + 0 mot DC 10) och Deception misslyckas (7 + 1 mot DC 12, striden startar efter Fortsätt).
 - Provspelat av Björn i Vercel-förhandsvisningen med testsparningar vid tornet: både lyckade och misslyckade slag. (Före termbytet.)

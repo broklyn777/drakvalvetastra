@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
   BookOpen,
@@ -19,7 +19,13 @@ import {
 } from 'lucide-react';
 import { getCampaign } from '../../packages/content/src';
 import { availableChoices, sceneFor } from '../../packages/engine/src/engine';
-import type { Character, GameCommand, GameState } from '../../packages/engine/src/types';
+import type {
+  Character,
+  GameCommand,
+  GameState,
+  SkillCheck,
+  SkillCheckEvent,
+} from '../../packages/engine/src/types';
 import { WorldArt } from './world-art';
 import { CombatPanel } from './combat-panel';
 import { modifier } from '../../packages/engine/src/random';
@@ -153,6 +159,42 @@ export function GameView({
     scene = sceneFor(game, campaign, hero.id);
   const text = typeof scene.text === 'function' ? scene.text() : scene.text;
   const checkEvent = sceneCheck(game, scene.title);
+  const [checkRoll, setCheckRoll] = useState<{
+    next: string;
+    label: string;
+    check: SkillCheck;
+    eventSeq: number;
+    phase: 'ready' | 'rolling' | 'waiting' | 'result';
+    result?: SkillCheckEvent;
+  } | null>(null);
+  const rollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (rollTimer.current) clearTimeout(rollTimer.current);
+    },
+    [],
+  );
+  // The server decides the roll; the overlay waits for this hero's check event.
+  useEffect(() => {
+    if (checkRoll?.phase !== 'waiting') return;
+    const event = game.events.find(
+      (e) => e.id > checkRoll.eventSeq && e.check?.actorId === hero.id,
+    );
+    if (event?.check) setCheckRoll({ ...checkRoll, phase: 'result', result: event.check });
+  }, [game.events, hero.id, checkRoll]);
+  function rollCheck() {
+    if (checkRoll?.phase !== 'ready') return;
+    setCheckRoll({ ...checkRoll, phase: 'rolling' });
+    rollTimer.current = setTimeout(() => {
+      setCheckRoll((current) => (current ? { ...current, phase: 'waiting' } : null));
+      act({ type: 'choose', next: checkRoll.next });
+      // If the move is rejected no event arrives; don't leave the overlay hanging.
+      rollTimer.current = setTimeout(
+        () => setCheckRoll((current) => (current?.phase === 'waiting' ? null : current)),
+        5000,
+      );
+    }, 900);
+  }
   const chapter = game.visited.includes('skogsbyReturn')
     ? 'Kapitel I · Skogsby'
     : 'Prolog · Vakttornet';
@@ -267,7 +309,17 @@ export function GameView({
                   className="choice"
                   disabled={disabled}
                   key={next}
-                  onClick={() => act({ type: 'choose', next })}
+                  onClick={() =>
+                    check
+                      ? setCheckRoll({
+                          next,
+                          label,
+                          check,
+                          eventSeq: game.eventSeq,
+                          phase: 'ready',
+                        })
+                      : act({ type: 'choose', next })
+                  }
                 >
                   <span className="choice-number">{String(i + 1).padStart(2, '0')}</span>
                   <span>{label}</span>
@@ -287,6 +339,66 @@ export function GameView({
             </div>
           )}
         </article>
+        {checkRoll && (
+          <div className="dice-overlay" role="dialog" aria-modal="true" aria-label="Ability Check">
+            <div className="dice-panel">
+              <p className="eyebrow">ABILITY CHECK · {checkRoll.check.skill.toUpperCase()}</p>
+              <h2>{checkRoll.label}</h2>
+              <p className="dice-context">
+                {hero.name} · d20 + {attributeLabels[checkAttribute(hero, checkRoll.check)]} (
+                {modifier(hero[checkAttribute(hero, checkRoll.check)]) >= 0 ? '+' : ''}
+                {modifier(hero[checkAttribute(hero, checkRoll.check)])}) · DC {checkRoll.check.dc}
+              </p>
+              {checkRoll.phase !== 'result' || !checkRoll.result ? (
+                <>
+                  <div className={`dice-stage ${checkRoll.phase !== 'ready' ? 'rolling' : ''}`}>
+                    <div className="die d20">
+                      <span>D20</span>
+                      <strong>?</strong>
+                    </div>
+                  </div>
+                  <button
+                    className="button primary dice-roll-button"
+                    disabled={checkRoll.phase !== 'ready' || disabled}
+                    onClick={rollCheck}
+                  >
+                    {checkRoll.phase === 'ready' ? 'Slå d20' : 'Tärningen rullar…'}
+                  </button>
+                  {checkRoll.phase === 'ready' && (
+                    <button className="text-button" onClick={() => setCheckRoll(null)}>
+                      Välj något annat
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="dice-stage dice-results">
+                    <div className="die d20 chosen">
+                      <span>D20</span>
+                      <strong>{checkRoll.result.roll}</strong>
+                    </div>
+                  </div>
+                  <div className="dice-equation">
+                    <strong>
+                      {checkRoll.result.roll} {checkRoll.result.modifier >= 0 ? '+' : '−'}{' '}
+                      {Math.abs(checkRoll.result.modifier)} = {checkRoll.result.total}
+                    </strong>
+                    <span>mot DC {checkRoll.result.dc}</span>
+                  </div>
+                  <p className={`dice-verdict ${checkRoll.result.success ? 'hit' : 'miss'}`}>
+                    {checkRoll.result.success ? 'Lyckat!' : 'Misslyckat!'}
+                  </p>
+                  <button
+                    className="button primary dice-roll-button"
+                    onClick={() => setCheckRoll(null)}
+                  >
+                    Fortsätt
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
         <p className="scene-footer">
           Dina val lämnar spår. <span>◆</span> Ditt sällskap skriver historien.
         </p>
