@@ -18,6 +18,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Merge all work into `main` through pull requests.
 - Björn decides what is merged into `main`.
 - For shared areas such as combat balance or progression, agree on task ownership first and use a separate branch.
+- Read the root `ROADMAP.md` before starting a new larger task, and keep it as the shared source of truth for planned work.
 - Run `npm test` and `npm run typecheck` before push/merge when the environment allows it.
 - Do not claim tests or typechecks passed unless they were actually executed and verified.
 - Record validation status clearly in the pull request description.
