@@ -1,10 +1,40 @@
-import type { Choice, Scene, GameState, Character } from '../../engine/src/types';
+import type {
+  Choice,
+  Scene,
+  GameState,
+  Character,
+  EnemyDefinition,
+} from '../../engine/src/types';
+import { die } from '../../engine/src/random';
+import { emit } from '../../engine/src/events';
 
 /** Pure content factory. Effects may only be executed by the engine on a cloned state. */
 export function watchtowerScenes(session: GameState, actor: string): Record<string, Scene> {
   const state = session.players.find((p) => p.id === actor) ?? session.players[0];
   const world = session.world;
   const partyHas = (prop: keyof Character) => session.players.some((p) => Boolean(p[prop]));
+  const towerGuards = (): EnemyDefinition[] => [
+    {
+      name: 'Tornvakt',
+      hp: 10,
+      maxHp: 10,
+      ac: 12,
+      attack: 2,
+      dmg: [1, 4, 0],
+      weapon: 'Kortsvärd',
+      damageType: 'Hugg',
+    },
+    {
+      name: 'Spjutvakt',
+      hp: 8,
+      maxHp: 8,
+      ac: 10,
+      attack: 3,
+      dmg: [1, 4, 1],
+      weapon: 'Spjut',
+      damageType: 'Stick',
+    },
+  ];
   const scenes: Record<string, Scene> = {
     roadIntro: {
       title: 'Vägen mot Gråskogen',
@@ -319,9 +349,18 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
       ],
       choices: () => {
         const arr: Choice[] = [['Gå mot huvudingången', 'towerFight']];
-        if (partyHas('rope')) arr.push(['Använd repet och ta dig in genom sprickan', 'towerSneak']);
+        if (partyHas('rope'))
+          arr.push([
+            'Använd repet och ta dig in genom sprickan',
+            'towerSneak',
+            { skill: 'Klättring', attributes: ['str', 'dex'], dc: 10, fail: 'towerSneakFail' },
+          ]);
         if (partyHas('sigil'))
-          arr.push(['Visa sigillet öppet och försök bluffa dig förbi', 'towerBluff']);
+          arr.push([
+            'Visa sigillet öppet och försök bluffa dig förbi',
+            'towerBluff',
+            { skill: 'Bluff', attributes: ['cha'], dc: 12, fail: 'towerBluffFail' },
+          ]);
         return arr;
       },
     },
@@ -331,28 +370,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
         'Vakterna ser dig och drar sina vapen. Den ene bär ringbrynja; den andre håller ett tungt spjut.',
       ],
       combat: {
-        enemies: [
-          {
-            name: 'Tornvakt',
-            hp: 10,
-            maxHp: 10,
-            ac: 12,
-            attack: 2,
-            dmg: [1, 4, 0],
-            weapon: 'Kortsvärd',
-            damageType: 'Hugg',
-          },
-          {
-            name: 'Spjutvakt',
-            hp: 8,
-            maxHp: 8,
-            ac: 10,
-            attack: 3,
-            dmg: [1, 4, 1],
-            weapon: 'Spjut',
-            damageType: 'Stick',
-          },
-        ],
+        enemies: towerGuards(),
         onWin: 'towerHall',
         xp: 35,
       },
@@ -380,6 +398,43 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
         'Bluffen håller — åtminstone tills någon ställer en fråga.',
       ],
       choices: [['Gå in i tornet', 'towerHall']],
+    },
+    towerSneakFail: {
+      title: 'Stenen som gav vika',
+      text: () => [
+        'Halvvägs upp lossnar en sten under din fot. Repet bränner i handflatorna när du glider ner längs muren och slår i marken.',
+        `Du har ${state.hp}/${state.maxHp} HP.`,
+        'Ljudet ekar mot tornets väggar. Innan du hunnit resa dig står båda vakterna över dig med dragna vapen.',
+      ],
+      effect: () => {
+        const before = state.hp;
+        state.hp = Math.max(1, state.hp - die(session, 4));
+        emit(
+          session,
+          'damage',
+          `${state.name} faller och tar ${before - state.hp} skada.`,
+          'Fallet: 1T4, men aldrig under 1 HP.',
+        );
+      },
+      combat: {
+        enemies: towerGuards(),
+        onWin: 'towerHall',
+        xp: 35,
+        surprise: 'players',
+      },
+    },
+    towerBluffFail: {
+      title: 'Fel svar',
+      text: [
+        'Vakterna ser sigillet och tvekar. Sedan lutar sig den ene fram.',
+        '“Vad är lösenordet för i kväll?”',
+        'Du svarar för snabbt. Hans blick hårdnar, och spjutet sänks mot ditt bröst.',
+      ],
+      combat: {
+        enemies: towerGuards(),
+        onWin: 'towerHall',
+        xp: 35,
+      },
     },
     towerHall: {
       title: 'Under tornet',

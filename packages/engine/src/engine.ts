@@ -9,6 +9,7 @@ import type {
 } from './types';
 import { combatAction, healItem, startCombat } from './combat';
 import { emit, gainXp } from './events';
+import { rollCheck } from './checks';
 export function emptyWorld(): World {
   return {
     miraTrust: 0,
@@ -119,9 +120,10 @@ export function dispatch(
     if (s.status !== 'active') throw new Error('Äventyret är avslutat.');
     if (p.hp <= 0) throw new Error('Din rollperson har fallit.');
     if (command.type === 'choose') {
-      if (!availableChoices(s, campaign, actor).some(([, next]) => next === command.next))
-        throw new Error('Det valet är inte tillgängligt.');
-      enter(s, campaign, command.next, actor);
+      const choice = availableChoices(s, campaign, actor).find(([, n]) => n === command.next);
+      if (!choice) throw new Error('Det valet är inte tillgängligt.');
+      const check = choice[2];
+      enter(s, campaign, !check || rollCheck(s, p, check) ? choice[1] : check.fail, actor);
     } else if (command.type === 'continue') {
       if (!s.combat?.victory) throw new Error('Striden är inte över.');
       enter(s, campaign, s.combat.onWin, actor);

@@ -15,6 +15,7 @@ import {
   Flag,
   Users,
   Save,
+  Dices,
 } from 'lucide-react';
 import { getCampaign } from '../../packages/content/src';
 import { availableChoices, sceneFor } from '../../packages/engine/src/engine';
@@ -22,6 +23,7 @@ import type { Character, GameCommand, GameState } from '../../packages/engine/sr
 import { WorldArt } from './world-art';
 import { CombatPanel } from './combat-panel';
 import { modifier } from '../../packages/engine/src/random';
+import { attributeLabels, checkAttribute, checkChance } from '../../packages/engine/src/checks';
 export function StoryText({ text }: { text: string }) {
   return (
     <>
@@ -32,6 +34,13 @@ export function StoryText({ text }: { text: string }) {
         )}
     </>
   );
+}
+/** The ability check that led into the current scene, if any. */
+function sceneCheck(game: GameState, title: string) {
+  const entry = game.events.findLastIndex((e) => e.kind === 'story' && e.text === title);
+  for (let i = entry - 1; i >= 0 && game.events[i].kind !== 'story'; i--)
+    if (game.events[i].check) return game.events[i];
+  return undefined;
 }
 export function CharacterSheet({
   hero,
@@ -143,6 +152,7 @@ export function GameView({
   const campaign = getCampaign(game.campaignId),
     scene = sceneFor(game, campaign, hero.id);
   const text = typeof scene.text === 'function' ? scene.text() : scene.text;
+  const checkEvent = sceneCheck(game, scene.title);
   const chapter = game.visited.includes('skogsbyReturn')
     ? 'Kapitel I · Skogsby'
     : 'Prolog · Vakttornet';
@@ -199,6 +209,15 @@ export function GameView({
               </p>
             ))}
           </div>
+          {checkEvent?.check && (
+            <div className={`check-result ${checkEvent.check.success ? 'success' : 'failure'}`}>
+              <Dices size={16} />
+              <span>
+                <strong>{checkEvent.text}</strong>
+                <small>{checkEvent.detail}</small>
+              </span>
+            </div>
+          )}
           {game.world.xpNotice && (
             <div className="xp-notice">
               <Flag size={16} />
@@ -243,7 +262,7 @@ export function GameView({
           ) : (
             <div className="choices">
               <p className="eyebrow">VAD GÖR DU?</p>
-              {availableChoices(game, campaign, hero.id).map(([label, next], i) => (
+              {availableChoices(game, campaign, hero.id).map(([label, next, check], i) => (
                 <button
                   className="choice"
                   disabled={disabled}
@@ -252,6 +271,16 @@ export function GameView({
                 >
                   <span className="choice-number">{String(i + 1).padStart(2, '0')}</span>
                   <span>{label}</span>
+                  {check && (
+                    <span
+                      className="choice-check"
+                      title={`${hero.name} slår T20 + ${attributeLabels[checkAttribute(hero, check)]} mot SV ${check.dc}`}
+                    >
+                      <Dices size={13} />
+                      {check.skill} · {attributeLabels[checkAttribute(hero, check)]} · SV{' '}
+                      {check.dc} · {Math.round(checkChance(hero, check) * 100)}%
+                    </span>
+                  )}
                   <ArrowRight size={17} />
                 </button>
               ))}

@@ -7,6 +7,7 @@ export function emit(
   text: string,
   detail?: string,
   dice?: GameEvent['dice'],
+  check?: GameEvent['check'],
 ) {
   s.events.push({
     id: ++s.eventSeq,
@@ -14,6 +15,7 @@ export function emit(
     text,
     ...(detail ? { detail } : {}),
     ...(dice ? { dice } : {}),
+    ...(check ? { check } : {}),
   });
   if (s.events.length > 150) s.events.splice(0, s.events.length - 150);
 }
