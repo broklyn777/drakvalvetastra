@@ -2,7 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { campaigns, getCampaign, raceData, classData, talentData } from '../packages/content/src';
 import { createCharacter, createLevel1PaladinPreset } from '../packages/engine/src/characters';
 import { availableChoices, createGame, dispatch, sceneFor } from '../packages/engine/src/engine';
-import { attackAvailability, attackHits, canTarget, currentActor, startCombat, typedDamage } from '../packages/engine/src/combat';
+import {
+  attackAvailability,
+  attackHits,
+  canTarget,
+  currentActor,
+  startCombat,
+  typedDamage,
+} from '../packages/engine/src/combat';
 import { gainXp } from '../packages/engine/src/events';
 import { checkChance, checkTarget } from '../packages/engine/src/checks';
 import { parseSave } from '../packages/persistence/src/saves';
@@ -200,12 +207,49 @@ describe('taktisk strid', () => {
     expect(rangedBandit.distance).toBe(50);
     expect(attackAvailability(s, s.players[0], rangedBandit).ok).toBe(false);
     const before = JSON.stringify(s);
-    expect(dispatch(s, campaign, 'hero-0', { type: 'attack', target: rangedBandit.id }).ok).toBe(false);
+    expect(dispatch(s, campaign, 'hero-0', { type: 'attack', target: rangedBandit.id }).ok).toBe(
+      false,
+    );
     expect(JSON.stringify(s)).toBe(before);
     s = game(10, 2);
     s = choose(choose(s, 'inn'), 'door');
     const other = s.players.find((p) => p.id !== currentActor(s)?.id)!;
     expect(dispatch(s, campaign, other.id, { type: 'defend' }).ok).toBe(false);
+  });
+  it('starts each inn route at the distance described by its scene', () => {
+    const routes = [
+      { choices: ['inn', 'door'], scene: 'door', distances: [5, 50] },
+      { choices: ['inn', 'oldman', 'door'], scene: 'door', distances: [5, 50] },
+      { choices: ['inn', 'window', 'door'], scene: 'door', distances: [5, 50] },
+      { choices: ['inn', 'window', 'ambush'], scene: 'ambush', distances: [5, 5] },
+    ];
+    for (const { choices, scene, distances } of routes) {
+      const s = choices.reduce((state, next) => choose(state, next), game(42));
+      expect(s.scene).toBe(scene);
+      expect(s.combat!.enemies.map((e) => e.distance)).toEqual(distances);
+      expect(s.combat!.enemies[1].role).toBe('archer');
+      expect(s.combat!.enemies[1].position).toBe(scene === 'ambush' ? 'fram' : 'bak');
+      expect(s.combat!.enemies[1].preferredAttack).toBe('ranged');
+      expect(attackAvailability(s, s.players[0], s.combat!.enemies[0]).ok).toBe(true);
+      expect(attackAvailability(s, s.players[0], s.combat!.enemies[1]).ok).toBe(scene === 'ambush');
+      expect(campaign.scenes(s, 'hero-0')[scene].combat!.surprise).toBe(
+        scene === 'ambush' ? 'enemies' : undefined,
+      );
+    }
+  });
+  it('makes the archer use a sword when flanked and a crossbow from the yard', () => {
+    for (const scene of ['door', 'ambush'] as const) {
+      const s = game(42);
+      startCombat(s, campaign.scenes(s, 'hero-0')[scene].combat!);
+      s.combat!.initiative.sort((a, b) =>
+        a.id === 'hero-0' ? -1 : b.id === 'hero-0' ? 1 : a.id === 'enemy-1' ? -1 : 1,
+      );
+      s.combat!.turn = 0;
+      const result = action(s, { type: 'defend' });
+      const shot = result.events.find((event) => event.dice?.attackerId === 'enemy-1')!.dice!;
+      expect(shot.attackName).toBe(scene === 'ambush' ? 'Scimitar' : 'Light Crossbow');
+      expect(shot.distance).toBe(scene === 'ambush' ? 5 : 50);
+    }
   });
   it('records the exact attack and damage dice used by the combat engine', () => {
     const s = game(42);
@@ -299,14 +343,7 @@ describe('sparningar och hela berättelsen', () => {
     expect(s.status).toBe('active');
     expect(s.combat!.victory).toBe(true);
     s = action(s, { type: 'continue' });
-    for (const id of [
-      'rest',
-      'forest',
-      'camp',
-      'towerExterior',
-      'towerSneak',
-    ])
-      s = choose(s, id);
+    for (const id of ['rest', 'forest', 'camp', 'towerExterior', 'towerSneak']) s = choose(s, id);
     // The climb is an ability check; both outcomes must lead on to the hall.
     if (s.scene === 'towerSneakFail') s = action(battle(s), { type: 'continue' });
     else s = choose(s, 'towerHall');
@@ -375,7 +412,12 @@ describe('färdighetsslag', () => {
     const okSeed = seedWhere((s) => s.scene === 'towerBluff', 'towerBluff');
     const ok = choose(atTower(okSeed), 'towerBluff');
     const okEvent = ok.events.find((e) => e.check)!;
-    expect(okEvent.check).toMatchObject({ skill: 'Deception', attribute: 'cha', dc: 12, success: true });
+    expect(okEvent.check).toMatchObject({
+      skill: 'Deception',
+      attribute: 'cha',
+      dc: 12,
+      success: true,
+    });
     expect(okEvent.check!.total).toBe(okEvent.check!.roll + okEvent.check!.modifier);
     expect(ok.world.xpAwards.towerBluff).toBe(true);
 

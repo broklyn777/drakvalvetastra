@@ -1,10 +1,4 @@
-import type {
-  Choice,
-  Scene,
-  GameState,
-  Character,
-  EnemyDefinition,
-} from '../../engine/src/types';
+import type { Choice, Scene, GameState, Character, EnemyDefinition } from '../../engine/src/types';
 import { die } from '../../engine/src/random';
 import { emit } from '../../engine/src/events';
 
@@ -98,7 +92,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
       title: 'Genom regnet',
       text: [
         'Du drar undan gardinen en handsbredd. På gårdsplanen står en sadellös häst, täckt av skum. Någon ligger hopkrupen bredvid brunnen.',
-        'Längre bort, precis där lyktskenet dör, rör sig två mörka gestalter mot värdshuset. Den ene har båge.',
+        'Längre bort, precis där lyktskenet dör, rör sig två mörka gestalter mot värdshuset. Den ene har ett armborst.',
         'Du har några sekunders försprång.',
       ],
       effect: () => {
@@ -125,7 +119,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
       title: 'Blod på tröskeln',
       text: [
         'Dörren slås upp. En ung ryttare faller in över tröskeln med ena handen pressad mot sidan.',
-        'Bakom honom kommer två vägrövare ur regnet. Den främste höjer ett kortsvärd. Bågskytten stannar ute på gården och spänner sin sträng.',
+        'Bakom honom kommer två vägrövare ur regnet. Den främste höjer ett kortsvärd vid dörren. Armborstskytten stannar längre bort på gården och siktar.',
         'Det finns ingen tid kvar för ord.',
       ],
       combat: {
@@ -142,7 +136,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
             position: 'fram',
             dex: 12,
             speed: 30,
-            startDistance: 10,
+            startDistance: 5,
             preferredAttack: 'melee',
             attacks: [
               {
@@ -165,7 +159,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
             ],
           },
           {
-            name: 'Bandit',
+            name: 'Armborstskytt',
             hp: 11,
             maxHp: 11,
             ac: 12,
@@ -209,7 +203,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
       title: 'Bakom vedboden',
       text: [
         'Du glider ut genom köksdörren. Regnet döljer dina steg. När rånarna når gårdsplanen är du redan bakom dem.',
-        'Bågskytten hinner aldrig få upp vapnet innan du rusar fram.',
+        'Armborstskytten hinner inte få upp armborstet innan du rusar fram. Han griper efter kortsvärdet.',
       ],
       effect: () => {
         state.warned = true;
@@ -228,30 +222,60 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
             position: 'fram',
             dex: 12,
             speed: 30,
-            startDistance: 10,
+            startDistance: 5,
             preferredAttack: 'melee',
             attacks: [
-              { name: 'Scimitar', kind: 'melee', attack: 3, dmg: [1, 6, 1], damageType: 'Hugg', reach: 5 },
-              { name: 'Light Crossbow', kind: 'ranged', attack: 3, dmg: [1, 8, 1], damageType: 'Stick', normalRange: 80, longRange: 320 },
+              {
+                name: 'Scimitar',
+                kind: 'melee',
+                attack: 3,
+                dmg: [1, 6, 1],
+                damageType: 'Hugg',
+                reach: 5,
+              },
+              {
+                name: 'Light Crossbow',
+                kind: 'ranged',
+                attack: 3,
+                dmg: [1, 8, 1],
+                damageType: 'Stick',
+                normalRange: 80,
+                longRange: 320,
+              },
             ],
           },
           {
-            name: 'Bandit',
+            name: 'Armborstskytt',
             hp: 11,
             maxHp: 11,
             ac: 12,
             attack: 3,
-            dmg: [1, 8, 1],
-            weapon: 'Light Crossbow',
-            damageType: 'Stick',
-            position: 'bak',
+            dmg: [1, 6, 1],
+            weapon: 'Scimitar / Light Crossbow',
+            damageType: 'Hugg',
+            position: 'fram',
             dex: 12,
             speed: 30,
-            startDistance: 50,
+            startDistance: 5,
             preferredAttack: 'ranged',
             attacks: [
-              { name: 'Scimitar', kind: 'melee', attack: 3, dmg: [1, 6, 1], damageType: 'Hugg', reach: 5 },
-              { name: 'Light Crossbow', kind: 'ranged', attack: 3, dmg: [1, 8, 1], damageType: 'Stick', normalRange: 80, longRange: 320 },
+              {
+                name: 'Scimitar',
+                kind: 'melee',
+                attack: 3,
+                dmg: [1, 6, 1],
+                damageType: 'Hugg',
+                reach: 5,
+              },
+              {
+                name: 'Light Crossbow',
+                kind: 'ranged',
+                attack: 3,
+                dmg: [1, 8, 1],
+                damageType: 'Stick',
+                normalRange: 80,
+                longRange: 320,
+              },
             ],
           },
         ],
