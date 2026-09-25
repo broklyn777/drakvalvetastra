@@ -22,6 +22,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Do not claim tests or typechecks passed unless they were actually executed and verified.
 - Record validation status clearly in the pull request description.
 - Any pull request with player-visible changes must add one or more short, player-facing lines under `## Opublicerat` in `CHANGELOG.md`. Pure test, tooling, or internal maintenance changes do not need a changelog entry.
+- Every working branch must also maintain its own file at `changelog/<branch-name-with-slashes-replaced-by-dashes>.md`, for example `changelog/feature-combat-loop.md`. The branch owner updates that file with each push so agents never edit the same branch log.
+- Branch changelog files use this structure: branch name as the heading; one line with owner and status; one line with the Vercel preview URL; then the sections `## För spelaren`, `## Tekniskt`, and `## Verifierat`.
+- Under `## Verifierat`, list only checks that were actually executed and verified. Never infer or assume test, typecheck, build, or browser validation.
 - When a branch owner asks for review, include the Vercel preview URL in the form `https://drakvalvetastra-git-<branch>-broklyn777s-projects.vercel.app`.
 - Use Swedish for narrative text and general interface copy, but use official English D&D rules terminology for player-facing game mechanics whenever practical, so terms can be searched directly in the original rules.
 - Prefer original D&D labels such as `Human`, `Dwarf`, `Elf`, `Halfling`; `Fighter`, `Rogue`, `Wizard`, `Cleric`, `Ranger`, `Paladin`; `STR`, `DEX`, `CON`, `INT`, `WIS`, `CHA`; `AC`, `HP`, `DC`, `Initiative`, `Advantage`, `Disadvantage`, `Ability Check`, `Saving Throw`, `Fighting Style`, and official weapon/damage terminology.
