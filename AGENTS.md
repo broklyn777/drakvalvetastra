@@ -19,10 +19,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Björn decides what is merged into `main`.
 - For shared areas such as combat balance or progression, agree on task ownership first and use a separate branch.
 - Read the root `ROADMAP.md` before starting a new larger task, and keep it as the shared source of truth for planned work.
+- Before work starts on a roadmap item, assign a single branch owner. Other agents may review and suggest changes, but should not implement in that branch unless Björn asks them to.
 - Run `npm test` and `npm run typecheck` before push/merge when the environment allows it.
 - Do not claim tests or typechecks passed unless they were actually executed and verified.
 - Record validation status clearly in the pull request description.
-- Any pull request with player-visible changes must add one or more short, player-facing lines under `## Opublicerat` in `CHANGELOG.md`. Pure test, tooling, or internal maintenance changes do not need a changelog entry.
+- Do not edit the shared `CHANGELOG.md` from feature branches. Each branch records its own player-visible changes in its branch changelog under `changelog/`. The shared `CHANGELOG.md` is updated when a pull request is merged or when a version is released, using the merged branch changelog as source material.
 - Every working branch must also maintain its own file at `changelog/<branch-name-with-slashes-replaced-by-dashes>.md`, for example `changelog/feature-combat-loop.md`. The branch owner updates that file with each push so agents never edit the same branch log.
 - Branch changelog files use this structure: branch name as the heading; one line with owner and status; one line with the Vercel preview URL; then the sections `## För spelaren`, `## Tekniskt`, and `## Verifierat`.
 - Under `## Verifierat`, list only checks that were actually executed and verified. Never infer or assume test, typecheck, build, or browser validation.
