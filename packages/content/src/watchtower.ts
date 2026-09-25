@@ -112,7 +112,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
             position: 'fram',
             dex: 12,
             speed: 30,
-            startDistance: 10,
+            startDistance: 5,
             preferredAttack: 'melee',
             attacks: [
               {
@@ -198,7 +198,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
             position: 'fram',
             dex: 12,
             speed: 30,
-            startDistance: 10,
+            startDistance: 5,
             preferredAttack: 'melee',
             attacks: [
               { name: 'Scimitar', kind: 'melee', attack: 3, dmg: [1, 6, 1], damageType: 'Hugg', reach: 5 },
