@@ -48,10 +48,6 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
     dex: 14,
     speed: 30,
   });
-  const innTerrain = [
-    { id: 'oak', name: 'Eken', distance: 15, cover: 'half' as const },
-    { id: 'woodshed', name: 'Vedboden', distance: 30, cover: 'total' as const },
-  ];
   const scenes: Record<string, Scene> = {
     roadIntro: {
       title: 'Vägen mot Gråskogen',
@@ -142,11 +138,10 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
       title: 'Blod på tröskeln',
       text: [
         'Dörren slås upp. En ung ryttare faller in över tröskeln med ena handen pressad mot sidan.',
-        'Bakom honom kommer två vägrövare ur regnet. Den främste höjer sin sabel vid dörren. Armborstskytten stannar längre bort på gården och siktar. Eken och vedboden kan ge skydd om du hinner dit.',
+        'Bakom honom kommer två vägrövare ur regnet. Den främste höjer sin sabel vid dörren. Armborstskytten stannar längre bort på gården och siktar.',
         'Det finns ingen tid kvar för ord.',
       ],
       combat: {
-        terrain: innTerrain,
         enemies: [
           {
             name: 'Bandit',
@@ -227,13 +222,12 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
       title: 'Bakom vedboden',
       text: [
         'Du glider ut genom köksdörren. Regnet döljer dina steg. När rånarna når gårdsplanen är du redan bakom dem.',
-        'Armborstskytten hinner inte få upp armborstet innan du rusar fram. Han griper efter sabeln. Eken och vedboden finns kvar som skydd om striden drar ut på tiden.',
+        'Armborstskytten hinner inte få upp armborstet innan du rusar fram. Han griper efter sabeln.',
       ],
       effect: () => {
         state.warned = true;
       },
       combat: {
-        terrain: innTerrain,
         enemies: [
           {
             name: 'Bandit',

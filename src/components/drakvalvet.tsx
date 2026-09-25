@@ -403,9 +403,9 @@ export default function Drakvalvet({
             <p>
               Utan mätta avstånd skyddar framlinjen baklinjen mot närstrid. I strider med avstånd
               avgör räckvidd och fri sikt vad som kan anfallas. Varelser mellan skytt och mål kan ge
-              Half Cover (+2 AC); du kan också flytta till terrängskydd. Totalt skydd blockerar
-              avståndsanfall åt båda håll. Försvara ger fiendens anfall nackdel; Hjälp ger en
-              kamrats nästa attack fördel.
+              Half Cover (+2 AC); i möten med terrängskydd kan du också flytta bakom hinder. Totalt
+              skydd blockerar avståndsanfall åt båda håll. Försvara ger fiendens anfall nackdel;
+              Hjälp ger en kamrats nästa attack fördel.
             </p>
             <h3>Sällskap</h3>
             <p>

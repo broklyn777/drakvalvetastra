@@ -231,6 +231,7 @@ describe('taktisk strid', () => {
       expect(s.scene).toBe(scene);
       expect(s.combat!.enemies.map((e) => e.distance)).toEqual(distances);
       expect(s.combat!.enemies[1].role).toBe('archer');
+      expect(s.combat!.terrain).toEqual([]);
       expect(s.combat!.enemies[1].position).toBe(scene === 'ambush' ? 'fram' : 'bak');
       expect(s.combat!.enemies[1].preferredAttack).toBe('ranged');
       expect(attackAvailability(s, s.players[0], s.combat!.enemies[0]).ok).toBe(true);
@@ -284,10 +285,16 @@ describe('taktisk strid', () => {
       expect(shot.distance).toBe(scene === 'ambush' ? 5 : 50);
     }
   });
-  it('lets a hero claim Half Cover and lose it when moving toward the archer', () => {
+  it('lets a hero claim Half Cover in a separate terrain test encounter', () => {
     let s = game(42);
     s.players[0] = createCharacter({ ...selection, class: 'mage' }, 'hero-0');
-    startCombat(s, campaign.scenes(s, 'hero-0').door.combat!);
+    startCombat(s, {
+      ...campaign.scenes(s, 'hero-0').door.combat!,
+      terrain: [
+        { id: 'oak', name: 'Eken', distance: 15, cover: 'half' },
+        { id: 'woodshed', name: 'Vedboden', distance: 30, cover: 'total' },
+      ],
+    });
     s.combat!.initiative.sort((a, b) => (a.id === 'hero-0' ? -1 : b.id === 'hero-0' ? 1 : 0));
     s.combat!.turn = 0;
     s.combat!.enemies[0].hp = 0; // Isolate terrain cover from the bandit's creature cover.
@@ -318,7 +325,13 @@ describe('taktisk strid', () => {
   it('blocks ranged attacks from total cover and makes the archer close in', () => {
     let s = game(42);
     s.players[0] = createCharacter({ ...selection, class: 'mage' }, 'hero-0');
-    startCombat(s, campaign.scenes(s, 'hero-0').door.combat!);
+    startCombat(s, {
+      ...campaign.scenes(s, 'hero-0').door.combat!,
+      terrain: [
+        { id: 'oak', name: 'Eken', distance: 15, cover: 'half' },
+        { id: 'woodshed', name: 'Vedboden', distance: 30, cover: 'total' },
+      ],
+    });
     s.combat!.initiative.sort((a, b) => (a.id === 'hero-0' ? -1 : b.id === 'hero-0' ? 1 : 0));
     s.combat!.turn = 0;
     s.combat!.enemies[0].hp = 0;

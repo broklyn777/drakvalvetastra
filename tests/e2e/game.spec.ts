@@ -81,6 +81,7 @@ test('full solo adventure, save reload, final consequences, desktop and mobile l
   await choose(page, 'Gå in på värdshuset');
   await choose(page, 'Gå till fönstret');
   await choose(page, 'Smyg ut genom köket');
+  await expect(page.getByRole('region', { name: 'Skydd och siktlinjer' })).toHaveCount(0);
   await page.screenshot({ path: 'artifacts/combat-desktop.png', fullPage: true });
   await winCombat(page);
   await choose(page, 'Vila kort');
