@@ -27,4 +27,6 @@ Påverkar inte spelare i produktion. Testläget visas bara i Vercel-förhandsvis
 - `npm test` 32/32, `npm run typecheck` och `npm run build` lokalt.
 - Lokal webbläsare: länken `?scen=towerExterior&klass=warrior&folk=dwarf…&har=rope,sigil` startade i Det fallna vakttornet med Dvärg · Krigare och båda föremålsvalen; adressen rensades.
 - Lokal webbläsare: rutan listade 42 scener, **Kopiera länk** gav en korrekt adress och **Starta här** med scenen `door` startade striden.
+- Uppdaterad mot `main` efter #3 (skill checks) och #4 (dice-polish): sammanslagning utan konflikter; `combat-panel.tsx`, `d20.tsx` och `game-view.tsx` är identiska med `main`. `npm test` 36/36, `typecheck` och `build` igen.
+- Lokal webbläsare efter uppdateringen: länken till tornet visar Athletics/Deception-valen och ChatGPT:s nya tärning (`gemini-die`) i tärningsfönstret.
 - Inte testat på mobil.
