@@ -212,6 +212,25 @@ describe('taktisk strid', () => {
     expect(s.combat).toBeNull();
   });
 
+  it('allows free movement before an attack on the same turn', () => {
+    const s = game(42);
+    startCombat(s, campaign.scenes(s, 'hero-0').door.combat!);
+    s.combat!.initiative.sort((a, b) => (a.id === 'hero-0' ? -1 : b.id === 'hero-0' ? 1 : 0));
+    s.combat!.turn = 0;
+
+    const target = s.combat!.enemies.find((enemy) => enemy.preferredAttack === 'melee')!;
+    s.combat!.distances['hero-0'] = 0;
+    target.distance = 10;
+
+    expect(attackAvailability(s, s.players[0], target).ok).toBe(false);
+
+    const moved = action(s, { type: 'move', target: target.id }, 'hero-0');
+
+    expect(currentActor(moved)?.id).toBe('hero-0');
+    expect(moved.combat!.movementRemaining['hero-0']).toBeLessThan(s.players[0].speed);
+    expect(attackAvailability(moved, moved.players[0], target).ok).toBe(true);
+  });
+
   it('uses real distance for the first fight and rejects out-of-turn actions', () => {
     let s = choose(choose(game(42), 'inn'), 'door');
     const rangedBandit = s.combat!.enemies.find((e) => e.preferredAttack === 'ranged')!;
