@@ -29,11 +29,11 @@ export function D20({
   useEffect(() => {
     if (!rolling || reduceMotion) return;
     setAnim('roll');
-    let delay = 34;
+    let ticks = 0;
     const tick = () => {
       setShown(String(1 + Math.floor(Math.random() * 20)));
-      delay = Math.min(delay * 1.22, 115);
-      timer.current = setTimeout(tick, delay);
+      ticks += 1;
+      if (ticks < 9) timer.current = setTimeout(tick, 70);
     };
     tick();
     return () => {
