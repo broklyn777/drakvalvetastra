@@ -28,6 +28,7 @@ import type {
 } from '../../packages/engine/src/types';
 import { WorldArt } from './world-art';
 import { CombatPanel } from './combat-panel';
+import { D20 } from './d20';
 import { modifier } from '../../packages/engine/src/random';
 import {
   attributeLabels,
@@ -198,7 +199,7 @@ export function GameView({
         () => setCheckRoll((current) => (current?.phase === 'waiting' ? null : current)),
         5000,
       );
-    }, 900);
+    }, 630);
   }
   const chapter = game.visited.includes('skogsbyReturn')
     ? 'Kapitel I · Skogsby'
@@ -346,7 +347,7 @@ export function GameView({
         </article>
         {checkRoll && (
           <div className="dice-overlay" role="dialog" aria-modal="true" aria-label="Ability Check">
-            <div className="dice-panel">
+            <div className={`dice-panel ability-check-panel ${checkRoll.phase === 'result' ? 'has-result' : ''}`}>
               <p className="eyebrow">ABILITY CHECK · {checkRoll.check.skill.toUpperCase()}</p>
               <h2>{checkRoll.label}</h2>
               <p className="dice-context">
@@ -371,11 +372,8 @@ export function GameView({
               )}
               {checkRoll.phase !== 'result' || !checkRoll.result ? (
                 <>
-                  <div className={`dice-stage ${checkRoll.phase !== 'ready' ? 'rolling' : ''}`}>
-                    <div className="die d20">
-                      <span>D20</span>
-                      <strong>?</strong>
-                    </div>
+                  <div className="dice-stage compact-dice-stage">
+                    <D20 rolling={checkRoll.phase === 'rolling' || checkRoll.phase === 'waiting'} />
                   </div>
                   <button
                     className="button primary dice-roll-button"
@@ -392,21 +390,26 @@ export function GameView({
                 </>
               ) : (
                 <>
-                  <div className="dice-stage dice-results">
-                    <div className="die d20 chosen">
-                      <span>D20</span>
-                      <strong>{checkRoll.result.roll}</strong>
-                    </div>
+                  <div className="dice-stage compact-dice-stage dice-results">
+                    <D20
+                      rolling={false}
+                      value={checkRoll.result.roll}
+                      outcome={
+                        checkRoll.result.roll === 20
+                          ? 'crit'
+                          : checkRoll.result.success
+                            ? 'success'
+                            : 'failure'
+                      }
+                    />
                   </div>
-                  <div className="dice-equation">
+                  <p className={`dice-verdict compact-verdict ${checkRoll.result.success ? 'hit' : 'miss'}`}>
+                    {checkRoll.result.success ? '✨ Träff!' : '❌ Miss!'}{' '}
                     <strong>
                       {checkRoll.result.roll} {checkRoll.result.modifier >= 0 ? '+' : '−'}{' '}
                       {Math.abs(checkRoll.result.modifier)} = {checkRoll.result.total}
-                    </strong>
-                    <span>mot DC {checkRoll.result.dc}</span>
-                  </div>
-                  <p className={`dice-verdict ${checkRoll.result.success ? 'hit' : 'miss'}`}>
-                    {checkRoll.result.success ? 'Lyckat!' : 'Misslyckat!'}
+                    </strong>{' '}
+                    <span>(Krav: DC {checkRoll.result.dc})</span>
                   </p>
                   <button
                     className="button primary dice-roll-button"
