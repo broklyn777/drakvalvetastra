@@ -4,13 +4,15 @@ import { useEffect, useRef, useState } from 'react';
 
 type Outcome = 'success' | 'failure' | 'crit';
 
-export function D20({
+export function DiceBox({
   rolling,
   value,
+  sides,
   outcome,
 }: {
   rolling: boolean;
   value?: number;
+  sides: number;
   outcome?: Outcome;
 }) {
   const [shown, setShown] = useState('?');
@@ -20,7 +22,7 @@ export function D20({
     if (!rolling) return;
     let ticks = 0;
     const tick = () => {
-      setShown(String(1 + Math.floor(Math.random() * 20)));
+      setShown(String(1 + Math.floor(Math.random() * sides)));
       ticks += 1;
       if (ticks < 9) timer.current = setTimeout(tick, 70);
     };
@@ -28,7 +30,7 @@ export function D20({
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [rolling]);
+  }, [rolling, sides]);
 
   useEffect(() => {
     if (value === undefined) {
@@ -41,11 +43,24 @@ export function D20({
 
   return (
     <div
-      className={`gemini-d20 ${outcome ?? 'idle'} ${rolling ? 'rolling' : ''}`}
+      className={`gemini-die ${outcome ?? 'idle'} ${rolling ? 'rolling' : ''}`}
       role="img"
-      aria-label={value !== undefined ? `d20 visar ${value}` : 'd20'}
+      aria-label={value !== undefined ? `d${sides} visar ${value}` : `d${sides}`}
     >
-      {shown}
+      <small>D{sides}</small>
+      <strong>{shown}</strong>
     </div>
   );
+}
+
+export function D20({
+  rolling,
+  value,
+  outcome,
+}: {
+  rolling: boolean;
+  value?: number;
+  outcome?: Outcome;
+}) {
+  return <DiceBox rolling={rolling} value={value} sides={20} outcome={outcome} />;
 }
