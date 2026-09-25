@@ -198,7 +198,7 @@ export function GameView({
         () => setCheckRoll((current) => (current?.phase === 'waiting' ? null : current)),
         5000,
       );
-    }, 900);
+    }, 560);
   }
   const chapter = game.visited.includes('skogsbyReturn')
     ? 'Kapitel I · Skogsby'
@@ -346,7 +346,7 @@ export function GameView({
         </article>
         {checkRoll && (
           <div className="dice-overlay" role="dialog" aria-modal="true" aria-label="Ability Check">
-            <div className="dice-panel">
+            <div className={`dice-panel ability-check-panel ${checkRoll.phase === 'result' ? 'has-result' : ''}`}>
               <p className="eyebrow">ABILITY CHECK · {checkRoll.check.skill.toUpperCase()}</p>
               <h2>{checkRoll.label}</h2>
               <p className="dice-context">
@@ -392,8 +392,10 @@ export function GameView({
                 </>
               ) : (
                 <>
-                  <div className="dice-stage dice-results">
-                    <div className="die d20 chosen">
+                  <div className="dice-stage dice-results result-landed">
+                    <div
+                      className={`die d20 chosen ${checkRoll.result.success ? 'success' : 'failure'} ${checkRoll.result.roll === 20 ? 'natural-20' : checkRoll.result.roll === 1 ? 'natural-1' : ''}`}
+                    >
                       <span>D20</span>
                       <strong>{checkRoll.result.roll}</strong>
                     </div>
