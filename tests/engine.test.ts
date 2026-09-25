@@ -240,6 +240,14 @@ describe('taktisk strid', () => {
     expect(attackAvailability(moved, moved.players[0], target).ok).toBe(true);
   });
 
+  it('lets a melee hero attack immediately on the first turn of the opening fight', () => {
+    let s = choose(choose(game(42), 'inn'), 'door');
+    const meleeBandit = s.combat!.enemies.find((enemy) => enemy.preferredAttack === 'melee')!;
+
+    expect(meleeBandit.distance).toBe(5);
+    expect(attackAvailability(s, s.players[0], meleeBandit).ok).toBe(true);
+  });
+
   it('uses real distance for the first fight and rejects out-of-turn actions', () => {
     let s = choose(choose(game(42), 'inn'), 'door');
     const rangedBandit = s.combat!.enemies.find((e) => e.preferredAttack === 'ranged')!;
