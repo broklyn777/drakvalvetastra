@@ -27,6 +27,14 @@ export function useTestLink(enabled: boolean, onStart: (test: TestStart) => void
   }, [enabled, onStart]);
 }
 
+/** Opens the test-mode panel and scrolls to it (used by the GENVÄGAR badge). */
+export function openTestMode() {
+  const panel = document.getElementById('testlage') as HTMLDetailsElement | null;
+  if (!panel) return;
+  panel.open = true;
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 export function TestMode({ onStart }: { onStart: (test: TestStart) => void }) {
   const [campaignId, setCampaignId] = useState('watchtower');
   const scenes = useMemo(() => testScenes(campaigns[campaignId]), [campaignId]);
@@ -56,12 +64,12 @@ export function TestMode({ onStart }: { onStart: (test: TestStart) => void }) {
   }
 
   return (
-    <details className="test-mode panel">
+    <details className="test-mode panel" id="testlage">
       <summary>
         <FlaskConical size={16} />
         <span>
           <strong>Testläge</strong>
-          <small>Hoppa direkt till en scen · bara i preview och lokalt</small>
+          <small>Genvägar: hoppa direkt till en scen med vald hjälte</small>
         </span>
       </summary>
       <div className="test-mode-grid">
