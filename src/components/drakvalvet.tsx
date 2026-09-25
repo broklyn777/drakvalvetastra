@@ -27,15 +27,14 @@ import { CharacterCreator } from './character-creator';
 import { GameView } from './game-view';
 import { Multiplayer } from './multiplayer';
 import { AccountDialog, Modal, SaveDialog } from './dialogs';
-import { TestMode, useTestLink } from './test-mode';
+import { TestMode, openTestMode, useTestLink } from './test-mode';
 export default function Drakvalvet({
   buildInfo,
 }: {
   buildInfo: { environment: 'PREVIEW' | 'PRODUCTION' | 'LOCAL'; branch: string; patch: string };
 }) {
   const c = useGame();
-  const testMode = buildInfo.environment !== 'PRODUCTION';
-  useTestLink(testMode, c.startTest);
+  useTestLink(true, c.startTest);
   const [dialog, setDialog] = useState<'save' | 'account' | 'help' | null>(null);
   const selected = campaigns[c.campaignId];
   const heroId = c.room
@@ -173,6 +172,9 @@ export default function Drakvalvet({
                 <span className="build-patch-type">STRIDSPATCH</span>
                 <span>{buildInfo.branch}</span>
                 <span>PATCH {buildInfo.patch}</span>
+                <button className="build-shortcuts" onClick={openTestMode}>
+                  Genvägar
+                </button>
               </div>
               <div className="section-heading">
                 <div>
@@ -225,7 +227,7 @@ export default function Drakvalvet({
                   </p>
                 </div>
               </section>
-              {testMode && <TestMode onStart={c.startTest} />}
+              <TestMode onStart={c.startTest} />
               {c.ready && c.auto && (
                 <button className="continue-card panel" onClick={() => c.load(c.auto!)}>
                   <div className="continue-icon">

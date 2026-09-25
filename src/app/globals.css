@@ -3135,6 +3135,21 @@ summary::-webkit-details-marker {
   border-color: #45505c;
   background: #182028;
 }
+.build-shortcuts {
+  margin-left: auto;
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  padding: 3px 8px;
+  background: transparent;
+  color: var(--gold-light);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+.build-shortcuts:hover {
+  background: #3a3322;
+}
 @media (max-width: 760px) {
   .build-banner {
     margin-bottom: 14px;
