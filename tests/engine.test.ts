@@ -237,6 +237,36 @@ describe('taktisk strid', () => {
       );
     }
   });
+  it('uses the legacy Bandit stat block for both enemies on both routes', () => {
+    const scenes = campaign.scenes(game(), 'hero-0');
+    for (const scene of ['door', 'ambush'] as const) {
+      const encounter = scenes[scene].combat!;
+      expect(encounter.xp).toBe(50); // Two Bandits at 25 XP each.
+      for (const enemy of encounter.enemies) {
+        expect(enemy.name).toMatch(/^Bandit/);
+        expect(enemy).toMatchObject({ hp: 11, maxHp: 11, ac: 12, speed: 30, dex: 12 });
+        expect(enemy.attacks).toEqual([
+          {
+            name: 'Scimitar',
+            kind: 'melee',
+            attack: 3,
+            dmg: [1, 6, 1],
+            damageType: 'Hugg',
+            reach: 5,
+          },
+          {
+            name: 'Light Crossbow',
+            kind: 'ranged',
+            attack: 3,
+            dmg: [1, 8, 1],
+            damageType: 'Stick',
+            normalRange: 80,
+            longRange: 320,
+          },
+        ]);
+      }
+    }
+  });
   it('makes the archer use a sword when flanked and a crossbow from the yard', () => {
     for (const scene of ['door', 'ambush'] as const) {
       const s = game(42);

@@ -2,6 +2,8 @@
 
 Alla avstånd mäts från spelarnas startposition (0 ft). Detta är en ändring av första encountert; stridsmotorns regler är oförändrade.
 
+Båda fienderna använder [Bandit (2014 Legacy) från D&D Beyond](https://www.dndbeyond.com/monsters/16798-bandit): AC 12, 11 HP, speed 30 ft och DEX 12. De har Scimitar (+3, 1T6+1 hugg, reach 5 ft) och Light Crossbow (+3, 1T8+1 stick, range 80/320 ft). Två banditer ger totalt 50 XP som encounterts grundbelöning. Namntillägget ”armborstskytt” visar vilken av de två som inleder med avståndsvapen; det är samma fiendetyp.
+
 | Väg in                             | Svärdsbandit | Armborstskytt | Effekt                                                                                                 |
 | ---------------------------------- | -----------: | ------------: | ------------------------------------------------------------------------------------------------------ |
 | Direkt till dörren                 |         5 ft |         50 ft | Banditen hotar i närstrid; skytten kan skjuta från gården.                                             |

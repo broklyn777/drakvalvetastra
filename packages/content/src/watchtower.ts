@@ -159,7 +159,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
             ],
           },
           {
-            name: 'Armborstskytt',
+            name: 'Bandit (armborstskytt)',
             hp: 11,
             maxHp: 11,
             ac: 12,
@@ -245,7 +245,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
             ],
           },
           {
-            name: 'Armborstskytt',
+            name: 'Bandit (armborstskytt)',
             hp: 11,
             maxHp: 11,
             ac: 12,
