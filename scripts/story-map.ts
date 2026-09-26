@@ -180,21 +180,42 @@ push(
     ? `⚠️ **Scener som inte går att nå:** ${unreachable.map((e) => `\`${e}\``).join(', ')}`
     : '✅ Alla scener går att nå från någon start.',
   '',
-  '## Karta',
+  '## Så läser du dokumentet',
   '',
-  'Pilar: `-->` val · `-.->` misslyckat färdighetsslag · `==>` vunnen strid. ⚔ = strid, rundad ruta = slut.',
+  '- **Översikt**: varje scen på en rad, numrerad, med vart valen leder. Börja här för att se hela handlingen.',
+  '- **Scener**: samma nummer, med hela texten och alla detaljer.',
+  '- ⚔ = strid. [kräver …] = valet syns bara om villkoret är uppfyllt. [Athletics DC 10] = färdighetsslag; "misslyckat →" visar vart ett misslyckande leder.',
+  '- `id` i kodstil är scenens namn i koden (`packages/content/src/watchtower.ts`).',
+  '- **Bilaga** sist: samma karta som flödesschema (Mermaid).',
   '',
-  '```mermaid',
-  mermaid,
-  '```',
-  '',
-  '## Scener',
+  '## Översikt',
   '',
 );
+const num = (id: string) => `${ids.indexOf(id) + 1}. ${plain(base[id].title)}`;
+for (const [index, id] of ids.entries()) {
+  if (index === 0) push('### Prolog: Tre Lyktor och vakttornet', '');
+  if (index === chapter2) push('', '### Kapitel 1: Skogsby', '');
+  const sc = base[id];
+  push(
+    `- **${num(id)}**${sc.combat ? ' ⚔' : ''}${endings.includes(id) ? ' · SLUT' : ''} \`${id}\``,
+  );
+  if (sc.combat) push(`  - seger → ${num(sc.combat.onWin)}`);
+  for (const { choice, needs } of choicesWithConditions(id)) {
+    const [label, next, check] = choice;
+    const tags = [
+      ...(needs.length ? [`kräver ${needs.join(' eller ')}`] : []),
+      ...(check ? [`${check.skill} DC ${check.dc}`] : []),
+    ];
+    push(
+      `  - "${plain(label)}"${tags.length ? ` [${tags.join(' · ')}]` : ''} → ${num(next)}${check ? ` · misslyckat → ${num(check.fail)}` : ''}`,
+    );
+  }
+}
+push('', '## Scener', '');
 for (const [index, id] of ids.entries()) {
   const sc = base[id];
   if (index === chapter2) push('---', '', '# Kapitel 1: Skogsby', '');
-  push(`### ${md(sc.title)}`, '', `\`${id}\``, '');
+  push(`### ${index + 1}. ${md(sc.title)}`, '', `\`${id}\``, '');
   for (const p of textOf(sc)) push(`> ${md(p)}`, '>');
   lines.pop();
   push('');
@@ -244,5 +265,17 @@ for (const [index, id] of ids.entries()) {
     push('');
   } else if (!sc.combat) push('*Slut på berättelsen.*', '');
 }
+push(
+  '---',
+  '',
+  '## Bilaga: karta (Mermaid)',
+  '',
+  'Visas som flödesschema på GitHub. Pilar: `-->` val · `-.->` misslyckat färdighetsslag · `==>` vunnen strid. ⚔ = strid, rundad ruta = slut.',
+  '',
+  '```mermaid',
+  mermaid,
+  '```',
+  '',
+);
 writeFileSync(new URL('../docs/STORY.md', import.meta.url), lines.join('\n'));
 console.log(`docs/STORY.md: ${ids.length} scener, ${unreachable.length} onåbara.`);

@@ -7,7 +7,7 @@
 
 Ingen ändring i spelet. För oss som skriver berättelsen:
 
-- **`docs/STORY.md`**: hela berättelsen med karta (flödesschema) över alla 44 scener och val, och varje scen med text, textvarianter, val och vad som krävs för dem, färdighetsslag, strider, belöningar och vad scenen ändrar.
+- **`docs/STORY.md`**: hela berättelsen i en fil som går att läsa själv och ladda upp till en AI. Överst en numrerad översikt i text (varje scen och vart valen leder), sedan varje scen med text, textvarianter, val och villkor, färdighetsslag, strider, belöningar och vad scenen ändrar, sist kartan som Mermaid-flödesschema.
 - **`npm run story`** skriver om dokumentet från koden. Kör det efter varje ändring i `watchtower.ts`.
 
 ## Tekniskt
