@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Flame,
   Compass,
@@ -17,6 +17,7 @@ import {
   X,
   ScrollText,
   Sprout,
+  Monitor,
 } from 'lucide-react';
 import { useGame } from '../hooks/use-game';
 import { campaigns } from '../../packages/content/src';
@@ -36,6 +37,15 @@ export default function Drakvalvet({
   const c = useGame();
   useTestLink(true, c.startTest);
   const [dialog, setDialog] = useState<'save' | 'account' | 'help' | null>(null);
+  const [tvMode, setTvMode] = useState(false);
+  useEffect(() => {
+    setTvMode(window.localStorage.getItem('drakvalvet-tv-mode') === 'true');
+  }, []);
+  function toggleTvMode() {
+    const next = !tvMode;
+    setTvMode(next);
+    window.localStorage.setItem('drakvalvet-tv-mode', String(next));
+  }
   const selected = campaigns[c.campaignId];
   const heroId = c.room
     ? (c.user?.id ?? '')
@@ -49,7 +59,7 @@ export default function Drakvalvet({
     c.setScreen(screen);
   };
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${tvMode && c.screen === 'game' ? 'tv-mode' : ''}`}>
       <aside className="app-nav">
         <a href="#main" className="brand" aria-label="Drakvalvet – till huvudinnehåll">
           <div className="brand-mark">
@@ -130,6 +140,18 @@ export default function Drakvalvet({
             </strong>
           </div>
           <div className="topbar-actions">
+            {c.screen === 'game' && c.game && (
+              <button
+                className={`tv-toggle ${tvMode ? 'active' : ''}`}
+                type="button"
+                aria-pressed={tvMode}
+                aria-label={tvMode ? 'Stäng av TV-läge' : 'Aktivera TV-läge'}
+                onClick={toggleTvMode}
+              >
+                <Monitor size={17} />
+                <span>{tvMode ? 'TV-läge på' : 'TV-läge'}</span>
+              </button>
+            )}
             {c.game && (
               <button
                 className="icon-button"

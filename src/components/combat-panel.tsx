@@ -135,6 +135,7 @@ export function CombatPanel({
   );
   return (
     <section className="combat-panel" aria-label="Strid">
+      <div className="combat-main">
       <div className="combat-top">
         <span className="eyebrow">
           <Swords size={16} /> TAKTISK STRID
@@ -388,6 +389,7 @@ export function CombatPanel({
           </details>
         </>
       )}
+      </div>
       {diceRoll && diceTarget && (
         <div className="dice-overlay" role="dialog" aria-modal="true" aria-label="Tärningsslag">
           <div className="dice-panel">

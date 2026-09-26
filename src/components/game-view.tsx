@@ -600,11 +600,11 @@ export function GameView({
                     {p.name}
                     {p.id === hero.id ? (onFocus ? ' ◆' : ' (du)') : ''}
                     <small className="party-class">
-                      {p.className}
+                      {p.className} · AC {p.ac}
                       {p.hp <= 0 ? ' · fallen' : ''}
                     </small>
                   </span>
-                  <small>
+                  <small className="party-health">
                     {p.hp}/{p.maxHp} liv
                   </small>
                 </>
