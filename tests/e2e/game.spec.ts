@@ -28,6 +28,18 @@ async function winCombat(page: Page) {
       return;
     }
     await expect(page.getByRole('button', { name: 'Anfall', exact: true })).toBeVisible();
+    const attack = page.getByRole('button', { name: 'Anfall', exact: true });
+    if (!(await attack.isEnabled())) {
+      const closer = page.getByRole('button', { name: 'Flytta närmare' });
+      if (await closer.isEnabled()) {
+        await closer.click();
+        continue;
+      }
+      const details = page.locator('details.tactics');
+      if ((await details.getAttribute('open')) === null) await details.locator('summary').click();
+      await page.getByRole('button', { name: /Dash mot mål/ }).click();
+      continue;
+    }
     const hp = await page.locator('.character-summary .bar-label strong').first().innerText();
     const [current, max] = hp.split('/').map(Number);
     if (current < max * 0.6) {
@@ -99,7 +111,14 @@ test('full solo adventure, save reload, final consequences, desktop and mobile l
   ).toBeVisible();
   await choose(page, 'Använd repet');
   await choose(page, 'Gå ner i tornets inre');
+  await expect(page.getByText('En hel stenpelare står nära dörren')).toBeVisible();
   await choose(page, 'Tänd ljus');
+  await expect(page.getByRole('region', { name: 'Skydd och siktlinjer' })).toBeVisible();
+  await page.getByRole('button', { name: /Hel pelare · 10 ft · Totalt skydd/ }).click();
+  await expect(
+    page.getByText(/Position: 10 ft · Rörelse: 20 ft · Skydd: Hel pelare/),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Försvara', exact: true }).click();
   await winCombat(page);
   await choose(page, 'Lämna platsen tills vidare');
   await choose(page, 'Återvänd mot Skogsby');

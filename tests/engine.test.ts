@@ -396,6 +396,61 @@ describe('taktisk strid', () => {
     expect(typedDamage(enemy, 7, 'Hugg')).toBe(7);
     expect(typedDamage(enemy, 7, 'Kross')).toBe(14);
   });
+  it('lets a melee hero use the whole crypt pillar to close on the archer', () => {
+    let s = game(42);
+    s.scene = 'cryptBeast';
+    startCombat(s, campaign.scenes(s, 'hero-0').cryptBeast.combat!);
+    s.combat!.initiative.sort((a, b) => (a.id === 'hero-0' ? -1 : b.id === 'hero-0' ? 1 : 0));
+    s.combat!.turn = 0;
+    expect(s.combat!.enemies[0].distance).toBe(50);
+    expect(attackAvailability(s, s.players[0], s.combat!.enemies[0]).ok).toBe(false);
+
+    s = action(s, { type: 'move', target: 'wholePillar' });
+    expect(s.combat!.distances['hero-0']).toBe(10);
+    expect(attackCover(s, 'enemy-0', 'hero-0')).toMatchObject({
+      blocked: true,
+      source: 'Hel pelare',
+    });
+    expect(parseSave(makeSave(s, 'Kryptan')).state).toEqual(s);
+    const eventSeq = s.eventSeq;
+    s = action(s, { type: 'defend' });
+    expect(s.combat!.enemies[0].distance).toBe(20);
+    expect(
+      s.events
+        .filter((event) => event.id > eventSeq)
+        .some((event) => event.dice?.attackerId === 'enemy-0'),
+    ).toBe(false);
+    expect(s.events.some((event) => event.text.includes('söker fri sikt runt Hel pelare'))).toBe(
+      true,
+    );
+
+    s = action(s, { type: 'move', target: 'enemy-0' });
+    expect(s.combat!.distances['hero-0']).toBe(15);
+    expect(s.combat!.coveredBy['hero-0']).toBeUndefined();
+    expect(attackAvailability(s, s.players[0], s.combat!.enemies[0]).ok).toBe(true);
+    s = action(s, { type: 'defend' });
+    expect(
+      s.events.findLast((event) => event.dice?.attackerId === 'enemy-0')?.dice?.attackName,
+    ).toBe('Shortsword');
+  });
+  it('gives the broken crypt pillar Half Cover against the official Shortbow', () => {
+    let s = game(42);
+    s.scene = 'cryptBeast';
+    startCombat(s, campaign.scenes(s, 'hero-0').cryptBeast.combat!);
+    s.combat!.initiative.sort((a, b) => (a.id === 'hero-0' ? -1 : b.id === 'hero-0' ? 1 : 0));
+    s.combat!.turn = 0;
+    s = action(s, { type: 'move', target: 'brokenPillar' });
+    expect(s.combat!.distances['hero-0']).toBe(25);
+    expect(attackCover(s, 'enemy-0', 'hero-0')).toMatchObject({
+      bonus: 2,
+      source: 'Sprucken pelare',
+    });
+    s = action(s, { type: 'defend' });
+    const shot = s.events.findLast((event) => event.dice?.attackerId === 'enemy-0')!.dice!;
+    expect(shot.attackName).toBe('Shortbow');
+    expect(shot.coverSource).toBe('Sprucken pelare');
+    expect(shot.attack.ac).toBe(s.players[0].ac + 2);
+  });
   it('limits class abilities and does not consume items at full HP', () => {
     const s = game();
     expect(dispatch(s, campaign, 'hero-0', { type: 'potion' }).ok).toBe(false);
@@ -412,6 +467,7 @@ describe('taktisk strid', () => {
     expect(s.combat!.enemies).toHaveLength(2);
     const crypt = game(2, 4);
     startCombat(crypt, campaign.scenes(crypt, 'hero-0').cryptBeast.combat!);
+    expect(crypt.combat!.enemies).toHaveLength(1);
     expect(crypt.combat!.enemies[0].maxHp).toBe(13);
   });
   it('cleric can revive a fallen ally', () => {
@@ -435,8 +491,35 @@ describe('taktisk strid', () => {
     ]);
     expect(scenes.towerFight.combat!.xp).toBe(50);
     expect(scenes.cryptBeast.combat!.enemies).toMatchObject([
-      { name: 'Skeleton', hp: 13, ac: 13, attack: 4, dmg: [1, 6, 2], weapon: 'Shortsword' },
+      {
+        name: 'Skeleton (bågskytt)',
+        hp: 13,
+        ac: 13,
+        attack: 4,
+        dmg: [1, 6, 2],
+        weapon: 'Shortbow / Shortsword',
+        startDistance: 50,
+        preferredAttack: 'ranged',
+      },
     ]);
+    expect(scenes.cryptBeast.combat!.enemies[0].attacks).toMatchObject([
+      { name: 'Shortsword', kind: 'melee', attack: 4, dmg: [1, 6, 2], reach: 5 },
+      {
+        name: 'Shortbow',
+        kind: 'ranged',
+        attack: 4,
+        dmg: [1, 6, 2],
+        normalRange: 80,
+        longRange: 320,
+      },
+    ]);
+    for (const scene of ['cryptBeast', 'cryptBeastLoud'] as const) {
+      expect(scenes[scene].combat!.usesDistance).toBe(true);
+      expect(scenes[scene].combat!.terrain).toEqual([
+        { id: 'wholePillar', name: 'Hel pelare', distance: 10, cover: 'total' },
+        { id: 'brokenPillar', name: 'Sprucken pelare', distance: 25, cover: 'half' },
+      ]);
+    }
     expect(scenes.cryptBeast.combat!.xp).toBe(50);
     expect(scenes.cryptBeastLoud.combat!.surprise).toBe('players');
   });

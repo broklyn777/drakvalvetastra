@@ -36,18 +36,44 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
   ];
   // D&D Beyond Basic Rules (2014): Skeleton (CR 1/4).
   const cryptSkeleton = (): EnemyDefinition => ({
-    name: 'Skeleton',
+    name: 'Skeleton (bågskytt)',
     hp: 13,
     maxHp: 13,
     ac: 13,
     attack: 4,
     dmg: [1, 6, 2],
-    weapon: 'Shortsword',
+    weapon: 'Shortbow / Shortsword',
     damageType: 'Stick',
     weaknesses: ['Kross'],
     dex: 14,
     speed: 30,
+    position: 'bak',
+    startDistance: 50,
+    preferredAttack: 'ranged',
+    attacks: [
+      {
+        name: 'Shortsword',
+        kind: 'melee',
+        attack: 4,
+        dmg: [1, 6, 2],
+        damageType: 'Stick',
+        reach: 5,
+      },
+      {
+        name: 'Shortbow',
+        kind: 'ranged',
+        attack: 4,
+        dmg: [1, 6, 2],
+        damageType: 'Stick',
+        normalRange: 80,
+        longRange: 320,
+      },
+    ],
   });
+  const cryptTerrain = [
+    { id: 'wholePillar', name: 'Hel pelare', distance: 10, cover: 'total' as const },
+    { id: 'brokenPillar', name: 'Sprucken pelare', distance: 25, cover: 'half' as const },
+  ];
   const scenes: Record<string, Scene> = {
     roadIntro: {
       title: 'Vägen mot Gråskogen',
@@ -484,7 +510,7 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
       text: [
         'En spiraltrappa leder ner under marknivå. Luften blir kallare för varje steg.',
         'Längst ner står en järndörr på glänt. Bakom den ligger en korridor byggd av mycket äldre sten än tornet ovanför.',
-        'På golvet syns blodspår. Från mörkret hörs ett skrapande ljud.',
+        'På golvet syns blodspår. En hel stenpelare står nära dörren; en sprucken pelare reser sig längre in. Från mörkret hörs ett skrapande ljud och en bågsträng som spänns.',
       ],
       choices: [
         ['Tänd ljus och gå försiktigt framåt', 'cryptBeast'],
@@ -494,30 +520,36 @@ export function watchtowerScenes(session: GameState, actor: string): Record<stri
     cryptBeast: {
       title: 'Skelettet i kryptan',
       text: [
-        'Du går långsamt och håller andan. Då rör sig något mellan pelarna.',
-        'Ett skelett i rostiga rustningsrester griper ett kortsvärd. Det vrider skallen mot minsta ljud.',
+        'Du går långsamt och håller andan. Bakom pelarna reser sig ett skelett i rostiga rustningsrester med kortbågen riktad mot dig. Vid höften hänger ett kortsvärd.',
+        'Den hela pelaren nära dig bryter siktlinjen helt. Den spruckna längre fram ger visst skydd men låter pilen komma igenom. Du kan använda dem för att ta dig inom närstridsavstånd.',
         partyHas('bossWeakened')
           ? 'Jägarens varning räddar dig: du sparkar undan en lös sten åt motsatt håll. Skelettet vänder sig efter ljudet och du får ett ögonblicks försprång.'
-          : 'Det hör din stövel skrapa mot stenen och kommer mot dig.',
+          : 'Det hör din stövel skrapa mot stenen och spänner bågen.',
       ],
       combat: {
+        terrain: cryptTerrain,
         enemies: [cryptSkeleton()],
         onWin: 'sealedDoor',
         xp: 50,
         surprise: partyHas('bossWeakened') ? 'enemies' : undefined,
+        fixedEnemies: true,
+        usesDistance: true,
       },
     },
     cryptBeastLoud: {
       title: 'Ett misstag i mörkret',
       text: [
         'Ditt rop ekar genom korridoren.',
-        'Svaret är ett skrapande från mörkret. Ett skelett med draget kortsvärd hittar dig bland pelarna.',
+        'Svaret är ett skrapande från mörkret. Ett skelett med spänd kortbåge vrider sig mot din röst och höjer pilen. En hel pelare står nära dörren och en sprucken längre in.',
       ],
       combat: {
+        terrain: cryptTerrain,
         enemies: [cryptSkeleton()],
         onWin: 'sealedDoor',
         xp: 50,
         surprise: 'players',
+        fixedEnemies: true,
+        usesDistance: true,
       },
     },
     sealedDoor: {
