@@ -2867,26 +2867,26 @@ summary::-webkit-details-marker {
   justify-content: center;
 }
 .compact-dice-stage {
-  min-height: 126px;
+  min-height: 160px;
   margin: 2px 0 14px;
 }
 .gemini-die {
-  width: 112px;
-  height: 112px;
+  width: 150px;
+  height: 150px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   margin: 0 auto;
   border: 3px solid #c5a059;
-  border-radius: 18px;
+  border-radius: 22px;
   background: #1c2b20;
   color: #c5a059;
   font-family: var(--serif);
-  font-size: 54px;
+  font-size: 72px;
   font-weight: 600;
   line-height: 1;
-  gap: 6px;
+  gap: 8px;
   transition:
     border-color 0.2s ease,
     color 0.2s ease,
@@ -2910,14 +2910,14 @@ summary::-webkit-details-marker {
 }
 .gemini-die small {
   font-family: inherit;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: 1.5px;
   opacity: 0.82;
 }
 .gemini-die strong {
   font-family: var(--serif);
-  font-size: 50px;
+  font-size: 68px;
   font-weight: 600;
   line-height: 1;
 }
@@ -3458,11 +3458,14 @@ summary::-webkit-details-marker {
 }
 @media (max-width: 480px) {
   .gemini-die {
-    width: 96px;
-    height: 96px;
-    font-size: 46px;
+    width: 128px;
+    height: 128px;
+    font-size: 62px;
   }
   .gemini-die strong {
-    font-size: 42px;
+    font-size: 58px;
+  }
+  .compact-dice-stage {
+    min-height: 138px;
   }
 }
