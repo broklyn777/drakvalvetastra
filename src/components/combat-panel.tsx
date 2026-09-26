@@ -253,8 +253,10 @@ export function CombatPanel({
                   (healsAlly
                     ? game.players.find((p) => p.id === ally)!.hp >=
                       game.players.find((p) => p.id === ally)!.maxHp
-                    : hero.selection.class !== 'mage' &&
-                      (!target || !attackAvailability(game, hero, target).ok))
+                    : hero.selection.class === 'warrior'
+                      ? hero.hp >= hero.maxHp
+                      : hero.selection.class !== 'mage' &&
+                        (!target || !attackAvailability(game, hero, target).ok))
                 }
                 onClick={() => act({ type: 'ability', target: healsAlly ? ally : target?.id })}
               >

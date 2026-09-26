@@ -7,6 +7,12 @@ export const XP_THRESHOLDS = [
   0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000,
   195000, 225000, 265000, 305000, 355000,
 ];
+/** "Greatsword (2d6)", "Longbow (d8)". */
+export function weaponName(id: WeaponId) {
+  const [count, sides] = weaponData[id].dice;
+  return `${weaponData[id].label} (${count > 1 ? count : ''}d${sides})`;
+}
+
 /** Proficiency Bonus at levels 1–4. */
 const PROFICIENCY = 2;
 
@@ -89,22 +95,6 @@ export function createCharacter(selection: CharacterSelection, id: string): Char
     fightingStyles: [] as Character['fightingStyles'],
     ...(chosen.race === 'human' ? { inspiration: true } : {}),
   };
-  if (!('rules' in cls)) {
-    // Original game values (the Fighter until it is converted).
-    const maxHp = cls.maxHp + traitHp;
-    return {
-      ...base,
-      hp: maxHp,
-      maxHp,
-      ac: cls.ac,
-      attackBonus: cls.attack,
-      damage: [...cls.damage],
-      damageType: cls.damageType,
-      weapon: cls.weapon,
-      armor: cls.armor,
-      shield: cls.shield,
-    };
-  }
   const rules = cls.rules;
   const casting = 'casting' in rules ? rules.casting : undefined;
   const armor = armorData[rules.armor];
@@ -119,20 +109,23 @@ export function createCharacter(selection: CharacterSelection, id: string): Char
     attackBonus,
     damage,
     damageType: weaponData[primary].damageType,
-    weapon: `${weaponData[primary].label} (d${weaponData[primary].dice[1]})`,
+    weapon: weaponName(primary),
     armor: armor.label,
     shield: rules.shield,
     ...('hunterMarks' in rules ? { hunterMarks: rules.hunterMarks } : {}),
     ...('spellSlots' in rules ? { spellSlots: rules.spellSlots } : {}),
     ...('layOnHands' in rules ? { layOnHands: rules.layOnHands } : {}),
+    ...('secondWind' in rules ? { secondWind: rules.secondWind } : {}),
+    fightingStyles: 'fightingStyle' in rules ? [rules.fightingStyle] : [],
   };
 }
 /** Class features on the ability button. `timing` decides whether it ends the turn. */
 export const abilities = {
   warrior: {
-    name: 'Kraftslag',
-    timing: 'action',
-    description: '−3 anfall, +1T8 skada. En gång per strid.',
+    name: 'Second Wind',
+    timing: 'bonus',
+    description:
+      'Bonus Action: återfå 1d10 + din Fighter-nivå i HP. Kostar inte din tur. 2 gånger per Long Rest.',
   },
   paladin: {
     name: 'Lay On Hands',

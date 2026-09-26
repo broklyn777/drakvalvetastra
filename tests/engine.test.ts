@@ -198,6 +198,9 @@ describe('taktisk strid', () => {
     let s = choose(choose(game(42), 'inn'), 'door');
     const rangedBandit = s.combat!.enemies.find((e) => e.preferredAttack === 'ranged')!;
     expect(rangedBandit.distance).toBe(50);
+    // The Fighter's Javelins reach 120 ft (long range); beyond that the attack is rejected.
+    expect(attackAvailability(s, s.players[0], rangedBandit).reason).toContain('Javelin');
+    rangedBandit.distance = 200;
     expect(attackAvailability(s, s.players[0], rangedBandit).ok).toBe(false);
     const before = JSON.stringify(s);
     expect(dispatch(s, campaign, 'hero-0', { type: 'attack', target: rangedBandit.id }).ok).toBe(false);
@@ -242,10 +245,14 @@ describe('taktisk strid', () => {
     expect(dispatch(s, campaign, 'hero-0', { type: 'potion' }).ok).toBe(false);
     expect(s.players[0].potions).toBe(2);
     let b = choose(choose(game(42), 'inn'), 'door');
-    const target = b.combat!.enemies.find((e) => canTarget(b, b.players[0], e))!;
-    b = action(b, { type: 'ability', target: target.id });
+    // Fighter Second Wind: not at full HP, then once per turn as a Bonus Action.
+    b.players[0].hp = b.players[0].maxHp;
+    expect(dispatch(b, campaign, 'hero-0', { type: 'ability' }).ok).toBe(false);
+    b.players[0].hp = 1;
+    b = action(b, { type: 'ability' });
+    expect(b.players[0].secondWind).toBe(1);
     expect(b.combat!.used['hero-0']).toBe(true);
-    expect(dispatch(b, campaign, 'hero-0', { type: 'ability', target: target.id }).ok).toBe(false);
+    expect(dispatch(b, campaign, 'hero-0', { type: 'ability' }).ok).toBe(false);
   });
   it('scales encounters to 4 players and boss health to the party', () => {
     const s = game(2, 4);

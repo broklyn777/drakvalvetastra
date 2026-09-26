@@ -14,7 +14,7 @@ export type TalentId = 'iron' | 'keen' | 'supply' | 'savage';
 export type Dice = [number, number, number];
 export type DamageType = 'Hugg' | 'Stick' | 'Kross' | 'Eld' | 'Riv';
 export type Position = 'fram' | 'bak';
-export type FightingStyle = 'protection';
+export type FightingStyle = 'protection' | 'greatWeaponFighting';
 export interface AttackProfile {
   name: string;
   kind: 'melee' | 'ranged';
@@ -75,6 +75,8 @@ export interface Character extends Attributes {
   spellSlots?: number;
   /** Paladin Lay On Hands pool left until the next Long Rest. */
   layOnHands?: number;
+  /** Fighter Second Wind uses left until the next Long Rest. */
+  secondWind?: number;
 }
 export interface World {
   miraTrust: number;

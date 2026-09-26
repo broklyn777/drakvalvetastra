@@ -27,27 +27,26 @@ export const raceData = {
 } as const;
 
 /**
- * Classes. Those with `rules` follow D&D 2024 level-1 rules (Hit Die, starting equipment, Weapon
- * Mastery and features), with HP, AC and attacks derived from ability scores. The Fighter still
- * uses the original game's fixed values until it is converted.
+ * Classes following D&D 2024 level-1 rules (Hit Die, starting equipment A, Weapon Mastery and
+ * features), with HP, AC and attacks derived from ability scores.
  */
 export const classData = {
   warrior: {
     label: 'Fighter',
-    desc: 'Lever på stål och envishet. (Ännu inte omräknad till 2024.)',
-    bonus: 'Vapen: Svärd (d8) · Hit Die d10 · Kraftslag',
+    desc: 'Lever på stål och envishet. Tål mest och slår hårdast.',
+    bonus: 'Greatsword (2d6), Flail, 8 Javelins, Chain Mail · Hit Die d10 · Second Wind',
     // D&D 2024 Standard Array for the class, plus a background's +2/+1.
     base: { str: 15, dex: 14, con: 13, int: 8, wis: 10, cha: 12 },
     asi: { str: 2, con: 1 },
     hitDie: 10,
-    maxHp: 16,
-    ac: 14,
-    attack: 5,
-    damage: [1, 8, 2],
-    damageType: 'Hugg',
-    weapon: 'Svärd (d8)',
-    armor: 'Läderbrynja',
-    shield: false,
+    rules: {
+      armor: 'chainMail',
+      shield: false,
+      weapons: ['greatsword', 'flail', 'javelin'],
+      masteries: ['greatsword', 'flail', 'javelin'],
+      fightingStyle: 'greatWeaponFighting',
+      secondWind: 2,
+    },
     potions: 2,
     herbs: 0,
   },

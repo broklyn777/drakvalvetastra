@@ -11,7 +11,7 @@ import type {
 import { die, modifier, rollDamage } from './random';
 import { emit, gainXp } from './events';
 import { hasFeat, heroD20, hitDie, initiativeBonus, PROFICIENCY } from './traits';
-import { weaponStats } from './characters';
+import { weaponName, weaponStats } from './characters';
 import { classData } from '../../content/src/characters';
 import { weaponData, type WeaponId } from '../../content/src/equipment';
 
@@ -79,7 +79,8 @@ interface HeroAttack {
   normalRange: number;
   longRange: number;
   reach: number;
-  mastery?: 'slow' | 'vex' | 'sap';
+  mastery?: 'slow' | 'vex' | 'sap' | 'graze';
+  twoHanded?: boolean;
   /** Finesse or ranged weapons qualify for Sneak Attack. */
   finesse?: boolean;
   /** Overrides for a second weapon; otherwise the character's own weapon is used. */
@@ -99,6 +100,7 @@ function weaponProfile(id: WeaponId, masteries: readonly string[]): HeroAttack {
     reach: ranged ? 0 : 5,
     ...('mastery' in w && masteries.includes(id) ? { mastery: w.mastery } : {}),
     finesse: 'finesse' in w || (ranged && !('spell' in w)),
+    twoHanded: 'twoHanded' in w,
   };
 }
 
@@ -133,7 +135,7 @@ function heroAttackProfile(p: Character, distance = Infinity): HeroAttack {
       const { attackBonus, damage } = weaponStats(id, p, casting);
       return {
         ...weaponProfile(id, masteries),
-        name: `${w.label} (d${w.dice[1]})`,
+        name: weaponName(id),
         attackBonus,
         damage,
         damageType: w.damageType,
@@ -272,6 +274,7 @@ export function startCombat(s: GameState, def: Encounter) {
     if ((p.selection.class === 'mage' || p.selection.class === 'cleric') && p.spellSlots === undefined)
       p.spellSlots = 2;
     if (p.selection.class === 'paladin' && p.layOnHands === undefined) p.layOnHands = 5;
+    if (p.selection.class === 'warrior' && p.secondWind === undefined) p.secondWind = 2;
     refreshAbility(c, p);
   }
   s.combat = c;
@@ -622,7 +625,7 @@ function battleMedic(s: GameState, p: Character, targetId: string) {
     `Hit Point Die 1d${sides} (${roll}) + Proficiency ${PROFICIENCY}. Healing Rerolls slår om 1:or. ${target.level - target.hitDiceUsed} Hit Point Dice kvar.`,
   );
 }
-function weaponAttack(s: GameState, p: Character, target: string | undefined, special: boolean) {
+function weaponAttack(s: GameState, p: Character, target: string | undefined) {
   const c = s.combat!,
     e = c.enemies.find((e) => e.id === target);
   if (!e || !canTarget(s, p, e))
@@ -651,8 +654,7 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     }
   }
 
-  const power = special && p.selection.class === 'warrior';
-  const bonus = (profile.attackBonus ?? p.attackBonus) - (power ? 3 : 0);
+  const bonus = profile.attackBonus ?? p.attackBonus;
   const first = heroD20(s, p);
   const attackRolls = [first.roll];
   let luck = first.lucky;
@@ -698,12 +700,27 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     },
   };
   if (!hit) {
-    emit(s, 'roll', `${p.name} missar ${e.name}.`, detail, special ? undefined : attackDice);
+    emit(s, 'roll', `${p.name} missar ${e.name}.`, detail, attackDice);
+    // Weapon Mastery Graze: a miss still deals damage equal to the attack's ability modifier.
+    const graze = (profile.damage ?? p.damage)[2];
+    if (profile.mastery === 'graze' && graze > 0) {
+      const amount = typedDamage(e, graze, damageType);
+      e.hp = Math.max(0, e.hp - amount);
+      c.stats[p.id].damage += amount;
+      emit(s, 'damage', `Graze: ${e.name} tar ändå ${amount} skada.`);
+      if (!e.hp) emit(s, 'success', `${e.name} faller.`);
+    }
     return;
   }
   const critical = roll === 20;
   const [count, sides, damageBonus] = profile.damage ?? p.damage;
-  const rollWeapon = () => Array.from({ length: count * (critical ? 2 : 1) }, () => die(s, sides));
+  // Great Weapon Fighting: with a two-handed melee weapon, a 1 or 2 on a damage die counts as 3.
+  const gwf = !!profile.twoHanded && p.fightingStyles.includes('greatWeaponFighting');
+  const rollWeapon = () =>
+    Array.from({ length: count * (critical ? 2 : 1) }, () => {
+      const roll = die(s, sides);
+      return gwf ? Math.max(3, roll) : roll;
+    });
   const sum = (rolls: number[]) => rolls.reduce((total, value) => total + value, 0);
   let damageRolls = rollWeapon();
   let savageText = '';
@@ -714,7 +731,6 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     if (sum(other) > sum(damageRolls)) damageRolls = other;
   }
   let raw = Math.max(0, damageBonus + sum(damageRolls));
-  if (special) raw += rollDamage(s, [1, power ? 8 : 6, 0], critical);
   // The dice panel shows the weapon roll; Hunter's Mark is reported in the log text.
   const weaponRaw = raw;
   let markText = '';
@@ -737,18 +753,16 @@ function weaponAttack(s: GameState, p: Character, target: string | undefined, sp
     'damage',
     `${p.name} träffar ${e.name} för ${amount} ${damageType.toLowerCase()}skada${profile.name ? ` med ${profile.name}` : ''}${critical ? ' — kritisk träff' : ''}.`,
     `${detail}${savageText}${markText}${amount !== raw ? ` ${raw} grundskada; motstånd/sårbarhet tillämpas.` : ''}`,
-    special
-      ? undefined
-      : {
-          ...attackDice,
-          damage: {
-            sides,
-            rolls: damageRolls,
-            bonus: damageBonus,
-            total: weaponRaw,
-            critical,
-          },
-        },
+    {
+      ...attackDice,
+      damage: {
+        sides,
+        rolls: damageRolls,
+        bonus: damageBonus,
+        total: weaponRaw,
+        critical,
+      },
+    },
   );
   if (!e.hp) emit(s, 'success', `${e.name} faller.`);
   else if (profile.mastery === 'slow' && amount > 0) {
@@ -811,7 +825,8 @@ function refreshAbility(c: Combat, p: Character) {
   const bonusFree = !c.bonusUsed[p.id];
   switch (p.selection.class) {
     case 'warrior':
-      return; // Kraftslag: once per fight.
+      c.used[p.id] = !bonusFree || !p.secondWind || p.hp >= p.maxHp;
+      return;
     case 'thief':
       c.used[p.id] = true; // Sneak Attack is passive.
       return;
@@ -853,6 +868,23 @@ function huntersMark(s: GameState, p: Character, targetId?: string) {
       ? `${p.name} flyttar Hunter's Mark till ${e.name}.`
       : `${p.name} markerar ${e.name} med Hunter's Mark.`,
     `Bonus Action: träffar mot målet gör +1d6 skada. Du kan fortfarande anfalla den här turen.${moving ? '' : ` ${p.hunterMarks} kvar före nästa Long Rest.`}`,
+  );
+}
+
+/** Fighter Second Wind: regain 1d10 + Fighter level HP. */
+function secondWind(s: GameState, p: Character) {
+  if (!p.secondWind) throw new Error('Second Wind är slut före nästa Long Rest.');
+  if (p.hp >= p.maxHp) throw new Error('Du har redan fullt HP.');
+  p.secondWind--;
+  const roll = die(s, 10);
+  const amount = Math.min(p.maxHp - p.hp, roll + p.level);
+  p.hp += amount;
+  s.combat!.stats[p.id].healing += amount;
+  emit(
+    s,
+    'heal',
+    `${p.name} använder Second Wind: +${amount} liv.`,
+    `1d10 (${roll}) + nivå ${p.level}. Bonus Action. ${p.secondWind} kvar före nästa Long Rest.`,
   );
 }
 
@@ -937,7 +969,7 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
   if (c.swapPending) throw new Error('Välj först om du vill byta initiativ.');
   switch (cmd.type) {
     case 'attack':
-      weaponAttack(s, p, cmd.target, false);
+      weaponAttack(s, p, cmd.target);
       break;
     case 'defend':
       c.dodging[p.id] = true;
@@ -1032,6 +1064,7 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
       break;
     }
     case 'ability': {
+      refreshAbility(c, p);
       if (c.used[p.id]) throw new Error('Klassförmågan kan inte användas nu.');
       switch (p.selection.class) {
         case 'ranger':
@@ -1046,8 +1079,7 @@ export function combatAction(s: GameState, p: Character, cmd: GameCommand) {
         case 'thief':
           throw new Error('Sneak Attack sker automatiskt när du anfaller.');
         default:
-          weaponAttack(s, p, cmd.target, true);
-          c.used[p.id] = true;
+          return bonusAction(s, p, () => secondWind(s, p));
       }
       break;
     }

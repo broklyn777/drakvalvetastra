@@ -25,6 +25,7 @@ Karaktärsskaparen visar "Species" och "Origin Feat", och attributen som STR/DEX
 
 | Klass | Utrustning | Förmåga |
 |---|---|---|
+| **Fighter** | Chain Mail, Greatsword (Graze), Flail (Sap), 8 Javelins (Slow) | **Second Wind**: Bonus Action, 1d10 + nivå, 2 gånger · Fighting Style: **Great Weapon Fighting** (1:or och 2:or blir 3:or) |
 | **Paladin** (ny) | Chain Mail + Shield, Longsword (Sap), 6 Javelins (Slow) | **Lay On Hands**: Bonus Action, 5 HP-pott |
 | **Cleric** | Chain Shirt + Shield, Mace | **Healing Word**: Bonus Action, 2d4 + WIS, 60 ft, 2 Spell Slots |
 | **Rogue** | Leather Armor, Shortsword (Vex), Shortbow (Vex) | **Sneak Attack** 1d6, automatiskt |
@@ -34,7 +35,8 @@ Karaktärsskaparen visar "Species" och "Origin Feat", och attributen som STR/DEX
 - HP = Hit Die + CON, AC = rustning + DEX (Chain Shirt max +2, Chain Mail 0) + Shield, Attack = Proficiency 2 + STR/DEX (Finesse = bästa), cantrips utan skademodifierare.
 - Vapnet väljs efter avstånd: närstridsvapen inom 5 ft, annars ett avståndsvapen som når. Weapon Mastery bara för klassens vapen: Sap ger fienden Disadvantage på nästa anfall.
 - **Bonus Action**: Hunter's Mark, Healing Word och Lay On Hands kostar inte turen, men bara en Bonus Action per tur.
-- **Fighter** har fortfarande spelets gamla värden och Kraftslag (inte omräknad än).
+- Alla sex klasser följer nu 2024. Kraftslag (inte en regel) är borttaget.
+- **Graze**: en miss med Greatsword gör ändå skada lika med STR-modifieraren.
 
 **Färdiga hjältar** (Standard Array + bakgrundens +2/+1 och Origin Feat):
 - **Sigrun Ljusbärare** – Human Paladin, Soldier, Savage Attacker. 12 HP, AC 18, Longsword +5.
@@ -73,11 +75,12 @@ Första striden, 1000 frön, Human + Tough, samma enkla taktik: Krigare 69,9 %, 
 
 ## Balans med färdiga hjältar
 
-Första striden **solo** mot två Bandits (som i 2024 har exakt dessa värden), 1000 frön, enkel taktik med klassförmågor: Liria 70,4 %, Sigrun 63,9 %, Pip 38,5 %, Brodd 34,2 %, Alma 10,6 %. Solo på nivå 1 är tufft enligt reglerna; hjältarna är byggda för att spela i sällskap.
+Första striden **solo** mot två Bandits (Fighter, egen hjälte: 72,4 % med Tough, 60,4 % med Savage Attacker) (som i 2024 har exakt dessa värden), 1000 frön, enkel taktik med klassförmågor: Liria 70,4 %, Sigrun 63,9 %, Pip 38,5 %, Brodd 34,2 %, Alma 10,6 %. Solo på nivå 1 är tufft enligt reglerna; hjältarna är byggda för att spela i sällskap.
 
 ## Verifierat
 
-- `npm test` 70/70, `npm run typecheck` och `npm run build` lokalt.
+- `npm test` 73/73, `npm run typecheck` och `npm run build` lokalt.
+- Lokal webbläsare, `?scen=door&klass=warrior&talang=iron`: Human Fighter 14 HP, AC 16, Second Wind grå vid fullt HP, Anfall möjligt på 10 ft (Javelin).
 - Lokal webbläsare: skaparen visar 5 färdiga hjältar och 6 klasser; Brodd visar 11 HP, AC 15, +3, Chain Shirt. `?scen=door&hjalte=brodd` startar striden med Healing Word-knappen och Bonus Action-texten.
 - Lokal webbläsare med ett importerat sällskap (Human Rogue med Alert + Dwarf Cleric med Healer): Initiative Swap-rutan visade turordningen, bytet gav "Läkaren agerar nu på 12, Vaken på 17"; Läkarens tur visade knappen "Battle Medic på Läkaren".
 - Lokal webbläsare: karaktärsskaparen visar Species (4), Klass (4), Origin Feat (4) med nya texter; Human Krigare: 18 HP, AC 14, STR 17 DEX 14 CON 14 INT 8 WIS 10 CHA 12.

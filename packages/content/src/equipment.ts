@@ -4,6 +4,15 @@
  * Kross = Bludgeoning, Eld = Fire.
  */
 export const weaponData = {
+  greatsword: {
+    label: 'Greatsword',
+    dice: [2, 6],
+    damageType: 'Hugg',
+    kind: 'melee',
+    twoHanded: true,
+    mastery: 'graze',
+  },
+  flail: { label: 'Flail', dice: [1, 8], damageType: 'Kross', kind: 'melee', mastery: 'sap' },
   longsword: { label: 'Longsword', dice: [1, 8], damageType: 'Hugg', kind: 'melee', mastery: 'sap' },
   javelin: {
     label: 'Javelin',

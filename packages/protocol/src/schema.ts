@@ -62,12 +62,13 @@ export const characterSchema = z
     bossWeakened: z.boolean(),
     rested: z.boolean(),
     speed: z.number().int().min(0).max(500).default(30),
-    fightingStyles: z.array(z.enum(['protection'])).max(10).default([]),
+    fightingStyles: z.array(z.enum(['protection', 'greatWeaponFighting'])).max(10).default([]),
     inspiration: z.boolean().optional(),
     hitDiceUsed: z.number().int().min(0).max(20).optional(),
     hunterMarks: z.number().int().min(0).max(10).optional(),
     spellSlots: z.number().int().min(0).max(20).optional(),
     layOnHands: z.number().int().min(0).max(200).optional(),
+    secondWind: z.number().int().min(0).max(10).optional(),
   })
   .strict()
   .refine((p) => p.hp <= p.maxHp, 'Liv överstiger maxliv.');

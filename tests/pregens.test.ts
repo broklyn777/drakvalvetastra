@@ -235,4 +235,54 @@ describe('färdiga hjältar enligt D&D 2024, nivå 1', () => {
     const s = createGame(campaign, [pregen('brodd')], 3, 'g');
     expect(parseSave(makeSave(s, 'Pregen')).state).toEqual(s);
   });
+
+  describe('Fighter', () => {
+    const fighter = (id = 'f') =>
+      createCharacter({ name: 'F', race: 'human', class: 'warrior', talent: 'iron' }, id);
+    it('Chain Mail, Greatsword, Great Weapon Fighting and two Second Winds', () => {
+      expect(fighter()).toMatchObject({
+        className: 'Fighter',
+        str: 17,
+        con: 14,
+        maxHp: 14, // d10 + CON 2 + Tough 2
+        ac: 16,
+        attackBonus: 5,
+        damage: [2, 6, 3],
+        weapon: 'Greatsword (2d6)',
+        armor: 'Chain Mail',
+        fightingStyles: ['greatWeaponFighting'],
+        secondWind: 2,
+      });
+    });
+    it('Great Weapon Fighting turns 1s and 2s into 3s; Graze still hurts on a miss', () => {
+      let sawHit = false;
+      let sawGraze = false;
+      for (let i = 1; i < 400 && !(sawHit && sawGraze); i++) {
+        const t = onTurnOf(
+          () => [fighter()],
+          'f',
+          (x) => Object.assign(bandit(x, 'melee'), { distance: 5, hp: 99 }),
+        );
+        t.seed = seedOf(i);
+        const after = act(t, { type: 'attack', target: bandit(t, 'melee').id });
+        const swing = after.events.find((e) => e.dice?.attackerId === 'f' && e.id > t.eventSeq)!;
+        if (swing.dice!.attack.hit) {
+          sawHit = true;
+          expect(Math.min(...swing.dice!.damage!.rolls)).toBeGreaterThanOrEqual(3);
+        } else if (after.events.some((e) => e.text.startsWith('Graze:'))) {
+          sawGraze = true;
+          expect(after.combat!.enemies.find((e) => e.preferredAttack === 'melee')!.hp).toBe(96);
+        }
+      }
+      expect(sawHit && sawGraze).toBe(true);
+    });
+    it('Second Wind heals 1d10 + level as a Bonus Action and keeps the turn', () => {
+      let s = onTurnOf(() => [fighter()], 'f');
+      s.players[0].hp = 1;
+      s = act(s, { type: 'ability' });
+      expect(s.players[0].hp).toBeGreaterThanOrEqual(1 + 2);
+      expect(s.players[0].hp).toBeLessThanOrEqual(1 + 11);
+      expect(currentActor(s)?.id).toBe('f');
+    });
+  });
 });
