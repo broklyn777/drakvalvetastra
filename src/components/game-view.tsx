@@ -28,6 +28,9 @@ import type {
 } from '../../packages/engine/src/types';
 import { WorldArt } from './world-art';
 import { CombatPanel } from './combat-panel';
+import { RulesSheet } from './rules-sheet';
+import { hitDie } from '../../packages/engine/src/traits';
+import { Modal } from './dialogs';
 import { D20 } from './d20';
 import { modifier } from '../../packages/engine/src/random';
 import {
@@ -145,6 +148,7 @@ export function CharacterSheet({
           </div>
         ))}
       </div>
+      <RulesSheet hero={hero} />
       <h3>Utrustning</h3>
       <div className="equipment">
         <div>
@@ -154,7 +158,8 @@ export function CharacterSheet({
             {hero.weapon}
           </span>
           <b>
-            {hero.damage[0]}T{hero.damage[1]}+{hero.damage[2]}
+            {hero.damage[0]}d{hero.damage[1]}
+            {hero.damage[2] ? `${hero.damage[2] > 0 ? '+' : ''}${hero.damage[2]}` : ''}
           </b>
         </div>
         <div>
@@ -168,7 +173,7 @@ export function CharacterSheet({
         {hero.shield && (
           <div>
             <Shield size={19} />
-            Liten sköld
+            Shield (+2 AC)
           </div>
         )}
       </div>
@@ -180,15 +185,19 @@ export function CharacterSheet({
           onClick={() => act({ type: 'potion' })}
         >
           Läkebrygd × {hero.potions}
-          <span>1T8+6 liv</span>
+          <span>1d8+6 liv</span>
         </button>
         <button
           className="button"
           disabled={!canUse || hero.herbs === 0 || hero.hp >= hero.maxHp || hero.hp <= 0}
           onClick={() => act({ type: 'herbs' })}
         >
-          Örter × {hero.herbs}
-          <span>1T4+3 liv</span>
+          {hero.selection.talent === 'supply' ? "Healer's Kit" : 'Örter'} × {hero.herbs}
+          <span>
+            {hero.selection.talent === 'supply'
+              ? `Battle Medic: d${hitDie(hero)}+2 (Hit Point Die)`
+              : '1d4+3 liv'}
+          </span>
         </button>
         {hero.sigil && <p>◈ Draksigillet</p>}
         {hero.rope && <p>Rep</p>}
@@ -208,6 +217,7 @@ export function GameView({
   disabled,
   onSave,
   onMenu,
+  onFocus,
 }: {
   game: GameState;
   actorId: string;
@@ -215,8 +225,12 @@ export function GameView({
   disabled: boolean;
   onSave: () => void;
   onMenu: () => void;
+  /** Local party only: switch which hero you act as outside combat. */
+  onFocus?: (heroId: string) => void;
 }) {
   const [tab, setTab] = useState<'journal' | 'inventory'>('journal');
+  const [sheetFor, setSheetFor] = useState<string | null>(null);
+  const sheetHero = game.players.find((p) => p.id === sheetFor);
   const hero = game.players.find((p) => p.id === actorId) ?? game.players[0];
   const campaign = getCampaign(game.campaignId),
     scene = sceneFor(game, campaign, hero.id);
@@ -345,7 +359,9 @@ export function GameView({
             <InitiativeSwap game={game} hero={hero} act={act} disabled={disabled} />
           ) : game.combat ? (
             <CombatPanel
-              key={`${game.scene}-${hero.id}`}
+              // Keyed by scene only: in a party the turn passes on right after an attack, and the
+              // dice panel must stay open until the player closes it.
+              key={game.scene}
               game={game}
               hero={hero}
               act={act}
@@ -485,6 +501,17 @@ export function GameView({
           Dina val lämnar spår. <span>◆</span> Ditt sällskap skriver historien.
         </p>
       </div>
+      {sheetHero && (
+        <Modal title={`Karaktärsblad: ${sheetHero.name}`} onClose={() => setSheetFor(null)}>
+          <CharacterSheet
+            hero={sheetHero}
+            act={act}
+            canUse={
+              sheetHero.id === hero.id && !game.combat && !disabled && game.status === 'active'
+            }
+          />
+        </Modal>
+      )}
       <aside className="game-sidebar">
         <div className="panel character-summary">
           <div className="character-name">
@@ -537,9 +564,13 @@ export function GameView({
               <small>Guld</small>
             </div>
           </div>
+          <button className="button subtle sheet-open" onClick={() => setSheetFor(hero.id)}>
+            <BookOpen size={14} />
+            Karaktärsblad
+          </button>
           <details>
             <summary>
-              Visa karaktärsblad
+              Visa karaktärsblad här
               <ChevronDown size={14} />
             </summary>
             <CharacterSheet
@@ -555,17 +586,52 @@ export function GameView({
               <Users size={16} />
               Ditt sällskap
             </h3>
-            {game.players.map((p) => (
-              <div key={p.id}>
-                <span>
-                  {p.name}
-                  {p.id === hero.id ? ' (du)' : ''}
-                </span>
-                <small>
-                  {p.hp}/{p.maxHp} liv
-                </small>
-              </div>
-            ))}
+            {onFocus && (
+              <p className="party-hint">
+                {game.combat && !game.combat.victory
+                  ? 'I strid styr du den hjälte som har turen.'
+                  : 'Klicka på en hjälte för att agera som hen, t.ex. dricka en läkebrygd.'}
+              </p>
+            )}
+            {game.players.map((p) => {
+              const row = (
+                <>
+                  <span>
+                    {p.name}
+                    {p.id === hero.id ? (onFocus ? ' ◆' : ' (du)') : ''}
+                    <small className="party-class">
+                      {p.className}
+                      {p.hp <= 0 ? ' · fallen' : ''}
+                    </small>
+                  </span>
+                  <small>
+                    {p.hp}/{p.maxHp} liv
+                  </small>
+                </>
+              );
+              return (
+                <div key={p.id} className="party-row">
+                  {onFocus ? (
+                    <button
+                      className={`party-member ${p.id === hero.id ? 'active' : ''}`}
+                      disabled={p.hp <= 0 || (!!game.combat && !game.combat.victory)}
+                      onClick={() => onFocus(p.id)}
+                    >
+                      {row}
+                    </button>
+                  ) : (
+                    <div className="party-member static">{row}</div>
+                  )}
+                  <button
+                    className="button subtle party-sheet"
+                    onClick={() => setSheetFor(p.id)}
+                    aria-label={`Visa karaktärsblad för ${p.name}`}
+                  >
+                    Blad
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
         <div className="panel notebook">

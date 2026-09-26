@@ -33,12 +33,23 @@ export function CombatPanel({
   const [ally, setAlly] = useState(hero.id);
   const [fullLog, setFullLog] = useState(false);
   const [diceRoll, setDiceRoll] = useState<{
+    attackerId: string;
     targetId: string;
     eventSeq: number;
     phase: 'ready' | 'rolling' | 'waiting' | 'attack-result' | 'damage-rolling' | 'done';
     result?: NonNullable<GameEvent['dice']>;
   } | null>(null);
   const rollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The damage button appears where "Slå D20" was; ignore taps until it has been visible a moment,
+  // so a double tap (common on phones) never rolls damage by accident.
+  const [damageArmed, setDamageArmed] = useState(false);
+  const phase = diceRoll?.phase;
+  useEffect(() => {
+    setDamageArmed(false);
+    if (phase !== 'attack-result') return;
+    const timer = setTimeout(() => setDamageArmed(true), 600);
+    return () => clearTimeout(timer);
+  }, [phase]);
   const c = game.combat!;
   const active = currentActor(game);
   const yourTurn = !disabled && active?.id === hero.id && !c.victory && game.status === 'active';
@@ -55,12 +66,18 @@ export function CombatPanel({
     };
   }, []);
 
+  // A new hero's turn (party play): reset their choices, but keep an open dice panel.
+  useEffect(() => {
+    setSelected('');
+    setAlly(hero.id);
+  }, [hero.id]);
+
   useEffect(() => {
     if (!diceRoll || diceRoll.phase !== 'waiting') return;
     const event = game.events.find(
       (entry) =>
         entry.id > diceRoll.eventSeq &&
-        entry.dice?.attackerId === hero.id &&
+        entry.dice?.attackerId === diceRoll.attackerId &&
         entry.dice.targetId === diceRoll.targetId,
     );
     if (!event?.dice) return;
@@ -73,10 +90,11 @@ export function CombatPanel({
           }
         : null,
     );
-  }, [game.events, game.eventSeq, hero.id, diceRoll]);
+  }, [game.events, game.eventSeq, diceRoll]);
 
   function openAttackRoll(targetId: string) {
     setDiceRoll({
+      attackerId: hero.id,
       targetId,
       eventSeq: game.eventSeq,
       phase: 'ready',
@@ -93,7 +111,7 @@ export function CombatPanel({
   }
 
   function revealDamage() {
-    if (!diceRoll?.result?.damage || diceRoll.phase !== 'attack-result') return;
+    if (!diceRoll?.result?.damage || diceRoll.phase !== 'attack-result' || !damageArmed) return;
     setDiceRoll({ ...diceRoll, phase: 'damage-rolling' });
     rollTimer.current = setTimeout(() => {
       setDiceRoll((current) => (current ? { ...current, phase: 'done' } : null));
@@ -101,6 +119,7 @@ export function CombatPanel({
   }
 
   const diceTarget = diceRoll ? c.enemies.find((e) => e.id === diceRoll.targetId) : undefined;
+  const attacker = game.players.find((p) => p.id === diceRoll?.attackerId) ?? hero;
 
   function combatantName(id: string) {
     return (
@@ -373,9 +392,12 @@ export function CombatPanel({
         <div className="dice-overlay" role="dialog" aria-modal="true" aria-label="Tärningsslag">
           <div className="dice-panel">
             <p className="eyebrow">ATTACK ROLL</p>
-            <h2>{hero.name} mot {diceTarget.name}</h2>
+            <h2>
+              {attacker.name} mot {diceTarget.name}
+            </h2>
             <p className="dice-context">
-              {hero.weapon} · Attack Bonus +{hero.attackBonus} · AC {diceTarget.ac}
+              {diceRoll.result?.attackName ?? attacker.weapon} · Attack Bonus +
+              {diceRoll.result?.attack.bonus ?? attacker.attackBonus} · AC {diceTarget.ac}
             </p>
 
             {(diceRoll.phase === 'ready' || diceRoll.phase === 'rolling' || diceRoll.phase === 'waiting') && (
@@ -429,13 +451,21 @@ export function CombatPanel({
                 </p>
 
                 {!diceRoll.result.attack.hit && (
-                  <button className="button dice-roll-button" onClick={() => setDiceRoll(null)}>
+                  <button
+                    className="button dice-roll-button"
+                    disabled={!damageArmed}
+                    onClick={() => setDiceRoll(null)}
+                  >
                     Stäng
                   </button>
                 )}
 
                 {diceRoll.result.attack.hit && diceRoll.result.damage && diceRoll.phase === 'attack-result' && (
-                  <button className="button primary dice-roll-button" onClick={revealDamage}>
+                  <button
+                    className="button primary dice-roll-button"
+                    disabled={!damageArmed}
+                    onClick={revealDamage}
+                  >
                     Slå {diceRoll.result.damage.rolls.length > 1 ? `${diceRoll.result.damage.rolls.length}×D${diceRoll.result.damage.sides}` : `D${diceRoll.result.damage.sides}`} skada
                   </button>
                 )}
@@ -472,7 +502,7 @@ export function CombatPanel({
                           : ''}{' '}
                         = {diceRoll.result.damage.total}
                       </strong>
-                      <span>{hero.damageType}skada</span>
+                      <span>{diceRoll.result.damageType ?? attacker.damageType}skada</span>
                     </div>
                     <button className="button dice-roll-button" onClick={() => setDiceRoll(null)}>
                       Fortsätt

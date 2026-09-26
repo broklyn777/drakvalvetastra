@@ -154,7 +154,8 @@ export const talentData = {
   supply: {
     label: 'Healer',
     desc: 'Du bär förband och vet hur de ska användas.',
-    bonus: 'Örter läker Hit Die + 2 och slår om 1:or · +1 ört',
+    bonus:
+      "Battle Medic: örterna är ditt Healer's Kit – läk dig själv eller en kamrat inom 5 ft med en Hit Point Die + 2 · Healing Rerolls: 1:or slås om · +1 ört",
   },
   savage: {
     label: 'Savage Attacker',

@@ -2867,26 +2867,26 @@ summary::-webkit-details-marker {
   justify-content: center;
 }
 .compact-dice-stage {
-  min-height: 126px;
+  min-height: 160px;
   margin: 2px 0 14px;
 }
 .gemini-die {
-  width: 70px;
-  height: 70px;
+  width: 150px;
+  height: 150px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   margin: 0 auto;
-  border: 2px solid #c5a059;
-  border-radius: 12px;
+  border: 3px solid #c5a059;
+  border-radius: 22px;
   background: #1c2b20;
   color: #c5a059;
   font-family: var(--serif);
-  font-size: 34px;
+  font-size: 72px;
   font-weight: 600;
   line-height: 1;
-  gap: 3px;
+  gap: 8px;
   transition:
     border-color 0.2s ease,
     color 0.2s ease,
@@ -2910,14 +2910,14 @@ summary::-webkit-details-marker {
 }
 .gemini-die small {
   font-family: inherit;
-  font-size: 9px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: 1.5px;
   opacity: 0.82;
 }
 .gemini-die strong {
   font-family: var(--serif);
-  font-size: 30px;
+  font-size: 68px;
   font-weight: 600;
   line-height: 1;
 }
@@ -3294,4 +3294,178 @@ summary::-webkit-details-marker {
   color: var(--muted);
   font-size: 11px;
   margin: 10px 0 0;
+}
+/* Local party: pick the hero you act as. */
+.party .party-member {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin: 8px 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  text-align: left;
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.party .party-member.active {
+  border-color: var(--gold);
+  background: #2a3322;
+}
+.party .party-member:disabled {
+  cursor: default;
+}
+.party-class {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+}
+.party-hint {
+  color: var(--muted);
+  font-size: 10px;
+  margin: 6px 0 0;
+}
+/* Solo / party toggle and party list in the character creator. */
+.mode-toggle {
+  display: inline-flex;
+  gap: 0;
+  margin: 4px 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.mode-toggle button {
+  background: transparent;
+  color: var(--muted);
+  border: 0;
+  padding: 7px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.mode-toggle button.active {
+  background: #2a3322;
+  color: var(--gold-light);
+}
+.party-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.party-builder ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+.party-builder li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+.party-builder small {
+  color: var(--muted);
+}
+/* D&D 2024 rules summary on the character sheet. */
+.rules-sheet h3 {
+  margin-top: 18px;
+}
+.rules-facts,
+.rules-resources {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+.rules-facts > div,
+.rules-resources > div {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 6px 8px;
+}
+.rules-facts dt,
+.rules-resources dt {
+  color: var(--muted);
+  font-size: 10px;
+}
+.rules-facts dd,
+.rules-resources dd {
+  margin: 2px 0 0;
+  color: var(--gold-light);
+  font-size: 13px;
+}
+.rules-traits,
+.rules-weapons {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+}
+.rules-traits li,
+.rules-weapons li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 2px solid var(--gold);
+  padding-left: 8px;
+}
+.rules-traits span,
+.rules-weapons span {
+  color: #c9cdb5;
+}
+.rules-weapons small {
+  color: var(--muted);
+}
+.party-row {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.party-row .party-member {
+  flex: 1;
+}
+.party > .party-row .party-member.static {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+.party-sheet {
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 0 10px;
+  margin: 8px 0;
+}
+.sheet-open {
+  width: 100%;
+  justify-content: center;
+  margin-top: 12px;
+}
+/* Bigger dice boxes: several dice (Advantage, 2d6, criticals) wrap instead of overflowing. */
+.dice-stage {
+  flex-wrap: wrap;
+}
+@media (max-width: 480px) {
+  .gemini-die {
+    width: 128px;
+    height: 128px;
+    font-size: 62px;
+  }
+  .gemini-die strong {
+    font-size: 58px;
+  }
+  .compact-dice-stage {
+    min-height: 138px;
+  }
 }
