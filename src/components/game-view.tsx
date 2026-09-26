@@ -359,7 +359,9 @@ export function GameView({
             <InitiativeSwap game={game} hero={hero} act={act} disabled={disabled} />
           ) : game.combat ? (
             <CombatPanel
-              key={`${game.scene}-${hero.id}`}
+              // Keyed by scene only: in a party the turn passes on right after an attack, and the
+              // dice panel must stay open until the player closes it.
+              key={game.scene}
               game={game}
               hero={hero}
               act={act}
