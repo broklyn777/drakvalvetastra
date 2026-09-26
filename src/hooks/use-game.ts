@@ -38,6 +38,10 @@ export function useGame() {
   const [roster, setRoster] = useState<Character[]>([]);
   const [connection, setConnection] = useState<'offline' | 'connecting' | 'online'>('offline');
   const [pending, setPending] = useState(false);
+  /** Local party: the hero the player acts as outside combat. */
+  const [focus, setFocus] = useState('');
+  const focusRef = useRef(focus);
+  focusRef.current = focus;
   const socket = useRef<WebSocket | null>(null);
   const gameRef = useRef(game);
   gameRef.current = game;
@@ -146,9 +150,25 @@ export function useGame() {
     setUser(data.user);
     return data.user;
   };
+  /** A local party of 1–4 heroes played from this screen. */
+  const startParty = (selections: CharacterSelection[]) => {
+    setRoom(null);
+    setFocus('');
+    setGame(
+      createGame(
+        getCampaign(campaignId),
+        selections.map((selection) => createCharacter(selection, crypto.randomUUID())),
+        crypto.getRandomValues(new Uint32Array(1))[0],
+        crypto.randomUUID(),
+      ),
+    );
+    setScreen('game');
+    setError('');
+  };
   const start = (selection: CharacterSelection) => {
     const id = crypto.randomUUID();
     setRoom(null);
+    setFocus('');
     setGame(
       createGame(
         getCampaign(campaignId),
@@ -163,6 +183,7 @@ export function useGame() {
   /** Preview/local test mode: start directly in a chosen scene. */
   const startTest = (test: TestStart) => {
     setRoom(null);
+    setFocus('');
     setCampaignId(test.campaignId);
     setGame(
       createTestGame(getCampaign(test.campaignId), test, crypto.randomUUID(), crypto.randomUUID()),
@@ -173,6 +194,7 @@ export function useGame() {
   };
   const load = (state: GameState) => {
     setRoom(null);
+    setFocus('');
     setGame(state);
     setCampaignId(state.campaignId);
     setScreen('game');
@@ -195,8 +217,10 @@ export function useGame() {
         JSON.stringify({ id: crypto.randomUUID(), revision: current.revision, command }),
       );
     } else {
+      const focused = current.players.find((p) => p.id === focusRef.current && p.hp > 0);
       const actor =
         (current.combat && !current.combat.victory ? currentActor(current)?.id : undefined) ??
+        focused?.id ??
         current.players.find((p) => p.hp > 0)?.id ??
         current.players[0].id;
       const result = dispatch(current, getCampaign(current.campaignId), actor, command);
@@ -277,6 +301,9 @@ export function useGame() {
     pending,
     report,
     start,
+    startParty,
+    focus,
+    setFocus,
     startTest,
     load,
     act,

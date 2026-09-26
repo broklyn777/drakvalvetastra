@@ -1,0 +1,30 @@
+# feature/party
+
+**Ägare:** Claude · **Status:** redo att provspelas · bygger på `feature/rules-2024` (slå ihop den först)
+**Förhandsvisning:** https://drakvalvetastra-git-feature-party-broklyn777s-projects.vercel.app
+
+## För spelaren
+
+- **Solo eller Sällskap** i karaktärsskaparen. I sällskapsläget väljer du 2–4 hjältar: färdiga hjältar med ett klick, eller din egen hjälte med "Lägg till min egen hjälte". Sedan "Börja med sällskapet".
+- Hela sällskapet spelas från samma skärm. **I strid** styr du den hjälte som har turen. **Utanför strid** klickar du på en hjälte i panelen "Ditt sällskap" för att agera som hen, t.ex. dricka en läkebrygd eller använda örter.
+- Sällskapspanelen visar klass och HP för varje hjälte, och vilka som har fallit.
+- Genväg till ett sällskap: `?scen=door&hjalte=sigrun,brodd,alma` (högst 4, i den ordningen).
+- "Fortsätt med …" på startsidan visar hur många fler som är med i sällskapet.
+
+## Tekniskt
+
+- `useGame`: `startParty(selections)` och `focus`/`setFocus` (lokal hjälte utanför strid; nollställs vid nytt spel och laddning).
+- `CharacterCreator`: `onSubmitParty` (visas inte i onlineläge). `GameView`: `onFocus` (bara lokala spel).
+- `testing.ts`: `TestStart.party`, `pregenSelection`, `hjalte=` med kommalista; föremål ges till hela sällskapet.
+- Motorn var redan byggd för 1–4 hjältar (turordning, XP-delning, skalade möten); inga regeländringar.
+- Tester: `tests/party.test.ts` (4 st).
+
+## Balans
+
+Första striden, 200 frön, enkel taktik: Alma ensam vs Sigrun + Brodd + Alma. Testet kräver att sällskapet vinner över 90 % och minst 50 procentenheter oftare än Alma ensam; det gick igenom.
+
+## Verifierat
+
+- `npm test` 77/77 och `npm run typecheck` lokalt.
+- Lokal webbläsare: sällskapsläget valde Sigrun, Brodd och Alma; spelet visade "3 HJÄLTAR", och klick på Brodd i panelen gjorde honom aktiv.
+- Lokal webbläsare: `?scen=door&hjalte=sigrun,brodd,alma` gav Initiative Swap-rutan (Alma har Alert) och sedan Almas tur.

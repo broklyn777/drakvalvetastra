@@ -3295,3 +3295,83 @@ summary::-webkit-details-marker {
   font-size: 11px;
   margin: 10px 0 0;
 }
+/* Local party: pick the hero you act as. */
+.party > .party-member {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin: 8px 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  text-align: left;
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.party > .party-member.active {
+  border-color: var(--gold);
+  background: #2a3322;
+}
+.party > .party-member:disabled {
+  cursor: default;
+}
+.party-class {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+}
+.party-hint {
+  color: var(--muted);
+  font-size: 10px;
+  margin: 6px 0 0;
+}
+/* Solo / party toggle and party list in the character creator. */
+.mode-toggle {
+  display: inline-flex;
+  gap: 0;
+  margin: 4px 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.mode-toggle button {
+  background: transparent;
+  color: var(--muted);
+  border: 0;
+  padding: 7px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.mode-toggle button.active {
+  background: #2a3322;
+  color: var(--gold-light);
+}
+.party-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.party-builder ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+.party-builder li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+.party-builder small {
+  color: var(--muted);
+}

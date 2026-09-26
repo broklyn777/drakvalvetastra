@@ -28,11 +28,14 @@ const classIcons = {
 };
 export function CharacterCreator({
   onSubmit,
+  onSubmitParty,
   onBack,
   initial,
   online = false,
 }: {
   onSubmit: (selection: CharacterSelection) => void;
+  /** Local party of 2–4 heroes; not offered online, where each player brings one hero. */
+  onSubmitParty?: (selections: CharacterSelection[]) => void;
   onBack: () => void;
   initial?: CharacterSelection;
   online?: boolean;
@@ -40,6 +43,23 @@ export function CharacterCreator({
   const [selection, setSelection] = useState<CharacterSelection>(
     initial ?? { name: '', race: 'human', class: 'warrior', talent: 'iron' },
   );
+  const [partyMode, setPartyMode] = useState(false);
+  const [party, setParty] = useState<CharacterSelection[]>([]);
+  const canParty = !!onSubmitParty && !online;
+  const inParty = (id: PregenId) => party.some((p) => p.pregen === id);
+  const togglePregen = (id: PregenId) => {
+    const hero = pregenData[id];
+    if (inParty(id)) return setParty(party.filter((p) => p.pregen !== id));
+    if (party.length >= 4) return;
+    setParty([
+      ...party,
+      { name: hero.name, race: hero.race, class: hero.class, talent: hero.talent, pregen: id },
+    ]);
+  };
+  const addCustom = () => {
+    if (party.length >= 4 || !selection.name.trim()) return;
+    setParty([...party, { ...selection, name: selection.name.trim(), pregen: undefined }]);
+  };
   const preview = createCharacter(
     { ...selection, name: selection.name || 'Din hjälte' },
     'preview',
@@ -63,6 +83,24 @@ export function CharacterCreator({
             <legend>
               ★ <span>Färdiga hjältar · D&D 2024, nivå 1</span>
             </legend>
+            {canParty && (
+              <div className="mode-toggle" role="group" aria-label="Solo eller sällskap">
+                <button
+                  className={!partyMode ? 'active' : ''}
+                  aria-pressed={!partyMode}
+                  onClick={() => setPartyMode(false)}
+                >
+                  Solo
+                </button>
+                <button
+                  className={partyMode ? 'active' : ''}
+                  aria-pressed={partyMode}
+                  onClick={() => setPartyMode(true)}
+                >
+                  Sällskap (2–4 hjältar)
+                </button>
+              </div>
+            )}
             <div className="option-grid pregen-grid">
               {(Object.entries(pregenData) as [PregenId, (typeof pregenData)[PregenId]][]).map(
                 ([key, hero]) => {
@@ -70,22 +108,26 @@ export function CharacterCreator({
                   return (
                     <button
                       key={key}
-                      aria-pressed={selection.pregen === key}
-                      className={`option-card ${selection.pregen === key ? 'selected' : ''}`}
+                      aria-pressed={partyMode ? inParty(key) : selection.pregen === key}
+                      className={`option-card ${(partyMode ? inParty(key) : selection.pregen === key) ? 'selected' : ''}`}
                       onClick={() =>
-                        setSelection({
-                          name: hero.name,
-                          race: hero.race,
-                          class: hero.class,
-                          talent: hero.talent,
-                          pregen: key,
-                        })
+                        partyMode
+                          ? togglePregen(key)
+                          : setSelection({
+                              name: hero.name,
+                              race: hero.race,
+                              class: hero.class,
+                              talent: hero.talent,
+                              pregen: key,
+                            })
                       }
                     >
                       <div className="option-heading">
                         <PregenIcon size={20} />
                         {hero.name}
-                        {selection.pregen === key && <Check size={15} />}
+                        {(partyMode ? inParty(key) : selection.pregen === key) && (
+                          <Check size={15} />
+                        )}
                       </div>
                       <p>{hero.desc}</p>
                       <small>
@@ -97,7 +139,11 @@ export function CharacterCreator({
                 },
               )}
             </div>
-            <p className="pregen-hint">Eller bygg en egen hjälte nedan.</p>
+            <p className="pregen-hint">
+              {partyMode
+                ? 'Klicka för att lägga till eller ta bort. Du kan också bygga en egen hjälte nedan och lägga till den.'
+                : 'Eller bygg en egen hjälte nedan.'}
+            </p>
           </fieldset>
           <label className="field-label" htmlFor="hero-name">
             01 <span>Din hjältes namn</span>
@@ -238,14 +284,57 @@ export function CharacterCreator({
             <br />
             {preview.potions} läkebrygder · {preview.herbs} örter
           </p>
-          <button
-            className="button primary"
-            disabled={!selection.name.trim()}
-            onClick={() => onSubmit({ ...selection, name: selection.name.trim() })}
-          >
-            {online ? 'Gör mig redo' : 'Börja äventyret'}
-            <ArrowRight size={17} />
-          </button>
+          {partyMode ? (
+            <div className="party-builder">
+              <p className="eyebrow">DITT SÄLLSKAP · {party.length}/4</p>
+              {party.length === 0 && <p className="muted">Välj hjältar ovan.</p>}
+              <ul>
+                {party.map((member, i) => (
+                  <li key={`${member.pregen ?? member.name}-${i}`}>
+                    <span>
+                      {member.name}
+                      <small>
+                        {' '}
+                        · {raceData[member.race].label} {classData[member.class].label}
+                      </small>
+                    </span>
+                    <button
+                      className="text-button"
+                      aria-label={`Ta bort ${member.name}`}
+                      onClick={() => setParty(party.filter((_, j) => j !== i))}
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <button
+                className="button"
+                disabled={party.length >= 4 || !selection.name.trim() || !!selection.pregen}
+                onClick={addCustom}
+                title="Bygg en egen hjälte till vänster, ge den ett namn och lägg till den."
+              >
+                Lägg till min egen hjälte
+              </button>
+              <button
+                className="button primary"
+                disabled={party.length < 2}
+                onClick={() => onSubmitParty?.(party)}
+              >
+                Börja med sällskapet
+                <ArrowRight size={17} />
+              </button>
+            </div>
+          ) : (
+            <button
+              className="button primary"
+              disabled={!selection.name.trim()}
+              onClick={() => onSubmit({ ...selection, name: selection.name.trim() })}
+            >
+              {online ? 'Gör mig redo' : 'Börja äventyret'}
+              <ArrowRight size={17} />
+            </button>
+          )}
           <small className="muted">
             <Flame size={12} />{' '}
             {online ? 'Sällskapet väntar på dig.' : 'Ditt äventyr sparas automatiskt.'}

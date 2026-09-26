@@ -20,6 +20,14 @@ export interface TestStart {
   selection: CharacterSelection;
   seed: number;
   items: TestItem[];
+  /** More heroes for a party (the first one is `selection`). */
+  party?: CharacterSelection[];
+}
+
+/** A ready-made hero as a character selection. */
+export function pregenSelection(id: PregenId): CharacterSelection {
+  const hero = pregenData[id];
+  return { name: hero.name, race: hero.race, class: hero.class, talent: hero.talent, pregen: id };
 }
 
 export const defaultTestSelection: CharacterSelection = {
@@ -49,13 +57,11 @@ export function createTestGame(
   heroId: string,
   gameId: string,
 ) {
-  const s: GameState = createGame(
-    campaign,
-    [createCharacter(start.selection, heroId)],
-    start.seed,
-    gameId,
+  const heroes = [start.selection, ...(start.party ?? [])].map((selection, i) =>
+    createCharacter(selection, i ? `${heroId}-${i + 1}` : heroId),
   );
-  for (const item of start.items) s.players[0][item] = true;
+  const s: GameState = createGame(campaign, heroes, start.seed, gameId);
+  for (const p of s.players) for (const item of start.items) p[item] = true;
   if (!campaign.scenes(s, heroId)[start.scene]) throw new Error('Scenen finns inte i kampanjen.');
   if (start.scene !== s.scene) enter(s, campaign, start.scene, heroId);
   return s;
@@ -77,19 +83,20 @@ export function parseTestParams(
   const campaignId = pick(params.get('kampanj'), campaigns, 'watchtower');
   if (!testScenes(campaigns[campaignId]).some((s) => s.id === scene)) return null;
   const seed = Number(params.get('seed'));
-  const hero = params.get('hjalte');
-  const pregen = hero && Object.hasOwn(pregenData, hero) ? pregenData[hero as PregenId] : undefined;
+  // `hjalte=sigrun` or a party: `hjalte=sigrun,brodd,alma` (at most 4, no repeats).
+  const heroes = [
+    ...new Set(
+      (params.get('hjalte') ?? '')
+        .split(',')
+        .filter((id): id is PregenId => Object.hasOwn(pregenData, id)),
+    ),
+  ].slice(0, 4);
   return {
     campaignId,
     scene,
-    selection: pregen
-      ? {
-          name: pregen.name,
-          race: pregen.race,
-          class: pregen.class,
-          talent: pregen.talent,
-          pregen: hero as PregenId,
-        }
+    ...(heroes.length > 1 ? { party: heroes.slice(1).map(pregenSelection) } : {}),
+    selection: heroes.length
+      ? pregenSelection(heroes[0])
       : {
           name: params.get('namn')?.trim().slice(0, 24) || defaultTestSelection.name,
           race: pick(params.get('folk'), raceData, defaultTestSelection.race),
@@ -112,7 +119,8 @@ export function testParams(start: TestStart) {
     talang: start.selection.talent,
     seed: String(start.seed),
   });
-  if (start.selection.pregen) params.set('hjalte', start.selection.pregen);
+  const pregens = [start.selection, ...(start.party ?? [])].map((s) => s.pregen).filter(Boolean);
+  if (pregens.length) params.set('hjalte', pregens.join(','));
   if (start.items.length) params.set('har', start.items.join(','));
   return params;
 }

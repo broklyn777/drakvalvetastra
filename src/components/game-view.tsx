@@ -208,6 +208,7 @@ export function GameView({
   disabled,
   onSave,
   onMenu,
+  onFocus,
 }: {
   game: GameState;
   actorId: string;
@@ -215,6 +216,8 @@ export function GameView({
   disabled: boolean;
   onSave: () => void;
   onMenu: () => void;
+  /** Local party only: switch which hero you act as outside combat. */
+  onFocus?: (heroId: string) => void;
 }) {
   const [tab, setTab] = useState<'journal' | 'inventory'>('journal');
   const hero = game.players.find((p) => p.id === actorId) ?? game.players[0];
@@ -555,17 +558,42 @@ export function GameView({
               <Users size={16} />
               Ditt sällskap
             </h3>
-            {game.players.map((p) => (
-              <div key={p.id}>
-                <span>
-                  {p.name}
-                  {p.id === hero.id ? ' (du)' : ''}
-                </span>
-                <small>
-                  {p.hp}/{p.maxHp} liv
-                </small>
-              </div>
-            ))}
+            {onFocus && (
+              <p className="party-hint">
+                {game.combat && !game.combat.victory
+                  ? 'I strid styr du den hjälte som har turen.'
+                  : 'Klicka på en hjälte för att agera som hen, t.ex. dricka en läkebrygd.'}
+              </p>
+            )}
+            {game.players.map((p) => {
+              const row = (
+                <>
+                  <span>
+                    {p.name}
+                    {p.id === hero.id ? (onFocus ? ' ◆' : ' (du)') : ''}
+                    <small className="party-class">
+                      {p.className}
+                      {p.hp <= 0 ? ' · fallen' : ''}
+                    </small>
+                  </span>
+                  <small>
+                    {p.hp}/{p.maxHp} liv
+                  </small>
+                </>
+              );
+              return onFocus ? (
+                <button
+                  key={p.id}
+                  className={`party-member ${p.id === hero.id ? 'active' : ''}`}
+                  disabled={p.hp <= 0 || (!!game.combat && !game.combat.victory)}
+                  onClick={() => onFocus(p.id)}
+                >
+                  {row}
+                </button>
+              ) : (
+                <div key={p.id}>{row}</div>
+              );
+            })}
           </div>
         )}
         <div className="panel notebook">

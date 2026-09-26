@@ -40,6 +40,7 @@ export default function Drakvalvet({
   const heroId = c.room
     ? (c.user?.id ?? '')
     : ((c.game?.combat && !c.game.combat.victory ? currentActor(c.game)?.id : undefined) ??
+      c.game?.players.find((p) => p.id === c.focus && p.hp > 0)?.id ??
       c.game?.players.find((p) => p.hp > 0)?.id ??
       c.game?.players[0].id ??
       '');
@@ -235,7 +236,10 @@ export default function Drakvalvet({
                   </div>
                   <div>
                     <span className="eyebrow">DIN SENASTE BERÄTTELSE</span>
-                    <h3>Fortsätt med {c.auto.players[0].name}</h3>
+                    <h3>
+                      Fortsätt med {c.auto.players[0].name}
+                      {c.auto.players.length > 1 && ` + ${c.auto.players.length - 1}`}
+                    </h3>
                     <p>
                       {campaigns[c.auto.campaignId].title} · Nivå {c.auto.players[0].level} ·{' '}
                       {c.auto.journal.at(-1)?.title}
@@ -307,7 +311,11 @@ export default function Drakvalvet({
             </div>
           )}
           {c.screen === 'creation' && (
-            <CharacterCreator onBack={() => navigate('home')} onSubmit={c.start} />
+            <CharacterCreator
+              onBack={() => navigate('home')}
+              onSubmit={c.start}
+              onSubmitParty={c.startParty}
+            />
           )}
           {c.screen === 'game' && c.game && (
             <GameView
@@ -318,6 +326,7 @@ export default function Drakvalvet({
               disabled={c.pending || (!!c.room && c.connection !== 'online')}
               onSave={() => setDialog('save')}
               onMenu={() => navigate('home')}
+              onFocus={c.room ? undefined : c.setFocus}
             />
           )}
           {c.screen === 'multiplayer' && <Multiplayer controller={c} />}
