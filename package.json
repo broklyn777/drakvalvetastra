@@ -17,6 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "node scripts/e2e.mjs",
+    "story": "tsx scripts/story-map.ts",
     "check": "npm run typecheck && npm test && npm run build",
     "format": "prettier --write src packages server tests scripts/*.mjs docs/*.md *.ts *.mjs *.json *.md",
     "format:check": "prettier --check src packages server tests scripts/*.mjs docs/*.md *.ts *.mjs *.json *.md",
