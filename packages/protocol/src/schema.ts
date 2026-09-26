@@ -19,8 +19,9 @@ export const selectionSchema = z
   .object({
     name: z.string().trim().min(1).max(24),
     race: z.enum(['human', 'elf', 'dwarf', 'halfling']),
-    class: z.enum(['warrior', 'mage', 'thief', 'cleric']),
-    talent: z.enum(['iron', 'keen', 'supply']),
+    class: z.enum(['warrior', 'mage', 'thief', 'cleric', 'ranger', 'paladin']),
+    talent: z.enum(['iron', 'keen', 'supply', 'savage']),
+    pregen: z.enum(['sigrun', 'brodd', 'pip', 'liria', 'solveig']).optional(),
   })
   .strict();
 export const characterSchema = z
@@ -61,7 +62,13 @@ export const characterSchema = z
     bossWeakened: z.boolean(),
     rested: z.boolean(),
     speed: z.number().int().min(0).max(500).default(30),
-    fightingStyles: z.array(z.enum(['protection'])).max(10).default([]),
+    fightingStyles: z.array(z.enum(['protection', 'greatWeaponFighting'])).max(10).default([]),
+    inspiration: z.boolean().optional(),
+    hitDiceUsed: z.number().int().min(0).max(20).optional(),
+    hunterMarks: z.number().int().min(0).max(10).optional(),
+    spellSlots: z.number().int().min(0).max(20).optional(),
+    layOnHands: z.number().int().min(0).max(200).optional(),
+    secondWind: z.number().int().min(0).max(10).optional(),
   })
   .strict()
   .refine((p) => p.hp <= p.maxHp, 'Liv överstiger maxliv.');
@@ -143,6 +150,12 @@ const combatSchema = z
     distances: z.record(id, z.number().int().min(-10000).max(10000)).default({}),
     movementRemaining: z.record(id, z.number().int().min(0).max(1000)).default({}),
     breached: recordBool,
+    swapPending: id.nullable().optional(),
+    marked: z.record(id, id).default({}),
+    slowed: z.record(id, id).default({}),
+    vexed: z.record(id, id).default({}),
+    sapped: z.record(id, id).default({}),
+    bonusUsed: recordBool.default({}),
     stats: z.record(
       id,
       z.object({ damage: natural, taken: natural, crits: natural, healing: natural }).strict(),
@@ -275,7 +288,9 @@ export const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('help'), target: id }).strict(),
   z.object({ type: z.literal('move'), target: id.optional() }).strict(),
   z.object({ type: z.literal('dash'), target: id.optional() }).strict(),
-  ...(['defend', 'breakthrough', 'potion', 'herbs', 'continue'] as const).map((type) =>
+  z.object({ type: z.literal('herbs'), target: id.optional() }).strict(),
+  z.object({ type: z.literal('swapInitiative'), target: id.optional() }).strict(),
+  ...(['defend', 'breakthrough', 'potion', 'continue'] as const).map((type) =>
     z.object({ type: z.literal(type) }).strict(),
   ),
 ]);

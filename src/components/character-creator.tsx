@@ -9,13 +9,23 @@ import {
   Flame,
   WandSparkles,
   Cross,
+  Crosshair,
+  ShieldPlus,
   Eye,
   Check,
 } from 'lucide-react';
-import { raceData, classData, talentData } from '../../packages/content/src';
+import { raceData, classData, talentData, pregenData } from '../../packages/content/src';
 import { createCharacter } from '../../packages/engine/src/characters';
-import type { CharacterSelection } from '../../packages/engine/src/types';
-const classIcons = { warrior: Swords, mage: WandSparkles, thief: Eye, cleric: Cross };
+import { attributeLabels } from '../../packages/engine/src/checks';
+import type { CharacterSelection, PregenId } from '../../packages/engine/src/types';
+const classIcons = {
+  warrior: Swords,
+  mage: WandSparkles,
+  thief: Eye,
+  cleric: Cross,
+  ranger: Crosshair,
+  paladin: ShieldPlus,
+};
 export function CharacterCreator({
   onSubmit,
   onBack,
@@ -49,6 +59,46 @@ export function CharacterCreator({
       </div>
       <div className="creation-layout">
         <div>
+          <fieldset className="pregens">
+            <legend>
+              ★ <span>Färdiga hjältar · D&D 2024, nivå 1</span>
+            </legend>
+            <div className="option-grid pregen-grid">
+              {(Object.entries(pregenData) as [PregenId, (typeof pregenData)[PregenId]][]).map(
+                ([key, hero]) => {
+                  const PregenIcon = classIcons[hero.class];
+                  return (
+                    <button
+                      key={key}
+                      aria-pressed={selection.pregen === key}
+                      className={`option-card ${selection.pregen === key ? 'selected' : ''}`}
+                      onClick={() =>
+                        setSelection({
+                          name: hero.name,
+                          race: hero.race,
+                          class: hero.class,
+                          talent: hero.talent,
+                          pregen: key,
+                        })
+                      }
+                    >
+                      <div className="option-heading">
+                        <PregenIcon size={20} />
+                        {hero.name}
+                        {selection.pregen === key && <Check size={15} />}
+                      </div>
+                      <p>{hero.desc}</p>
+                      <small>
+                        {raceData[hero.race].label} · {classData[hero.class].label} ·{' '}
+                        {hero.background} · {talentData[hero.talent].label}
+                      </small>
+                    </button>
+                  );
+                },
+              )}
+            </div>
+            <p className="pregen-hint">Eller bygg en egen hjälte nedan.</p>
+          </fieldset>
           <label className="field-label" htmlFor="hero-name">
             01 <span>Din hjältes namn</span>
           </label>
@@ -62,7 +112,7 @@ export function CharacterCreator({
           />
           <fieldset>
             <legend>
-              02 <span>Ursprung</span>
+              02 <span>Species</span>
             </legend>
             <div className="option-grid four">
               {Object.entries(raceData).map(([key, item]) => (
@@ -71,7 +121,11 @@ export function CharacterCreator({
                   aria-pressed={selection.race === key}
                   className={`option-card ${selection.race === key ? 'selected' : ''}`}
                   onClick={() =>
-                    setSelection({ ...selection, race: key as CharacterSelection['race'] })
+                    setSelection({
+                      ...selection,
+                      race: key as CharacterSelection['race'],
+                      pregen: undefined,
+                    })
                   }
                 >
                   <div className="option-heading">
@@ -97,15 +151,17 @@ export function CharacterCreator({
                     aria-pressed={selection.class === key}
                     className={`option-card ${selection.class === key ? 'selected' : ''}`}
                     onClick={() =>
-                      setSelection({ ...selection, class: key as CharacterSelection['class'] })
+                      setSelection({
+                        ...selection,
+                        class: key as CharacterSelection['class'],
+                        pregen: undefined,
+                      })
                     }
                   >
                     <ClassIcon size={25} />
                     <div className="option-heading">{item.label}</div>
                     <p>{item.desc}</p>
-                    <small>
-                      {item.weapon} · {item.maxHp} grundliv
-                    </small>
+                    <small>{item.bonus}</small>
                   </button>
                 );
               })}
@@ -113,16 +169,20 @@ export function CharacterCreator({
           </fieldset>
           <fieldset>
             <legend>
-              04 <span>Talang</span>
+              04 <span>Origin Feat</span>
             </legend>
-            <div className="option-grid three">
+            <div className="option-grid four">
               {Object.entries(talentData).map(([key, item]) => (
                 <button
                   key={key}
                   aria-pressed={selection.talent === key}
                   className={`option-card ${selection.talent === key ? 'selected' : ''}`}
                   onClick={() =>
-                    setSelection({ ...selection, talent: key as CharacterSelection['talent'] })
+                    setSelection({
+                      ...selection,
+                      talent: key as CharacterSelection['talent'],
+                      pregen: undefined,
+                    })
                   }
                 >
                   <div className="option-heading">
@@ -144,6 +204,7 @@ export function CharacterCreator({
           <h2>{preview.name}</h2>
           <p>
             {preview.race} · {preview.className}
+            {selection.pregen && ` · ${pregenData[selection.pregen].background}`}
           </p>
           <div className="preview-stats">
             <div>
@@ -163,9 +224,9 @@ export function CharacterCreator({
             </div>
           </div>
           <div className="attribute-grid">
-            {(['str', 'dex', 'con', 'int', 'wis', 'cha'] as const).map((key, i) => (
+            {(['str', 'dex', 'con', 'int', 'wis', 'cha'] as const).map((key) => (
               <div key={key}>
-                <small>{['STY', 'SMI', 'KON', 'INT', 'VIS', 'KAR'][i]}</small>
+                <small>{attributeLabels[key]}</small>
                 <strong>{preview[key]}</strong>
               </div>
             ))}

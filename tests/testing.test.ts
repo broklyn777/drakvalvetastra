@@ -33,8 +33,8 @@ describe('testläge', () => {
     expect(s.scene).toBe('towerExterior');
     expect(s.seed).not.toBe(0);
     expect(s.players[0]).toMatchObject({
-      className: 'Krigare',
-      race: 'Dvärg',
+      className: 'Fighter',
+      race: 'Dwarf',
       rope: true,
       sigil: true,
     });

@@ -1,6 +1,8 @@
 import type { Campaign } from '../../engine/src/types';
 import { watchtowerScenes, storyXp } from './watchtower';
 export { raceData, classData, talentData } from './characters';
+export { pregenData } from './pregens';
+export { weaponData, armorData } from './equipment';
 export const campaigns: Record<string, Campaign> = {
   watchtower: {
     id: 'watchtower',

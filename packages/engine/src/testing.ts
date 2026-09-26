@@ -1,7 +1,8 @@
 import { classData, raceData, talentData } from '../../content/src/characters';
+import { pregenData } from '../../content/src/pregens';
 import { createCharacter } from './characters';
 import { createGame, enter } from './engine';
-import type { Campaign, CharacterSelection, GameState } from './types';
+import type { Campaign, CharacterSelection, GameState, PregenId } from './types';
 
 /** Story items a test start can hand the hero, so gated choices can be reached directly. */
 export const testItems = {
@@ -66,7 +67,7 @@ const pick = <T extends string>(
   fallback: T,
 ) => (value && Object.hasOwn(allowed, value) ? (value as T) : fallback);
 
-/** Reads `?scen=…&kampanj=…&folk=…&klass=…&talang=…&seed=…&har=rope,sigil`. */
+/** Reads `?scen=…&kampanj=…&folk=…&klass=…&talang=…&seed=…&har=rope,sigil`, or `hjalte=<pregen>`. */
 export function parseTestParams(
   params: URLSearchParams,
   campaigns: Record<string, Campaign>,
@@ -76,15 +77,25 @@ export function parseTestParams(
   const campaignId = pick(params.get('kampanj'), campaigns, 'watchtower');
   if (!testScenes(campaigns[campaignId]).some((s) => s.id === scene)) return null;
   const seed = Number(params.get('seed'));
+  const hero = params.get('hjalte');
+  const pregen = hero && Object.hasOwn(pregenData, hero) ? pregenData[hero as PregenId] : undefined;
   return {
     campaignId,
     scene,
-    selection: {
-      name: params.get('namn')?.trim().slice(0, 24) || defaultTestSelection.name,
-      race: pick(params.get('folk'), raceData, defaultTestSelection.race),
-      class: pick(params.get('klass'), classData, defaultTestSelection.class),
-      talent: pick(params.get('talang'), talentData, defaultTestSelection.talent),
-    },
+    selection: pregen
+      ? {
+          name: pregen.name,
+          race: pregen.race,
+          class: pregen.class,
+          talent: pregen.talent,
+          pregen: hero as PregenId,
+        }
+      : {
+          name: params.get('namn')?.trim().slice(0, 24) || defaultTestSelection.name,
+          race: pick(params.get('folk'), raceData, defaultTestSelection.race),
+          class: pick(params.get('klass'), classData, defaultTestSelection.class),
+          talent: pick(params.get('talang'), talentData, defaultTestSelection.talent),
+        },
     seed: Number.isInteger(seed) && seed > 0 && seed <= 0xffffffff ? seed : randomSeed(),
     items: (params.get('har') ?? '')
       .split(',')
@@ -101,6 +112,7 @@ export function testParams(start: TestStart) {
     talang: start.selection.talent,
     seed: String(start.seed),
   });
+  if (start.selection.pregen) params.set('hjalte', start.selection.pregen);
   if (start.items.length) params.set('har', start.items.join(','));
   return params;
 }

@@ -8,12 +8,13 @@ export type Attributes = {
   cha: number;
 };
 export type RaceId = 'human' | 'elf' | 'dwarf' | 'halfling';
-export type ClassId = 'warrior' | 'mage' | 'thief' | 'cleric';
-export type TalentId = 'iron' | 'keen' | 'supply';
+export type ClassId = 'warrior' | 'mage' | 'thief' | 'cleric' | 'ranger' | 'paladin';
+export type PregenId = 'sigrun' | 'brodd' | 'pip' | 'liria' | 'solveig';
+export type TalentId = 'iron' | 'keen' | 'supply' | 'savage';
 export type Dice = [number, number, number];
 export type DamageType = 'Hugg' | 'Stick' | 'Kross' | 'Eld' | 'Riv';
 export type Position = 'fram' | 'bak';
-export type FightingStyle = 'protection';
+export type FightingStyle = 'protection' | 'greatWeaponFighting';
 export interface AttackProfile {
   name: string;
   kind: 'melee' | 'ranged';
@@ -29,6 +30,8 @@ export interface CharacterSelection {
   race: RaceId;
   class: ClassId;
   talent: TalentId;
+  /** A ready-made hero; its ability scores replace the class defaults. */
+  pregen?: PregenId;
 }
 export interface Character extends Attributes {
   id: string;
@@ -62,6 +65,18 @@ export interface Character extends Attributes {
   rested: boolean;
   speed: number;
   fightingStyles: FightingStyle[];
+  /** Human Resourceful: Heroic Inspiration, spent on a reroll until the next Long Rest. */
+  inspiration?: boolean;
+  /** Hit Point Dice spent (e.g. on a Healer's Battle Medic) since the last Long Rest. */
+  hitDiceUsed?: number;
+  /** Ranger Favored Enemy: Hunter's Mark casts left until the next Long Rest. */
+  hunterMarks?: number;
+  /** Level-1 Spell Slots left until the next Long Rest (Cleric, Wizard). */
+  spellSlots?: number;
+  /** Paladin Lay On Hands pool left until the next Long Rest. */
+  layOnHands?: number;
+  /** Fighter Second Wind uses left until the next Long Rest. */
+  secondWind?: number;
 }
 export interface World {
   miraTrust: number;
@@ -175,6 +190,18 @@ export interface Combat {
   distances: Record<string, number>;
   movementRemaining: Record<string, number>;
   breached: Record<string, boolean>;
+  /** Alert: hero who may still use Initiative Swap before the first turn. */
+  swapPending?: string | null;
+  /** Hunter's Mark: hero id → marked enemy id. */
+  marked: Record<string, string>;
+  /** Weapon Mastery Slow: enemy id → hero whose next turn ends it. */
+  slowed: Record<string, string>;
+  /** Weapon Mastery Vex: hero id → enemy the hero has Advantage against on the next attack. */
+  vexed: Record<string, string>;
+  /** Weapon Mastery Sap: enemy id → hero whose next turn ends the Disadvantage. */
+  sapped: Record<string, string>;
+  /** Heroes who have taken their Bonus Action this turn. */
+  bonusUsed: Record<string, boolean>;
   stats: Record<string, CombatStats>;
 }
 export interface JournalEntry {
@@ -249,7 +276,8 @@ export type GameCommand =
   | { type: 'ability'; target?: string }
     | { type: 'help'; target: string }
   | { type: 'move' | 'dash'; target?: string }
-  | { type: 'defend' | 'breakthrough' | 'potion' | 'herbs' | 'continue' };
+  | { type: 'herbs' | 'swapInitiative'; target?: string }
+  | { type: 'defend' | 'breakthrough' | 'potion' | 'continue' };
 export interface CommandEnvelope {
   id: string;
   revision: number;

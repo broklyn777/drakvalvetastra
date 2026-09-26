@@ -46,6 +46,8 @@ export function CombatPanel({
     c.enemies.find((e) => e.id === selected && canTarget(game, hero, e)) ??
     c.enemies.find((e) => canTarget(game, hero, e));
   const ability = abilities[hero.selection.class];
+  // Healing Word and Lay On Hands target the ally chosen under "Fler handlingar".
+  const healsAlly = hero.selection.class === 'cleric' || hero.selection.class === 'paladin';
 
   useEffect(() => {
     return () => {
@@ -241,32 +243,37 @@ export function CombatPanel({
               <Swords size={17} />
               Anfall
             </button>
-            <button
-              className="button"
-              title={ability.description}
-              disabled={
-                !yourTurn ||
-                c.used[hero.id] ||
-                (hero.className === 'Kleriker'
-                  ? game.players.find((p) => p.id === ally)!.hp >=
-                    game.players.find((p) => p.id === ally)!.maxHp
-                  : hero.className !== 'Magiker' &&
-                    (!target || !attackAvailability(game, hero, target).ok))
-              }
-              onClick={() =>
-                act({ type: 'ability', target: hero.className === 'Kleriker' ? ally : target?.id })
-              }
-            >
-              <Flame size={17} />
-              {ability.name}
-            </button>
+            {ability.timing !== 'passive' && (
+              <button
+                className="button"
+                title={ability.description}
+                disabled={
+                  !yourTurn ||
+                  c.used[hero.id] ||
+                  (healsAlly
+                    ? game.players.find((p) => p.id === ally)!.hp >=
+                      game.players.find((p) => p.id === ally)!.maxHp
+                    : hero.selection.class === 'warrior'
+                      ? hero.hp >= hero.maxHp
+                      : hero.selection.class !== 'mage' &&
+                        (!target || !attackAvailability(game, hero, target).ok))
+                }
+                onClick={() => act({ type: 'ability', target: healsAlly ? ally : target?.id })}
+              >
+                <Flame size={17} />
+                {ability.name}
+              </button>
+            )}
             <button className="button" disabled={!yourTurn} onClick={() => act({ type: 'defend' })}>
               <Shield size={17} />
               Försvara
             </button>
           </div>
           <p className="ability-description">
-            {ability.description} Varje handling använder din tur.
+            {ability.description}{' '}
+            {ability.timing === 'bonus'
+              ? 'Övriga handlingar använder din tur.'
+              : 'Varje handling använder din tur.'}
           </p>
           <details className="tactics">
             <summary>Fler handlingar & föremål</summary>
@@ -309,17 +316,32 @@ export function CombatPanel({
                 <HeartPulse size={15} />
                 Läkebrygd ({hero.potions})
               </button>
-              <button
-                className="button subtle"
-                disabled={!yourTurn || hero.herbs < 1 || hero.hp >= hero.maxHp}
-                onClick={() => act({ type: 'herbs' })}
-              >
-                Örter ({hero.herbs})
-              </button>
+              {hero.selection.talent === 'supply' ? (
+                // Healer's Battle Medic: tend the ally chosen below (or yourself).
+                <button
+                  className="button subtle"
+                  disabled={(() => {
+                    const patient = game.players.find((p) => p.id === ally) ?? hero;
+                    return !yourTurn || hero.herbs < 1 || patient.hp >= patient.maxHp;
+                  })()}
+                  onClick={() => act({ type: 'herbs', target: ally })}
+                >
+                  Battle Medic på {(game.players.find((p) => p.id === ally) ?? hero).name} (
+                  {hero.herbs})
+                </button>
+              ) : (
+                <button
+                  className="button subtle"
+                  disabled={!yourTurn || hero.herbs < 1 || hero.hp >= hero.maxHp}
+                  onClick={() => act({ type: 'herbs' })}
+                >
+                  Örter ({hero.herbs})
+                </button>
+              )}
             </div>
             {(game.players.length > 1 ||
-              hero.className === 'Kleriker' ||
-              hero.className === 'Krigare') && (
+              healsAlly ||
+              hero.selection.class === 'warrior') && (
               <div className="ally-actions">
                 <label>
                   Kamrat
