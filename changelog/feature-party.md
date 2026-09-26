@@ -8,7 +8,7 @@
 - **Solo eller Sällskap** i karaktärsskaparen. I sällskapsläget väljer du 2–4 hjältar: färdiga hjältar med ett klick, eller din egen hjälte med "Lägg till min egen hjälte". Sedan "Börja med sällskapet".
 - Hela sällskapet spelas från samma skärm. **I strid** styr du den hjälte som har turen. **Utanför strid** klickar du på en hjälte i panelen "Ditt sällskap" för att agera som hen, t.ex. dricka en läkebrygd eller använda örter.
 - Sällskapspanelen visar klass och HP för varje hjälte, och vilka som har fallit.
-- Genväg till ett sällskap: `?scen=door&hjalte=sigrun,brodd,alma` (högst 4, i den ordningen).
+- Genväg till ett sällskap: `?scen=door&hjalte=sigrun,brodd,solveig` (högst 4, i den ordningen).
 - "Fortsätt med …" på startsidan visar hur många fler som är med i sällskapet.
 - **Karaktärsblad för alla**: knappen **Blad** vid varje hjälte i sällskapspanelen, och **Karaktärsblad** under den egna hjälten, öppnar hela bladet i ett fönster (även under strid).
 - Bladet har ett nytt avsnitt **Regler & förmågor**: Proficiency, Initiative, Speed, Spell Save DC, Background, species-egenskap, Origin Feat, klassförmåga, Fighting Style, resurser kvar till nästa Long Rest (Spell Slots, Lay On Hands, Second Wind, Hunter's Mark, Heroic Inspiration, Hit Point Dice) och alla vapen med attack, skada, räckvidd och Weapon Mastery.
@@ -25,11 +25,11 @@
 
 ## Balans
 
-Första striden, 200 frön, enkel taktik: Alma ensam vs Sigrun + Brodd + Alma. Testet kräver att sällskapet vinner över 90 % och minst 50 procentenheter oftare än Alma ensam; det gick igenom.
+Första striden, 200 frön, enkel taktik: Solveig ensam vs Sigrun + Brodd + Solveig. Testet kräver att sällskapet vinner över 90 % och minst 50 procentenheter oftare än Solveig ensam; det gick igenom.
 
 ## Verifierat
 
 - `npm test` 77/77 och `npm run typecheck` lokalt.
-- Lokal webbläsare: sällskapsläget valde Sigrun, Brodd och Alma; spelet visade "3 HJÄLTAR", och klick på Brodd i panelen gjorde honom aktiv.
-- Lokal webbläsare: `?scen=forest&hjalte=sigrun,brodd,alma`, knappen Blad för Brodd öppnade bladet med Spell Save DC 13, Background Hermit, Healing Word, Spell Slots 2/2, Hit Point Dice 1/1 och Mace +3 · 1d6+1.
-- Lokal webbläsare: `?scen=door&hjalte=sigrun,brodd,alma` gav Initiative Swap-rutan (Alma har Alert) och sedan Almas tur.
+- Lokal webbläsare: sällskapsläget valde Sigrun, Brodd och Solveig; spelet visade "3 HJÄLTAR", och klick på Brodd i panelen gjorde honom aktiv.
+- Lokal webbläsare: `?scen=forest&hjalte=sigrun,brodd,solveig`, knappen Blad för Brodd öppnade bladet med Spell Save DC 13, Background Hermit, Healing Word, Spell Slots 2/2, Hit Point Dice 1/1 och Mace +3 · 1d6+1.
+- Lokal webbläsare: `?scen=door&hjalte=sigrun,brodd,solveig` gav Initiative Swap-rutan (Solveig har Alert) och sedan Solveigs tur.

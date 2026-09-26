@@ -83,7 +83,7 @@ export function parseTestParams(
   const campaignId = pick(params.get('kampanj'), campaigns, 'watchtower');
   if (!testScenes(campaigns[campaignId]).some((s) => s.id === scene)) return null;
   const seed = Number(params.get('seed'));
-  // `hjalte=sigrun` or a party: `hjalte=sigrun,brodd,alma` (at most 4, no repeats).
+  // `hjalte=sigrun` or a party: `hjalte=sigrun,brodd,solveig` (at most 4, no repeats).
   const heroes = [
     ...new Set(
       (params.get('hjalte') ?? '')

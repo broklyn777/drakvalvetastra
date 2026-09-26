@@ -24,11 +24,11 @@ const party = (ids: PregenId[], seed: number) =>
 describe('sällskap', () => {
   it('reads a party from a test link, keeps order, drops repeats and caps at four', () => {
     const t = parseTestParams(
-      new URLSearchParams('scen=door&hjalte=sigrun,brodd,sigrun,alma,pip,liria,nobody'),
+      new URLSearchParams('scen=door&hjalte=sigrun,brodd,sigrun,solveig,pip,liria,nobody'),
       campaigns,
     )!;
     expect(t.selection.pregen).toBe('sigrun');
-    expect(t.party!.map((p) => p.pregen)).toEqual(['brodd', 'alma', 'pip']);
+    expect(t.party!.map((p) => p.pregen)).toEqual(['brodd', 'solveig', 'pip']);
     expect(parseTestParams(testParams(t), campaigns)!.party).toEqual(t.party);
   });
 
@@ -45,7 +45,7 @@ describe('sällskap', () => {
   });
 
   it('shares combat XP across the party', () => {
-    const s = party(['sigrun', 'brodd', 'alma'], 3);
+    const s = party(['sigrun', 'brodd', 'solveig'], 3);
     let g = dispatch(s, campaign, 'sigrun', { type: 'choose', next: 'inn' }).state;
     g = dispatch(g, campaign, 'sigrun', { type: 'choose', next: 'door' }).state;
     expect(g.combat!.reward).toBe(Math.round(50 * 1.5));
@@ -94,8 +94,8 @@ describe('sällskap', () => {
       }
       return wins / 200;
     };
-    const solo = winRate(['alma']);
-    const group = winRate(['sigrun', 'brodd', 'alma']);
+    const solo = winRate(['solveig']);
+    const group = winRate(['sigrun', 'brodd', 'solveig']);
     expect(group).toBeGreaterThan(0.9);
     expect(group).toBeGreaterThan(solo + 0.5);
   });
