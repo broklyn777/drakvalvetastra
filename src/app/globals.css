@@ -3469,3 +3469,340 @@ summary::-webkit-details-marker {
     min-height: 138px;
   }
 }
+
+/* TV view is opt-in because screen width does not describe viewing distance. */
+.tv-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid #526049;
+  border-radius: 5px;
+  color: var(--gold-light);
+  background: #202b21;
+  font-size: 13px;
+}
+.tv-toggle.active {
+  border-color: var(--gold);
+  background: #554928;
+  color: #fff1c9;
+}
+.tv-mode .app-nav {
+  display: none;
+}
+.tv-mode .app-content {
+  width: 100%;
+  margin-left: 0;
+}
+.tv-mode .topbar {
+  height: 66px;
+  padding: 0 clamp(20px, 2.5vw, 48px);
+}
+.tv-mode .breadcrumb {
+  font-size: 15px;
+}
+.tv-mode .main-content {
+  max-width: none;
+  padding: 22px clamp(20px, 2.5vw, 48px) 36px;
+}
+.tv-status {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 17px 22px;
+  margin-bottom: 20px;
+  border: 1px solid var(--gold);
+  border-radius: 7px;
+  background: #303321;
+  color: #f0e4bf;
+}
+.tv-status > svg {
+  color: var(--gold-light);
+}
+.tv-status > div {
+  flex: 1;
+  min-width: 0;
+}
+.tv-status strong {
+  display: block;
+  font-size: 20px;
+}
+.tv-status p {
+  margin: 2px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.tv-status .tv-status-error {
+  color: #e8aa9b;
+}
+.tv-status .button {
+  min-height: 50px;
+  font-size: 16px;
+  white-space: nowrap;
+}
+.tv-mode .game-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 22%);
+  gap: clamp(18px, 2vw, 36px);
+  align-items: start;
+}
+.tv-mode .adventure-column,
+.tv-mode .game-sidebar {
+  min-width: 0;
+}
+.tv-mode .scene-banner {
+  height: 130px;
+}
+.tv-mode .scene-banner h2 {
+  font-size: 31px;
+}
+.tv-mode .scene-banner p,
+.tv-mode .scene-banner .eyebrow,
+.tv-mode .scene-banner .badge {
+  font-size: 13px;
+}
+.tv-mode .journey {
+  padding: 15px 9px;
+}
+.tv-mode .journey:before {
+  top: 26px;
+}
+.tv-mode .journey small {
+  font-size: 12px;
+}
+.tv-mode .story-card {
+  padding: clamp(20px, 2vw, 34px);
+}
+.tv-mode .story-meta .eyebrow,
+.tv-mode .story-meta > .muted {
+  font-size: 13px;
+}
+.tv-mode .story-card h1 {
+  font-size: clamp(30px, 2.3vw, 42px);
+  margin-bottom: 12px;
+}
+.tv-mode .prose {
+  font-size: clamp(19px, 1.2vw, 23px);
+  line-height: 1.55;
+  max-width: 78ch;
+}
+.tv-mode .prose p {
+  margin-bottom: 10px;
+}
+.tv-mode .choices > .eyebrow,
+.tv-mode .check-result,
+.tv-mode .check-result small {
+  font-size: 16px;
+}
+.tv-mode .choice {
+  min-height: 64px;
+  font-size: 18px;
+  padding: 16px 20px;
+}
+.tv-mode .choice-number,
+.tv-mode .choice-check {
+  font-size: 14px;
+}
+.tv-mode .combat-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
+  gap: clamp(18px, 2vw, 32px);
+  align-items: start;
+  margin-top: 22px;
+  padding-top: 22px;
+}
+.tv-mode .combat-main,
+.tv-mode .combat-log {
+  min-width: 0;
+}
+.tv-mode .combat-top .eyebrow,
+.tv-mode .combat-top .badge {
+  font-size: 15px;
+}
+.tv-mode .initiative {
+  flex-wrap: wrap;
+  overflow: visible;
+  padding: 15px 0;
+}
+.tv-mode .initiative > div,
+.tv-mode .initiative small {
+  font-size: 13px;
+}
+.tv-mode .enemies {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr));
+  gap: 14px;
+}
+.tv-mode .enemy-card {
+  min-height: 138px;
+  padding: 17px;
+}
+.tv-mode .enemy-portrait {
+  width: 58px;
+  height: 66px;
+}
+.tv-mode .enemy-info h3 {
+  font-size: 23px;
+}
+.tv-mode .enemy-info > small,
+.tv-mode .enemy-values,
+.tv-mode .intent {
+  font-size: 14px;
+}
+.tv-mode .enemy-info .meter,
+.tv-mode .character-summary .meter {
+  height: 9px;
+}
+.tv-mode .turn-label {
+  font-size: 18px;
+}
+.tv-mode .turn-label small {
+  font-size: 14px;
+}
+.tv-mode .combat-actions .button,
+.tv-mode .tactics-grid .button,
+.tv-mode .ally-actions .button {
+  min-height: 58px;
+  font-size: 17px;
+  padding: 12px 16px;
+}
+.tv-mode .ability-description,
+.tv-mode .tactics,
+.tv-mode .ally-actions label,
+.tv-mode .ally-actions select {
+  font-size: 15px;
+}
+.tv-mode .combat-log {
+  margin-top: 0;
+  padding: 18px;
+  border: 1px solid #526145;
+  border-radius: 7px;
+  background: #111d16;
+}
+.tv-mode .combat-log > .text-button,
+.tv-mode .combat-log > .text-button span {
+  font-size: 15px;
+}
+.tv-mode .combat-log [role='log'] {
+  max-height: min(62vh, 710px);
+}
+.tv-mode .combat-log p,
+.tv-mode .combat-roll-entry {
+  font-size: 16px;
+  line-height: 1.55;
+}
+.tv-mode .combat-log small,
+.tv-mode .combat-roll-cover,
+.tv-mode .combat-roll-mode {
+  font-size: 14px;
+}
+.tv-mode .victory h2 {
+  font-size: 36px;
+}
+.tv-mode .victory > p,
+.tv-mode .battle-stats p,
+.tv-mode .victory .button {
+  font-size: 17px;
+}
+.tv-mode .dice-panel {
+  width: min(620px, calc(100vw - 32px));
+}
+.tv-mode .dice-panel h2 {
+  font-size: 30px;
+}
+.tv-mode .dice-context,
+.tv-mode .dice-verdict,
+.tv-mode .dice-roll-button {
+  font-size: 18px;
+}
+.tv-mode .character-summary,
+.tv-mode .party,
+.tv-mode .notebook {
+  padding: 22px;
+}
+.tv-mode .character-name h2 {
+  font-size: 27px;
+}
+.tv-mode .character-name p,
+.tv-mode .bar-label,
+.tv-mode .bar-label.small,
+.tv-mode .character-summary > details > summary {
+  font-size: 15px;
+}
+.tv-mode .summary-stats strong {
+  font-size: 25px;
+}
+.tv-mode .summary-stats small {
+  font-size: 13px;
+}
+.tv-mode .party h3,
+.tv-mode .notebook h3 {
+  font-size: 22px;
+}
+.tv-mode .party-member,
+.tv-mode .party-member small,
+.tv-mode .notebook > .muted,
+.tv-mode .journal-list > div,
+.tv-mode .tabs > button {
+  font-size: 15px;
+}
+.tv-mode .party-member strong {
+  font-weight: 500;
+}
+.tv-mode .party-member > span:first-child {
+  display: grid;
+}
+.tv-mode .party-health {
+  white-space: nowrap;
+}
+.tv-mode .party-hint,
+.tv-mode .party-sheet {
+  font-size: 14px;
+}
+.tv-mode .party-sheet {
+  min-height: 52px;
+}
+.tv-mode .scene-footer {
+  font-size: 14px;
+}
+@media (max-width: 1350px) {
+  .tv-mode .combat-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tv-mode .combat-log [role='log'] {
+    max-height: 360px;
+  }
+}
+@media (max-width: 900px) {
+  .tv-mode .game-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tv-status {
+    flex-wrap: wrap;
+  }
+  .tv-status > div {
+    flex-basis: calc(100% - 50px);
+  }
+  .tv-mode .game-sidebar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .tv-mode .breadcrumb,
+  .tv-mode .account-button {
+    display: none;
+  }
+  .tv-mode .topbar {
+    justify-content: flex-end;
+  }
+  .tv-mode .main-content {
+    padding: 18px 14px 85px;
+  }
+  .tv-mode .scene-banner {
+    height: 150px;
+  }
+  .tv-mode .combat-actions .button {
+    font-size: 15px;
+  }
+}

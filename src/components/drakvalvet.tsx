@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Flame,
   Compass,
@@ -17,6 +17,9 @@ import {
   X,
   ScrollText,
   Sprout,
+  Monitor,
+  Maximize,
+  Minimize,
 } from 'lucide-react';
 import { useGame } from '../hooks/use-game';
 import { campaigns } from '../../packages/content/src';
@@ -36,6 +39,31 @@ export default function Drakvalvet({
   const c = useGame();
   useTestLink(true, c.startTest);
   const [dialog, setDialog] = useState<'save' | 'account' | 'help' | null>(null);
+  const [tvMode, setTvMode] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState('');
+  useEffect(() => {
+    setTvMode(window.localStorage.getItem('drakvalvet-tv-mode') === 'true');
+    const syncFullscreen = () => setFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+  }, []);
+  function toggleTvMode() {
+    const next = !tvMode;
+    setTvMode(next);
+    window.localStorage.setItem('drakvalvet-tv-mode', String(next));
+    setFullscreenError('');
+    if (!next && document.fullscreenElement) void document.exitFullscreen();
+  }
+  async function toggleFullscreen() {
+    setFullscreenError('');
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    } catch {
+      setFullscreenError('Helskärm kunde inte startas här. TV-layouten fungerar ändå.');
+    }
+  }
   const selected = campaigns[c.campaignId];
   const heroId = c.room
     ? (c.user?.id ?? '')
@@ -49,7 +77,7 @@ export default function Drakvalvet({
     c.setScreen(screen);
   };
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${tvMode && c.screen === 'game' ? 'tv-mode' : ''}`}>
       <aside className="app-nav">
         <a href="#main" className="brand" aria-label="Drakvalvet – till huvudinnehåll">
           <div className="brand-mark">
@@ -130,6 +158,18 @@ export default function Drakvalvet({
             </strong>
           </div>
           <div className="topbar-actions">
+            {c.screen === 'game' && c.game && (
+              <button
+                className={`tv-toggle ${tvMode ? 'active' : ''}`}
+                type="button"
+                aria-pressed={tvMode}
+                aria-label={tvMode ? 'Stäng av TV-läge' : 'Aktivera TV-läge'}
+                onClick={toggleTvMode}
+              >
+                <Monitor size={17} />
+                <span>{tvMode ? 'TV-läge på' : 'TV-läge'}</span>
+              </button>
+            )}
             {c.game && (
               <button
                 className="icon-button"
@@ -150,6 +190,23 @@ export default function Drakvalvet({
           </div>
         </header>
         <main id="main" className="main-content">
+          {tvMode && c.screen === 'game' && c.game && (
+            <div className="tv-status" role="status">
+              <Monitor size={24} />
+              <div>
+                <strong>TV-läge aktivt</strong>
+                <p>
+                  För att få bilden på TV:n, casta fliken eller spegla skärmen från din enhet.
+                  Spelet kan inte ansluta till TV:n automatiskt.
+                </p>
+                {fullscreenError && <p className="tv-status-error">{fullscreenError}</p>}
+              </div>
+              <button className="button" type="button" onClick={() => void toggleFullscreen()}>
+                {fullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
+                {fullscreen ? 'Lämna helskärm' : 'Visa i helskärm'}
+              </button>
+            </div>
+          )}
           {c.error && (
             <div className="toast error" role="alert">
               <span>{c.error}</span>
