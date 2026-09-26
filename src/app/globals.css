@@ -3507,6 +3507,41 @@ summary::-webkit-details-marker {
   max-width: none;
   padding: 22px clamp(20px, 2.5vw, 48px) 36px;
 }
+.tv-status {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 17px 22px;
+  margin-bottom: 20px;
+  border: 1px solid var(--gold);
+  border-radius: 7px;
+  background: #303321;
+  color: #f0e4bf;
+}
+.tv-status > svg {
+  color: var(--gold-light);
+}
+.tv-status > div {
+  flex: 1;
+  min-width: 0;
+}
+.tv-status strong {
+  display: block;
+  font-size: 20px;
+}
+.tv-status p {
+  margin: 2px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.tv-status .tv-status-error {
+  color: #e8aa9b;
+}
+.tv-status .button {
+  min-height: 50px;
+  font-size: 16px;
+  white-space: nowrap;
+}
 .tv-mode .game-layout {
   grid-template-columns: minmax(0, 1fr) minmax(300px, 22%);
   gap: clamp(18px, 2vw, 36px);
@@ -3741,6 +3776,12 @@ summary::-webkit-details-marker {
 @media (max-width: 900px) {
   .tv-mode .game-layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .tv-status {
+    flex-wrap: wrap;
+  }
+  .tv-status > div {
+    flex-basis: calc(100% - 50px);
   }
   .tv-mode .game-sidebar {
     display: grid;
