@@ -40,6 +40,16 @@ export function CombatPanel({
     result?: NonNullable<GameEvent['dice']>;
   } | null>(null);
   const rollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The damage button appears where "Slå D20" was; ignore taps until it has been visible a moment,
+  // so a double tap (common on phones) never rolls damage by accident.
+  const [damageArmed, setDamageArmed] = useState(false);
+  const phase = diceRoll?.phase;
+  useEffect(() => {
+    setDamageArmed(false);
+    if (phase !== 'attack-result') return;
+    const timer = setTimeout(() => setDamageArmed(true), 600);
+    return () => clearTimeout(timer);
+  }, [phase]);
   const c = game.combat!;
   const active = currentActor(game);
   const yourTurn = !disabled && active?.id === hero.id && !c.victory && game.status === 'active';
@@ -101,7 +111,7 @@ export function CombatPanel({
   }
 
   function revealDamage() {
-    if (!diceRoll?.result?.damage || diceRoll.phase !== 'attack-result') return;
+    if (!diceRoll?.result?.damage || diceRoll.phase !== 'attack-result' || !damageArmed) return;
     setDiceRoll({ ...diceRoll, phase: 'damage-rolling' });
     rollTimer.current = setTimeout(() => {
       setDiceRoll((current) => (current ? { ...current, phase: 'done' } : null));
@@ -441,13 +451,21 @@ export function CombatPanel({
                 </p>
 
                 {!diceRoll.result.attack.hit && (
-                  <button className="button dice-roll-button" onClick={() => setDiceRoll(null)}>
+                  <button
+                    className="button dice-roll-button"
+                    disabled={!damageArmed}
+                    onClick={() => setDiceRoll(null)}
+                  >
                     Stäng
                   </button>
                 )}
 
                 {diceRoll.result.attack.hit && diceRoll.result.damage && diceRoll.phase === 'attack-result' && (
-                  <button className="button primary dice-roll-button" onClick={revealDamage}>
+                  <button
+                    className="button primary dice-roll-button"
+                    disabled={!damageArmed}
+                    onClick={revealDamage}
+                  >
                     Slå {diceRoll.result.damage.rolls.length > 1 ? `${diceRoll.result.damage.rolls.length}×D${diceRoll.result.damage.sides}` : `D${diceRoll.result.damage.sides}`} skada
                   </button>
                 )}
