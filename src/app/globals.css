@@ -3296,7 +3296,7 @@ summary::-webkit-details-marker {
   margin: 10px 0 0;
 }
 /* Local party: pick the hero you act as. */
-.party > .party-member {
+.party .party-member {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -3311,11 +3311,11 @@ summary::-webkit-details-marker {
   border-radius: 5px;
   cursor: pointer;
 }
-.party > .party-member.active {
+.party .party-member.active {
   border-color: var(--gold);
   background: #2a3322;
 }
-.party > .party-member:disabled {
+.party .party-member:disabled {
   cursor: default;
 }
 .party-class {
@@ -3374,4 +3374,81 @@ summary::-webkit-details-marker {
 }
 .party-builder small {
   color: var(--muted);
+}
+/* D&D 2024 rules summary on the character sheet. */
+.rules-sheet h3 {
+  margin-top: 18px;
+}
+.rules-facts,
+.rules-resources {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+.rules-facts > div,
+.rules-resources > div {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 6px 8px;
+}
+.rules-facts dt,
+.rules-resources dt {
+  color: var(--muted);
+  font-size: 10px;
+}
+.rules-facts dd,
+.rules-resources dd {
+  margin: 2px 0 0;
+  color: var(--gold-light);
+  font-size: 13px;
+}
+.rules-traits,
+.rules-weapons {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+}
+.rules-traits li,
+.rules-weapons li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 2px solid var(--gold);
+  padding-left: 8px;
+}
+.rules-traits span,
+.rules-weapons span {
+  color: #c9cdb5;
+}
+.rules-weapons small {
+  color: var(--muted);
+}
+.party-row {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.party-row .party-member {
+  flex: 1;
+}
+.party > .party-row .party-member.static {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+.party-sheet {
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 0 10px;
+  margin: 8px 0;
+}
+.sheet-open {
+  width: 100%;
+  justify-content: center;
+  margin-top: 12px;
 }

@@ -10,6 +10,9 @@
 - Sällskapspanelen visar klass och HP för varje hjälte, och vilka som har fallit.
 - Genväg till ett sällskap: `?scen=door&hjalte=sigrun,brodd,alma` (högst 4, i den ordningen).
 - "Fortsätt med …" på startsidan visar hur många fler som är med i sällskapet.
+- **Karaktärsblad för alla**: knappen **Blad** vid varje hjälte i sällskapspanelen, och **Karaktärsblad** under den egna hjälten, öppnar hela bladet i ett fönster (även under strid).
+- Bladet har ett nytt avsnitt **Regler & förmågor**: Proficiency, Initiative, Speed, Spell Save DC, Background, species-egenskap, Origin Feat, klassförmåga, Fighting Style, resurser kvar till nästa Long Rest (Spell Slots, Lay On Hands, Second Wind, Hunter's Mark, Heroic Inspiration, Hit Point Dice) och alla vapen med attack, skada, räckvidd och Weapon Mastery.
+- Tärningar skrivs nu 1d6 (inte 1T6), skölden heter Shield (+2 AC), och Healer-featens örter visas som Healer's Kit med Battle Medic.
 
 ## Tekniskt
 
@@ -18,6 +21,7 @@
 - `testing.ts`: `TestStart.party`, `pregenSelection`, `hjalte=` med kommalista; föremål ges till hela sällskapet.
 - Motorn var redan byggd för 1–4 hjältar (turordning, XP-delning, skalade möten); inga regeländringar.
 - Tester: `tests/party.test.ts` (4 st).
+- Nytt: `src/components/rules-sheet.tsx`. `game-view.tsx`: bladfönster via `Modal` från `dialogs.tsx`.
 
 ## Balans
 
@@ -27,4 +31,5 @@ Första striden, 200 frön, enkel taktik: Alma ensam vs Sigrun + Brodd + Alma. T
 
 - `npm test` 77/77 och `npm run typecheck` lokalt.
 - Lokal webbläsare: sällskapsläget valde Sigrun, Brodd och Alma; spelet visade "3 HJÄLTAR", och klick på Brodd i panelen gjorde honom aktiv.
+- Lokal webbläsare: `?scen=forest&hjalte=sigrun,brodd,alma`, knappen Blad för Brodd öppnade bladet med Spell Save DC 13, Background Hermit, Healing Word, Spell Slots 2/2, Hit Point Dice 1/1 och Mace +3 · 1d6+1.
 - Lokal webbläsare: `?scen=door&hjalte=sigrun,brodd,alma` gav Initiative Swap-rutan (Alma har Alert) och sedan Almas tur.
