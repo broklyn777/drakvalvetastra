@@ -43,8 +43,8 @@ export const pregenData = {
     // Standard Array STR 12, DEX 15, CON 13, INT 8, WIS 14, CHA 10; Soldier: DEX +2, CON +1.
     scores: { str: 12, dex: 17, con: 14, int: 8, wis: 14, cha: 10 },
   },
-  alma: {
-    name: 'Alma Glödsten',
+  solveig: {
+    name: 'Solveig Glödsten',
     race: 'human',
     class: 'mage',
     talent: 'keen',

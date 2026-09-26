@@ -123,8 +123,8 @@ describe('färdiga hjältar enligt D&D 2024, nivå 1', () => {
       hunterMarks: 2,
     });
   });
-  it('Alma, Human Wizard: no armor, Fire Bolt 1d10 (INT, no damage modifier), 2 Spell Slots', () => {
-    expect(pregen('alma')).toMatchObject({
+  it('Solveig, Human Wizard: no armor, Fire Bolt 1d10 (INT, no damage modifier), 2 Spell Slots', () => {
+    expect(pregen('solveig')).toMatchObject({
       className: 'Wizard',
       int: 17,
       maxHp: 8,
@@ -215,7 +215,7 @@ describe('färdiga hjältar enligt D&D 2024, nivå 1', () => {
 
   it('Burning Hands: a slot, enemies within 15 ft, DEX save against DC 13 halves', () => {
     let s = onTurnOf(
-      () => [pregen('alma', 'w')],
+      () => [pregen('solveig', 'w')],
       'w',
       (x) => {
         Object.assign(bandit(x, 'melee'), { distance: 10, hp: 99 });
