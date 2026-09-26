@@ -21,7 +21,7 @@ export const selectionSchema = z
     race: z.enum(['human', 'elf', 'dwarf', 'halfling']),
     class: z.enum(['warrior', 'mage', 'thief', 'cleric', 'ranger', 'paladin']),
     talent: z.enum(['iron', 'keen', 'supply', 'savage']),
-    pregen: z.enum(['sigrun', 'brodd', 'pip', 'liria', 'alma']).optional(),
+    pregen: z.enum(['sigrun', 'brodd', 'pip', 'liria', 'solveig']).optional(),
   })
   .strict();
 export const characterSchema = z

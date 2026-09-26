@@ -43,7 +43,7 @@ Karaktärsskaparen visar "Species" och "Origin Feat", och attributen som STR/DEX
 - **Brodd Stenhjärta** – Dwarf Cleric, Hermit, Healer. 11 HP, AC 15, Healing Word 2d4 + 3.
 - **Pip Snabbfot** – Halfling Rogue, Criminal, Alert. 10 HP, AC 14, Shortsword +5.
 - **Liria Vindspår** – Elf Ranger, Soldier, Savage Attacker. 12 HP, AC 15, Longbow +5.
-- **Alma Glödsten** – Human Wizard, Criminal, Alert. 8 HP, AC 11, Fire Bolt +5.
+- **Solveig Glödsten** – Human Wizard, Criminal, Alert. 8 HP, AC 11, Fire Bolt +5.
 
 Väljs överst i karaktärsskaparen, i testrutan eller med `?scen=door&hjalte=brodd`.
 
@@ -75,7 +75,7 @@ Första striden, 1000 frön, Human + Tough, samma enkla taktik: Krigare 69,9 %, 
 
 ## Balans med färdiga hjältar
 
-Första striden **solo** mot två Bandits (Fighter, egen hjälte: 72,4 % med Tough, 60,4 % med Savage Attacker) (som i 2024 har exakt dessa värden), 1000 frön, enkel taktik med klassförmågor: Liria 70,4 %, Sigrun 63,9 %, Pip 38,5 %, Brodd 34,2 %, Alma 10,6 %. Solo på nivå 1 är tufft enligt reglerna; hjältarna är byggda för att spela i sällskap.
+Första striden **solo** mot två Bandits (Fighter, egen hjälte: 72,4 % med Tough, 60,4 % med Savage Attacker) (som i 2024 har exakt dessa värden), 1000 frön, enkel taktik med klassförmågor: Liria 70,4 %, Sigrun 63,9 %, Pip 38,5 %, Brodd 34,2 %, Solveig 10,6 %. Solo på nivå 1 är tufft enligt reglerna; hjältarna är byggda för att spela i sällskap.
 
 ## Verifierat
 

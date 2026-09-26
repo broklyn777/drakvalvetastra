@@ -9,7 +9,7 @@ export type Attributes = {
 };
 export type RaceId = 'human' | 'elf' | 'dwarf' | 'halfling';
 export type ClassId = 'warrior' | 'mage' | 'thief' | 'cleric' | 'ranger' | 'paladin';
-export type PregenId = 'sigrun' | 'brodd' | 'pip' | 'liria' | 'alma';
+export type PregenId = 'sigrun' | 'brodd' | 'pip' | 'liria' | 'solveig';
 export type TalentId = 'iron' | 'keen' | 'supply' | 'savage';
 export type Dice = [number, number, number];
 export type DamageType = 'Hugg' | 'Stick' | 'Kross' | 'Eld' | 'Riv';
